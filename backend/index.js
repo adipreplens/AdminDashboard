@@ -387,9 +387,13 @@ function parseQuestionData(row, headers) {
       'question': ['text', 'question', 'question_text', 'questiontext', 'question text', 'questiontext'],
       'question_text': ['text', 'question', 'question_text', 'questiontext', 'question text', 'questiontext'],
       
-      // Options variations
-      'options': ['options', 'option', 'choices', 'choice', 'option_a', 'option_b', 'option_c', 'option_d'],
-      'choices': ['options', 'option', 'choices', 'choice', 'option_a', 'option_b', 'option_c', 'option_d'],
+      // Options variations - including individual option columns
+      'options': ['options', 'option', 'choices', 'choice', 'option_a', 'option_b', 'option_c', 'option_d', 'optiona', 'optionb', 'optionc', 'optiond'],
+      'choices': ['options', 'option', 'choices', 'choice', 'option_a', 'option_b', 'option_c', 'option_d', 'optiona', 'optionb', 'optionc', 'optiond'],
+      'optiona': ['optiona', 'option_a', 'option a', 'a', 'choicea'],
+      'optionb': ['optionb', 'option_b', 'option b', 'b', 'choiceb'],
+      'optionc': ['optionc', 'option_c', 'option c', 'c', 'choicec'],
+      'optiond': ['optiond', 'option_d', 'option d', 'd', 'choiced'],
       
       // Answer variations
       'answer': ['answer', 'correct_answer', 'correctanswer', 'correct answer', 'solution', 'key'],
@@ -439,8 +443,8 @@ function parseQuestionData(row, headers) {
     // Extract data using found column names
     const questionData = {
       text: row[foundColumns.text] || row[foundColumns.question] || 'Question text not found',
-      options: parseOptions(row[foundColumns.options] || row[foundColumns.choices]),
-      answer: row[foundColumns.answer] || row[foundColumns.correct_answer] || 'Answer not found',
+      options: parseOptionsFromIndividualColumns(row, headers) || parseOptions(row[foundColumns.options] || row[foundColumns.choices]),
+      answer: parseAnswerFromOptions(row[foundColumns.answer] || row[foundColumns.correct_answer], row, headers),
       subject: row[foundColumns.subject] || row[foundColumns.topic] || 'general',
       exam: row[foundColumns.exam] || row[foundColumns.exam_type] || 'general',
       difficulty: row[foundColumns.difficulty] || row[foundColumns.level] || 'medium',
@@ -454,6 +458,75 @@ function parseQuestionData(row, headers) {
   } catch (error) {
     throw new Error(`Error parsing row: ${error.message}`);
   }
+}
+
+// Helper function to parse options from individual option columns (optionA, optionB, etc.)
+function parseOptionsFromIndividualColumns(row, headers) {
+  const optionColumns = [];
+  
+  // Look for individual option columns
+  headers.forEach(header => {
+    const headerLower = header.toLowerCase().trim();
+    if (headerLower.includes('option') || headerLower.includes('choice')) {
+      optionColumns.push(header);
+    }
+  });
+  
+  if (optionColumns.length > 0) {
+    // Sort columns to maintain order (optionA, optionB, optionC, optionD)
+    optionColumns.sort();
+    
+    const options = [];
+    optionColumns.forEach(column => {
+      if (row[column] && row[column].toString().trim()) {
+        options.push(row[column].toString().trim());
+      }
+    });
+    
+    return options;
+  }
+  
+  return null; // No individual option columns found
+}
+
+// Helper function to parse answer when it references option letters/names
+function parseAnswerFromOptions(answerText, row, headers) {
+  if (!answerText) return 'Answer not found';
+  
+  const answerStr = answerText.toString().toLowerCase().trim();
+  
+  // If answer is already the actual text, return it
+  if (answerStr.length > 10) {
+    return answerText.toString().trim();
+  }
+  
+  // If answer references option letters (A, B, C, D)
+  if (answerStr.includes('option') || answerStr.includes('choice')) {
+    const optionColumns = [];
+    headers.forEach(header => {
+      const headerLower = header.toLowerCase().trim();
+      if (headerLower.includes('option') || headerLower.includes('choice')) {
+        optionColumns.push(header);
+      }
+    });
+    
+    if (optionColumns.length > 0) {
+      optionColumns.sort();
+      
+      // Extract the option letter/number from answer
+      let optionIndex = -1;
+      if (answerStr.includes('a') || answerStr.includes('1')) optionIndex = 0;
+      else if (answerStr.includes('b') || answerStr.includes('2')) optionIndex = 1;
+      else if (answerStr.includes('c') || answerStr.includes('3')) optionIndex = 2;
+      else if (answerStr.includes('d') || answerStr.includes('4')) optionIndex = 3;
+      
+      if (optionIndex >= 0 && optionIndex < optionColumns.length) {
+        return row[optionColumns[optionIndex]] || answerText.toString().trim();
+      }
+    }
+  }
+  
+  return answerText.toString().trim();
 }
 
 // Helper function to parse options from different formats
