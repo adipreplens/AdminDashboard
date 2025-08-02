@@ -1328,19 +1328,13 @@ export default function Home() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex justify-end space-x-4">
-                  <button
-                    type="button"
-                    className="px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"
-                  >
-                    Save as Draft
-                  </button>
+                <div className="flex justify-end">
                   <button
                     type="submit"
                     disabled={creatingQuestion}
-                    className="px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-8 py-3 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
-                    {creatingQuestion ? 'Submitting...' : 'Submit for Review'}
+                    {creatingQuestion ? 'Submitting...' : 'Submit Question'}
                   </button>
                 </div>
               </form>
