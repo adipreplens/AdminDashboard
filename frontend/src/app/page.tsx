@@ -329,7 +329,18 @@ export default function Home() {
       .replace(/\\sum/g, '∑')
       .replace(/\\int/g, '∫');
     
-    setQuestionForm({...questionForm, text: questionForm.text + ' ' + mathText});
+    const textarea = document.querySelector('textarea[name="questionText"]') as HTMLTextAreaElement;
+    if (textarea) {
+      const cursorPos = textarea.selectionStart;
+      const newText = questionForm.text.substring(0, cursorPos) + ' ' + mathText + questionForm.text.substring(cursorPos);
+      setQuestionForm({...questionForm, text: newText});
+      
+      // Restore cursor position after insertion
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
+      }, 0);
+    }
     setLatexPreview(latexCode);
   };
 
@@ -366,26 +377,47 @@ export default function Home() {
       
       const newText = questionForm.text.substring(0, start) + formattedText + questionForm.text.substring(end);
       setQuestionForm({...questionForm, text: newText});
+      
+      // Restore cursor position after formatting
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
+      }, 0);
     }
   };
 
   // Option formatting functions
   const formatOptionText = (optionIndex: number, format: string) => {
-    const options = questionForm.options.split('\n');
-    const optionText = options[optionIndex] || '';
+    const optionTextareas = document.querySelectorAll('textarea');
+    const optionTextarea = optionTextareas[optionIndex + 1] as HTMLTextAreaElement; // +1 because first is question text
     
-    let formattedText = '';
-    switch (format) {
-      case 'bold':
-        formattedText = `**${optionText}**`;
-        break;
-      case 'italic':
-        formattedText = `*${optionText}*`;
-        break;
+    if (optionTextarea) {
+      const start = optionTextarea.selectionStart;
+      const end = optionTextarea.selectionEnd;
+      const selectedText = optionTextarea.value.substring(start, end);
+      
+      let formattedText = '';
+      switch (format) {
+        case 'bold':
+          formattedText = `**${selectedText}**`;
+          break;
+        case 'italic':
+          formattedText = `*${selectedText}*`;
+          break;
+      }
+      
+      const options = questionForm.options.split('\n');
+      const currentOption = options[optionIndex] || '';
+      const newOption = currentOption.substring(0, start) + formattedText + currentOption.substring(end);
+      options[optionIndex] = newOption;
+      setQuestionForm({...questionForm, options: options.join('\n')});
+      
+      // Restore cursor position after formatting
+      setTimeout(() => {
+        optionTextarea.focus();
+        optionTextarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
+      }, 0);
     }
-    
-    options[optionIndex] = formattedText;
-    setQuestionForm({...questionForm, options: options.join('\n')});
   };
 
   const handleOptionImageUpload = async (optionIndex: number) => {
@@ -425,10 +457,30 @@ export default function Home() {
   const handleOptionMathInsert = (optionIndex: number) => {
     const mathFormula = prompt('Enter math formula (e.g., x^2, \\frac{a}{b}):');
     if (mathFormula) {
-      const options = questionForm.options.split('\n');
-      const currentOption = options[optionIndex] || '';
-      options[optionIndex] = currentOption + ` \\[${mathFormula}\\]`;
-      setQuestionForm({...questionForm, options: options.join('\n')});
+      const optionTextareas = document.querySelectorAll('textarea');
+      const optionTextarea = optionTextareas[optionIndex + 1] as HTMLTextAreaElement;
+      
+      if (optionTextarea) {
+        const cursorPos = optionTextarea.selectionStart;
+        const options = questionForm.options.split('\n');
+        const currentOption = options[optionIndex] || '';
+        const mathText = mathFormula
+          .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')
+          .replace(/\\sqrt\{([^}]+)\}/g, '√$1')
+          .replace(/x\^(\d+)/g, 'x^$1')
+          .replace(/\\pi/g, 'π')
+          .replace(/\\infty/g, '∞');
+        
+        const newOption = currentOption.substring(0, cursorPos) + ' ' + mathText + currentOption.substring(cursorPos);
+        options[optionIndex] = newOption;
+        setQuestionForm({...questionForm, options: options.join('\n')});
+        
+        // Restore cursor position after insertion
+        setTimeout(() => {
+          optionTextarea.focus();
+          optionTextarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
+        }, 0);
+      }
     }
   };
 
