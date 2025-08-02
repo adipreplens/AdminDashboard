@@ -402,55 +402,136 @@ async function saveQuestions(results, errors, filePath, res) {
   }
 }
 
-// Smart data parser that adapts to different formats
+// Ultra-flexible data parser that accepts ANY format
 function parseQuestionData(row, headers) {
   try {
-    // Map common column names to our standard format
+    console.log('Parsing row with headers:', headers);
+    console.log('Row data:', row);
+    
+    // Ultra-flexible column mapping - accepts ANY column name
     const columnMapping = {
-      // Question text variations
-      'text': ['text', 'question', 'question_text', 'questiontext', 'question text', 'questiontext'],
-      'question': ['text', 'question', 'question_text', 'questiontext', 'question text', 'questiontext'],
-      'question_text': ['text', 'question', 'question_text', 'questiontext', 'question text', 'questiontext'],
+      // Question text - ANY column that might contain the question
+      'text': [
+        'text', 'question', 'question_text', 'questiontext', 'question text', 'questiontext',
+        'q', 'qt', 'questiontext', 'question_text', 'questiontext', 'question text',
+        'problem', 'problem_text', 'problemtext', 'problem text',
+        'content', 'description', 'desc', 'details', 'info', 'information',
+        'statement', 'prompt', 'query', 'inquiry', 'ask', 'questionnaire',
+        'mcq', 'multiple choice', 'multiplechoice', 'multiple_choice',
+        'title', 'heading', 'header', 'name', 'label', 'caption'
+      ],
       
-      // Options variations - including individual option columns
-      'options': ['options', 'option', 'choices', 'choice', 'option_a', 'option_b', 'option_c', 'option_d', 'optiona', 'optionb', 'optionc', 'optiond'],
-      'choices': ['options', 'option', 'choices', 'choice', 'option_a', 'option_b', 'option_c', 'option_d', 'optiona', 'optionb', 'optionc', 'optiond'],
-      'optiona': ['optiona', 'option_a', 'option a', 'a', 'choicea'],
-      'optionb': ['optionb', 'option_b', 'option b', 'b', 'choiceb'],
-      'optionc': ['optionc', 'option_c', 'option c', 'c', 'choicec'],
-      'optiond': ['optiond', 'option_d', 'option d', 'd', 'choiced'],
+      // Options - ANY column that might contain options
+      'options': [
+        'options', 'option', 'choices', 'choice', 'option_a', 'option_b', 'option_c', 'option_d',
+        'optiona', 'optionb', 'optionc', 'optiond', 'a', 'b', 'c', 'd',
+        'choice_a', 'choice_b', 'choice_c', 'choice_d', 'choicea', 'choiceb', 'choicec', 'choiced',
+        'opt_a', 'opt_b', 'opt_c', 'opt_d', 'opta', 'optb', 'optc', 'optd',
+        'alternative', 'alternatives', 'possibility', 'possibilities',
+        'selection', 'selections', 'pick', 'picks', 'choose', 'chooses',
+        'answer_a', 'answer_b', 'answer_c', 'answer_d', 'answera', 'answerb', 'answerc', 'answerd'
+      ],
       
-      // Answer variations
-      'answer': ['answer', 'correct_answer', 'correctanswer', 'correct answer', 'solution', 'key'],
-      'correct_answer': ['answer', 'correct_answer', 'correctanswer', 'correct answer', 'solution', 'key'],
+      // Answer - ANY column that might contain the correct answer
+      'answer': [
+        'answer', 'correct_answer', 'correctanswer', 'correct answer', 'solution', 'key',
+        'correct', 'right', 'right_answer', 'rightanswer', 'right answer',
+        'key_answer', 'keyanswer', 'key answer', 'solution_answer', 'solutionanswer',
+        'correct_option', 'correctoption', 'correct option', 'right_option', 'rightoption',
+        'correct_choice', 'correctchoice', 'correct choice', 'right_choice', 'rightchoice',
+        'correct_a', 'correct_b', 'correct_c', 'correct_d', 'correcta', 'correctb', 'correctc', 'correctd',
+        'right_a', 'right_b', 'right_c', 'right_d', 'righta', 'rightb', 'rightc', 'rightd',
+        'key_a', 'key_b', 'key_c', 'key_d', 'keya', 'keyb', 'keyc', 'keyd',
+        'solution_a', 'solution_b', 'solution_c', 'solution_d', 'solutiona', 'solutionb', 'solutionc', 'solutiond'
+      ],
       
-      // Subject variations
-      'subject': ['subject', 'topic', 'category', 'subject_name', 'subjectname'],
-      'topic': ['subject', 'topic', 'category', 'subject_name', 'subjectname'],
+      // Subject - ANY column that might contain subject/topic
+      'subject': [
+        'subject', 'topic', 'category', 'subject_name', 'subjectname',
+        'sub', 'subj', 'top', 'cat', 'categ', 'category_name', 'categoryname',
+        'field', 'area', 'domain', 'discipline', 'branch', 'stream',
+        'course', 'module', 'unit', 'section', 'chapter', 'lesson',
+        'subject_area', 'subjectarea', 'topic_area', 'topicarea',
+        'subject_category', 'subjectcategory', 'topic_category', 'topiccategory'
+      ],
       
-      // Exam variations
-      'exam': ['exam', 'exam_type', 'examtype', 'exam type', 'test', 'test_type'],
-      'exam_type': ['exam', 'exam_type', 'examtype', 'exam type', 'test', 'test_type'],
+      // Exam - ANY column that might contain exam type
+      'exam': [
+        'exam', 'exam_type', 'examtype', 'exam type', 'test', 'test_type',
+        'examination', 'examination_type', 'examinationtype', 'examination type',
+        'test_type', 'testtype', 'test type', 'assessment', 'assessment_type',
+        'quiz', 'quiz_type', 'quiztype', 'quiz type', 'paper', 'paper_type',
+        'exam_name', 'examname', 'test_name', 'testname', 'assessment_name',
+        'exam_category', 'examcategory', 'test_category', 'testcategory',
+        'exam_level', 'examlevel', 'test_level', 'testlevel',
+        'exam_board', 'examboard', 'test_board', 'testboard'
+      ],
       
-      // Difficulty variations
-      'difficulty': ['difficulty', 'level', 'complexity', 'difficulty_level', 'difficultylevel'],
-      'level': ['difficulty', 'level', 'complexity', 'difficulty_level', 'difficultylevel'],
+      // Difficulty - ANY column that might contain difficulty level
+      'difficulty': [
+        'difficulty', 'level', 'complexity', 'difficulty_level', 'difficultylevel',
+        'diff', 'lev', 'comp', 'complex', 'hard', 'hardness', 'hard_level',
+        'easy', 'easiness', 'easy_level', 'medium', 'medium_level',
+        'simple', 'simplicity', 'simple_level', 'tough', 'toughness',
+        'challenging', 'challenge', 'challenge_level', 'advanced', 'advanced_level',
+        'basic', 'basic_level', 'intermediate', 'intermediate_level',
+        'beginner', 'beginner_level', 'expert', 'expert_level'
+      ],
       
-      // Tags variations
-      'tags': ['tags', 'tag', 'keywords', 'keyword', 'topics', 'topic'],
-      'tag': ['tags', 'tag', 'keywords', 'keyword', 'topics', 'topic'],
+      // Tags - ANY column that might contain tags/keywords
+      'tags': [
+        'tags', 'tag', 'keywords', 'keyword', 'topics', 'topic',
+        'keyword', 'keywords', 'key_word', 'key_words', 'key_word', 'key_words',
+        'label', 'labels', 'labeling', 'categorization', 'categorize',
+        'classification', 'classify', 'group', 'grouping', 'cluster',
+        'theme', 'themes', 'thematic', 'concept', 'concepts', 'conceptual',
+        'category', 'categories', 'categ', 'categorization', 'categorize',
+        'type', 'types', 'typing', 'classification', 'classify',
+        'genre', 'genres', 'style', 'styles', 'format', 'formats'
+      ],
       
-      // Marks variations
-      'marks': ['marks', 'mark', 'points', 'point', 'score', 'weight'],
-      'points': ['marks', 'mark', 'points', 'point', 'score', 'weight'],
+      // Marks - ANY column that might contain marks/points
+      'marks': [
+        'marks', 'mark', 'points', 'point', 'score', 'weight',
+        'marking', 'pointing', 'scoring', 'weighting', 'value', 'values',
+        'grade', 'grades', 'grading', 'rating', 'ratings', 'rating',
+        'credit', 'credits', 'credit_value', 'creditvalue', 'credit value',
+        'weightage', 'weight_age', 'weightage_value', 'weightagevalue',
+        'allocation', 'allocations', 'allocation_value', 'allocationvalue',
+        'distribution', 'distributions', 'distribution_value', 'distributionvalue'
+      ],
       
-      // Time limit variations
-      'timeLimit': ['timelimit', 'time_limit', 'time limit', 'duration', 'time', 'timeallowed'],
-      'time_limit': ['timelimit', 'time_limit', 'time limit', 'duration', 'time', 'timeallowed'],
+      // Time limit - ANY column that might contain time duration
+      'timeLimit': [
+        'timelimit', 'time_limit', 'time limit', 'duration', 'time', 'timeallowed',
+        'time_allowed', 'timeallowed', 'time allowed', 'time_permitted',
+        'time_permit', 'timepermit', 'time permit', 'time_given',
+        'timegiven', 'time given', 'time_allocated', 'timeallocated',
+        'time_allocated', 'timeallocated', 'time allocated', 'time_assigned',
+        'timeassigned', 'time assigned', 'time_provided', 'timeprovided',
+        'time_provide', 'timeprovide', 'time provide', 'time_set',
+        'timeset', 'time set', 'time_frame', 'timeframe', 'time frame',
+        'time_period', 'timeperiod', 'time period', 'time_span',
+        'timespan', 'time span', 'time_range', 'timerange', 'time range'
+      ],
       
-      // Bloom's taxonomy variations
-      'blooms': ['blooms', 'bloom', 'bloomstaxonomy', 'bloom\'s', 'taxonomy', 'cognitive_level'],
-      'bloom': ['blooms', 'bloom', 'bloomstaxonomy', 'bloom\'s', 'taxonomy', 'cognitive_level']
+      // Bloom's taxonomy - ANY column that might contain cognitive level
+      'blooms': [
+        'blooms', 'bloom', 'bloomstaxonomy', 'bloom\'s', 'taxonomy', 'cognitive_level',
+        'bloom_taxonomy', 'bloomtaxonomy', 'bloom taxonomy', 'cognitive',
+        'cognitive_level', 'cognitivelevel', 'cognitive level', 'thinking',
+        'thinking_level', 'thinkinglevel', 'thinking level', 'mental',
+        'mental_level', 'mentallevel', 'mental level', 'intellectual',
+        'intellectual_level', 'intellectuallevel', 'intellectual level',
+        'learning', 'learning_level', 'learninglevel', 'learning level',
+        'understanding', 'understanding_level', 'understandinglevel',
+        'comprehension', 'comprehension_level', 'comprehensionlevel',
+        'application', 'application_level', 'applicationlevel',
+        'analysis', 'analysis_level', 'analysislevel',
+        'synthesis', 'synthesis_level', 'synthesislevel',
+        'evaluation', 'evaluation_level', 'evaluationlevel',
+        'creation', 'creation_level', 'creationlevel'
+      ]
     };
 
     // Find the actual column names in the uploaded file
@@ -465,18 +546,18 @@ function parseQuestionData(row, headers) {
       }
     });
 
-    // Extract data using found column names
+    // Ultra-flexible data extraction - tries multiple approaches
     const questionData = {
-      text: row[foundColumns.text] || row[foundColumns.question] || 'Question text not found',
-      options: parseOptionsFromIndividualColumns(row, headers) || parseOptions(row[foundColumns.options] || row[foundColumns.choices]),
-      answer: parseAnswerFromOptions(row[foundColumns.answer] || row[foundColumns.correct_answer], row, headers),
-      subject: row[foundColumns.subject] || row[foundColumns.topic] || 'general',
-      exam: row[foundColumns.exam] || row[foundColumns.exam_type] || 'general',
-      difficulty: row[foundColumns.difficulty] || row[foundColumns.level] || 'medium',
-      tags: parseTags(row[foundColumns.tags] || row[foundColumns.tag] || ''),
-      marks: parseInt(row[foundColumns.marks] || row[foundColumns.points]) || 1,
-      timeLimit: parseInt(row[foundColumns.timeLimit] || row[foundColumns.time_limit]) || 60,
-      blooms: row[foundColumns.blooms] || row[foundColumns.bloom] || 'remember'
+      text: extractText(row, headers, foundColumns),
+      options: extractOptions(row, headers, foundColumns),
+      answer: extractAnswer(row, headers, foundColumns),
+      subject: extractSubject(row, headers, foundColumns),
+      exam: extractExam(row, headers, foundColumns),
+      difficulty: extractDifficulty(row, headers, foundColumns),
+      tags: extractTags(row, headers, foundColumns),
+      marks: extractMarks(row, headers, foundColumns),
+      timeLimit: extractTimeLimit(row, headers, foundColumns),
+      blooms: extractBlooms(row, headers, foundColumns)
     };
 
     return questionData;
@@ -484,6 +565,217 @@ function parseQuestionData(row, headers) {
     console.error('Error parsing question data:', error);
     throw new Error(`Error parsing row: ${error.message}`);
   }
+}
+
+// Helper extraction functions for ultra-flexible parsing
+function extractText(row, headers, foundColumns) {
+  // Try found column first
+  if (foundColumns.text && row[foundColumns.text]) {
+    return row[foundColumns.text].toString().trim();
+  }
+  
+  // Try any column that might contain question text
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('question') || headerLower.includes('text') || 
+        headerLower.includes('problem') || headerLower.includes('content') ||
+        headerLower.includes('q') || headerLower.includes('desc')) {
+      if (row[header] && row[header].toString().trim().length > 10) {
+        return row[header].toString().trim();
+      }
+    }
+  }
+  
+  // Try first non-empty column that looks like text
+  for (const header of headers) {
+    if (row[header] && row[header].toString().trim().length > 10) {
+      return row[header].toString().trim();
+    }
+  }
+  
+  return 'Question text not found';
+}
+
+function extractOptions(row, headers, foundColumns) {
+  // Try individual option columns first
+  const individualOptions = parseOptionsFromIndividualColumns(row, headers);
+  if (individualOptions && individualOptions.length > 0) {
+    return individualOptions;
+  }
+  
+  // Try found options column
+  if (foundColumns.options && row[foundColumns.options]) {
+    return parseOptions(row[foundColumns.options]);
+  }
+  
+  // Try any column that might contain options
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('option') || headerLower.includes('choice') ||
+        headerLower.includes('a') || headerLower.includes('b') ||
+        headerLower.includes('c') || headerLower.includes('d')) {
+      if (row[header]) {
+        const options = parseOptions(row[header]);
+        if (options.length > 0) {
+          return options;
+        }
+      }
+    }
+  }
+  
+  return ['Option A', 'Option B', 'Option C', 'Option D'];
+}
+
+function extractAnswer(row, headers, foundColumns) {
+  // Try found answer column first
+  if (foundColumns.answer && row[foundColumns.answer]) {
+    return parseAnswerFromOptions(row[foundColumns.answer], row, headers);
+  }
+  
+  // Try any column that might contain answer
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('answer') || headerLower.includes('correct') ||
+        headerLower.includes('solution') || headerLower.includes('key')) {
+      if (row[header]) {
+        return parseAnswerFromOptions(row[header], row, headers);
+      }
+    }
+  }
+  
+  return 'Answer not found';
+}
+
+function extractSubject(row, headers, foundColumns) {
+  if (foundColumns.subject && row[foundColumns.subject]) {
+    return row[foundColumns.subject].toString().trim();
+  }
+  
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('subject') || headerLower.includes('topic') ||
+        headerLower.includes('category') || headerLower.includes('field')) {
+      if (row[header]) {
+        return row[header].toString().trim();
+      }
+    }
+  }
+  
+  return 'general';
+}
+
+function extractExam(row, headers, foundColumns) {
+  if (foundColumns.exam && row[foundColumns.exam]) {
+    return row[foundColumns.exam].toString().trim();
+  }
+  
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('exam') || headerLower.includes('test') ||
+        headerLower.includes('assessment') || headerLower.includes('quiz')) {
+      if (row[header]) {
+        return row[header].toString().trim();
+      }
+    }
+  }
+  
+  return 'general';
+}
+
+function extractDifficulty(row, headers, foundColumns) {
+  if (foundColumns.difficulty && row[foundColumns.difficulty]) {
+    return row[foundColumns.difficulty].toString().trim();
+  }
+  
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('difficulty') || headerLower.includes('level') ||
+        headerLower.includes('complexity')) {
+      if (row[header]) {
+        return row[header].toString().trim();
+      }
+    }
+  }
+  
+  return 'medium';
+}
+
+function extractTags(row, headers, foundColumns) {
+  if (foundColumns.tags && row[foundColumns.tags]) {
+    return parseTags(row[foundColumns.tags]);
+  }
+  
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('tag') || headerLower.includes('keyword')) {
+      if (row[header]) {
+        return parseTags(row[header]);
+      }
+    }
+  }
+  
+  return [];
+}
+
+function extractMarks(row, headers, foundColumns) {
+  if (foundColumns.marks && row[foundColumns.marks]) {
+    const marks = parseInt(row[foundColumns.marks]);
+    return isNaN(marks) ? 1 : marks;
+  }
+  
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('mark') || headerLower.includes('point') ||
+        headerLower.includes('score')) {
+      if (row[header]) {
+        const marks = parseInt(row[header]);
+        if (!isNaN(marks)) {
+          return marks;
+        }
+      }
+    }
+  }
+  
+  return 1;
+}
+
+function extractTimeLimit(row, headers, foundColumns) {
+  if (foundColumns.timeLimit && row[foundColumns.timeLimit]) {
+    const time = parseInt(row[foundColumns.timeLimit]);
+    return isNaN(time) ? 60 : time;
+  }
+  
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('time') || headerLower.includes('duration')) {
+      if (row[header]) {
+        const time = parseInt(row[header]);
+        if (!isNaN(time)) {
+          return time;
+        }
+      }
+    }
+  }
+  
+  return 60;
+}
+
+function extractBlooms(row, headers, foundColumns) {
+  if (foundColumns.blooms && row[foundColumns.blooms]) {
+    return row[foundColumns.blooms].toString().trim();
+  }
+  
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('bloom') || headerLower.includes('cognitive') ||
+        headerLower.includes('taxonomy')) {
+      if (row[header]) {
+        return row[header].toString().trim();
+      }
+    }
+  }
+  
+  return 'remember';
 }
 
 // Helper function to parse options from individual option columns (optionA, optionB, etc.)
