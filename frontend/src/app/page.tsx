@@ -966,101 +966,188 @@ export default function Home() {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-gray-900">Questions Management</h2>
             <div className="bg-white rounded-lg shadow p-6">
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">🔍 Search & Filter Questions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Search Questions</label>
+                    <input
+                      type="text"
+                      placeholder="Type to search..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Subject</label>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      value={filters.subject}
+                      onChange={(e) => setFilters({...filters, subject: e.target.value})}
+                      style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                    >
+                      <option value="">All Subjects</option>
+                      <option value="mathematics">Mathematics</option>
+                      <option value="physics">Physics</option>
+                      <option value="chemistry">Chemistry</option>
+                      <option value="biology">Biology</option>
+                      <option value="english">English</option>
+                      <option value="general-knowledge">General Knowledge</option>
+                      <option value="reasoning">Reasoning</option>
+                      <option value="computer-science">Computer Science</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Exam</label>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      value={filters.exam}
+                      onChange={(e) => setFilters({...filters, exam: e.target.value})}
+                      style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                    >
+                      <option value="">All Exams</option>
+                      <option value="rrb-alp">RRB ALP</option>
+                      <option value="rrb-je">RRB JE</option>
+                      <option value="rrb-technician">RRB Technician</option>
+                      <option value="rrb-ntpc">RRB NTPC</option>
+                      <option value="ssc-cgl">SSC CGL</option>
+                      <option value="ssc-chsl">SSC CHSL</option>
+                      <option value="bank-po">Bank PO</option>
+                      <option value="bank-clerk">Bank Clerk</option>
+                      <option value="upsc">UPSC</option>
+                      <option value="general">General</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Difficulty</label>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      value={filters.difficulty}
+                      onChange={(e) => setFilters({...filters, difficulty: e.target.value})}
+                      style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                    >
+                      <option value="">All Difficulties</option>
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Active Filters Display */}
+                {(searchTerm || filters.subject || filters.exam || filters.difficulty) && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <h4 className="text-sm font-medium text-blue-800 mb-2">Active Filters:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {searchTerm && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Search: "{searchTerm}" <button onClick={() => setSearchTerm('')} className="ml-1 text-blue-600 hover:text-blue-800">×</button>
+                        </span>
+                      )}
+                      {filters.subject && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Subject: {filters.subject} <button onClick={() => setFilters({...filters, subject: ''})} className="ml-1 text-green-600 hover:text-green-800">×</button>
+                        </span>
+                      )}
+                      {filters.exam && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          Exam: {filters.exam} <button onClick={() => setFilters({...filters, exam: ''})} className="ml-1 text-purple-600 hover:text-purple-800">×</button>
+                        </span>
+                      )}
+                      {filters.difficulty && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          Difficulty: {filters.difficulty} <button onClick={() => setFilters({...filters, difficulty: ''})} className="ml-1 text-orange-600 hover:text-orange-800">×</button>
+                        </span>
+                      )}
+                      <button 
+                        onClick={() => {
+                          setSearchTerm('');
+                          setFilters({subject: '', exam: '', difficulty: '', blooms: ''});
+                        }}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200"
+                      >
+                        Clear All Filters
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
               <div className="flex justify-between items-center mb-6">
-                <div className="flex space-x-4">
-                  <input
-                    type="text"
-                    placeholder="Search questions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <select 
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    value={filters.subject}
-                    onChange={(e) => setFilters({...filters, subject: e.target.value})}
-                  >
-                    <option value="">All Subjects</option>
-                    <option value="mathematics">Mathematics</option>
-                    <option value="physics">Physics</option>
-                    <option value="chemistry">Chemistry</option>
-                    <option value="biology">Biology</option>
-                    <option value="english">English</option>
-                    <option value="general-knowledge">General Knowledge</option>
-                    <option value="reasoning">Reasoning</option>
-                    <option value="computer-science">Computer Science</option>
-                  </select>
-                  <select 
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    value={filters.exam}
-                    onChange={(e) => setFilters({...filters, exam: e.target.value})}
-                  >
-                    <option value="">All Exams</option>
-                    <option value="rrb-alp">RRB ALP</option>
-                    <option value="rrb-je">RRB JE</option>
-                    <option value="rrb-technician">RRB Technician</option>
-                    <option value="rrb-ntpc">RRB NTPC</option>
-                    <option value="ssc-cgl">SSC CGL</option>
-                    <option value="ssc-chsl">SSC CHSL</option>
-                    <option value="bank-po">Bank PO</option>
-                    <option value="bank-clerk">Bank Clerk</option>
-                    <option value="upsc">UPSC</option>
-                    <option value="general">General</option>
-                  </select>
-                  <select 
-                    className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    value={filters.exam}
-                    onChange={(e) => setFilters({...filters, exam: e.target.value})}
-                  >
-                    <option value="">All Exams</option>
-                    <option value="rrb-alp">RRB ALP</option>
-                    <option value="rrb-je">RRB JE</option>
-                    <option value="rrb-technician">RRB Technician</option>
-                    <option value="rrb-ntpc">RRB NTPC</option>
-                    <option value="ssc-cgl">SSC CGL</option>
-                    <option value="ssc-chsl">SSC CHSL</option>
-                    <option value="bank-po">Bank PO</option>
-                    <option value="bank-clerk">Bank Clerk</option>
-                    <option value="upsc">UPSC</option>
-                    <option value="general">General</option>
-                  </select>
+                <div className="flex items-center space-x-4">
+                  <h3 className="text-lg font-semibold text-gray-900">📝 Questions ({filteredQuestions.length})</h3>
+                  <span className="text-sm text-gray-500">Total: {questions.length}</span>
                 </div>
                 <button 
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center space-x-2"
                   onClick={() => setCurrentView('create')}
                 >
-                  Add New Question
+                  <span>➕</span>
+                  <span>Add New Question</span>
                 </button>
               </div>
 
               <div className="space-y-4">
                 {filteredQuestions.length > 0 ? (
                   filteredQuestions.map((question) => (
-                    <div key={question._id} className="border border-gray-200 rounded-lg p-4">
+                    <div key={question._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <h3 className="font-medium text-gray-900 mb-2">{question.text}</h3>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                            <div>
-                              <span className="font-medium">Subject:</span> {question.subject}
-                            </div>
-                            <div>
-                              <span className="font-medium">Exam:</span> {question.exam}
-                            </div>
-                            <div>
-                              <span className="font-medium">Difficulty:</span> {question.difficulty}
-                            </div>
-                            <div>
-                              <span className="font-medium">Marks:</span> {question.marks}
+                          <div className="flex items-start justify-between mb-3">
+                            <h3 className="font-medium text-gray-900 text-lg leading-relaxed">{question.text}</h3>
+                            <div className="flex items-center space-x-2 ml-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                                question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {question.difficulty}
+                              </span>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {question.marks} mark{question.marks > 1 ? 's' : ''}
+                              </span>
                             </div>
                           </div>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div className="flex items-center">
+                              <span className="text-gray-500 mr-2">📚</span>
+                              <span className="font-medium text-gray-700">{question.subject}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <span className="text-gray-500 mr-2">🎯</span>
+                              <span className="font-medium text-gray-700">{question.exam}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <span className="text-gray-500 mr-2">⏱️</span>
+                              <span className="font-medium text-gray-700">{question.timeLimit}s</span>
+                            </div>
+                            <div className="flex items-center">
+                              <span className="text-gray-500 mr-2">🏷️</span>
+                              <span className="font-medium text-gray-700">{question.blooms}</span>
+                            </div>
+                          </div>
+                          
+                          {question.tags && question.tags.length > 0 && (
+                            <div className="mt-3">
+                              <div className="flex flex-wrap gap-1">
+                                {question.tags.map((tag, index) => (
+                                  <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex space-x-2">
-                          <button className="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded">
-                            Edit
+                        <div className="flex space-x-2 ml-4">
+                          <button className="px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md border border-blue-200 hover:border-blue-300 transition-colors">
+                            ✏️ Edit
                           </button>
-                          <button className="px-3 py-1 text-red-600 hover:bg-red-50 rounded">
-                            Delete
+                          <button className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md border border-red-200 hover:border-red-300 transition-colors">
+                            🗑️ Delete
                           </button>
                         </div>
                       </div>
