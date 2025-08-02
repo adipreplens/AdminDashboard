@@ -2167,19 +2167,19 @@ export default function Home() {
                 <div className="space-y-4">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total Questions</span>
-                    <span className="font-semibold">{questions.length}</span>
+                    <span className="font-semibold">{questions?.length || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Subjects Covered</span>
-                    <span className="font-semibold">{new Set(questions.map(q => q.subject)).size}</span>
+                    <span className="font-semibold">{questions ? new Set(questions.map(q => q.subject)).size : 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Exams Covered</span>
-                    <span className="font-semibold">{new Set(questions.map(q => q.exam)).size}</span>
+                    <span className="font-semibold">{questions ? new Set(questions.map(q => q.exam)).size : 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total Marks</span>
-                    <span className="font-semibold">{questions.reduce((sum, q) => sum + q.marks, 0)}</span>
+                    <span className="font-semibold">{questions ? questions.reduce((sum, q) => sum + q.marks, 0) : 0}</span>
                   </div>
                 </div>
               </div>
@@ -2188,6 +2188,14 @@ export default function Home() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Difficulty Distribution</h3>
                 <div className="space-y-4">
                   {(() => {
+                    if (!questions || questions.length === 0) {
+                      return (
+                        <div className="text-center text-gray-500 py-4">
+                          No questions available
+                        </div>
+                      );
+                    }
+                    
                     const easyCount = questions.filter(q => q.difficulty === 'easy').length;
                     const mediumCount = questions.filter(q => q.difficulty === 'medium').length;
                     const hardCount = questions.filter(q => q.difficulty === 'hard').length;
@@ -2209,7 +2217,7 @@ export default function Home() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Avg Time/Question</span>
-                          <span className="font-semibold">{questions.length > 0 ? Math.round(questions.reduce((sum, q) => sum + q.timeLimit, 0) / questions.length) : 0}s</span>
+                          <span className="font-semibold">{total > 0 ? Math.round(questions.reduce((sum, q) => sum + q.timeLimit, 0) / total) : 0}s</span>
                         </div>
                       </>
                     );
@@ -2221,6 +2229,14 @@ export default function Home() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Subject Distribution</h3>
                 <div className="space-y-4">
                   {(() => {
+                    if (!questions || questions.length === 0) {
+                      return (
+                        <div className="text-center text-gray-500 py-4">
+                          No questions available
+                        </div>
+                      );
+                    }
+                    
                     const subjectCounts: { [key: string]: number } = {};
                     questions.forEach(q => {
                       subjectCounts[q.subject] = (subjectCounts[q.subject] || 0) + 1;
@@ -2243,6 +2259,14 @@ export default function Home() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Exam Distribution</h3>
                 <div className="space-y-4">
                   {(() => {
+                    if (!questions || questions.length === 0) {
+                      return (
+                        <div className="text-center text-gray-500 py-4">
+                          No questions available
+                        </div>
+                      );
+                    }
+                    
                     const examCounts: { [key: string]: number } = {};
                     questions.forEach(q => {
                       examCounts[q.exam] = (examCounts[q.exam] || 0) + 1;
@@ -2275,19 +2299,19 @@ export default function Home() {
                 <div className="space-y-4">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total Questions</span>
-                    <span className="font-semibold">{questions.length}</span>
+                    <span className="font-semibold">{questions?.length || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Subjects Covered</span>
-                    <span className="font-semibold text-blue-600">{new Set(questions.map(q => q.subject)).size}</span>
+                    <span className="font-semibold text-blue-600">{questions ? new Set(questions.map(q => q.subject)).size : 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Exams Covered</span>
-                    <span className="font-semibold text-orange-600">{new Set(questions.map(q => q.exam)).size}</span>
+                    <span className="font-semibold text-orange-600">{questions ? new Set(questions.map(q => q.exam)).size : 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total Marks</span>
-                    <span className="font-semibold text-green-600">{questions.reduce((sum, q) => sum + q.marks, 0)}</span>
+                    <span className="font-semibold text-green-600">{questions ? questions.reduce((sum, q) => sum + q.marks, 0) : 0}</span>
                   </div>
                 </div>
               </div>
@@ -2297,6 +2321,14 @@ export default function Home() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Difficulty Analysis</h3>
                 <div className="space-y-4">
                   {(() => {
+                    if (!questions || questions.length === 0) {
+                      return (
+                        <div className="text-center text-gray-500 py-4">
+                          No questions available
+                        </div>
+                      );
+                    }
+                    
                     const easyCount = questions.filter(q => q.difficulty === 'easy').length;
                     const mediumCount = questions.filter(q => q.difficulty === 'medium').length;
                     const hardCount = questions.filter(q => q.difficulty === 'hard').length;
@@ -2318,7 +2350,7 @@ export default function Home() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600">Avg Time/Question</span>
-                          <span className="font-semibold">{questions.length > 0 ? Math.round(questions.reduce((sum, q) => sum + q.timeLimit, 0) / questions.length) : 0}s</span>
+                          <span className="font-semibold">{total > 0 ? Math.round(questions.reduce((sum, q) => sum + q.timeLimit, 0) / total) : 0}s</span>
                         </div>
                       </>
                     );
@@ -2330,22 +2362,36 @@ export default function Home() {
               <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Content Coverage</h3>
                 <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">RRB Exams</span>
-                    <span className="font-semibold">{questions.filter(q => q.exam.includes('rrb')).length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">SSC Exams</span>
-                    <span className="font-semibold">{questions.filter(q => q.exam.includes('ssc')).length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Bank Exams</span>
-                    <span className="font-semibold">{questions.filter(q => q.exam.includes('bank')).length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Other Exams</span>
-                    <span className="font-semibold">{questions.filter(q => !q.exam.includes('rrb') && !q.exam.includes('ssc') && !q.exam.includes('bank')).length}</span>
-                  </div>
+                  {(() => {
+                    if (!questions || questions.length === 0) {
+                      return (
+                        <div className="text-center text-gray-500 py-4">
+                          No questions available
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">RRB Exams</span>
+                          <span className="font-semibold">{questions.filter(q => q.exam && q.exam.includes('rrb')).length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">SSC Exams</span>
+                          <span className="font-semibold">{questions.filter(q => q.exam && q.exam.includes('ssc')).length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Bank Exams</span>
+                          <span className="font-semibold">{questions.filter(q => q.exam && q.exam.includes('bank')).length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Other Exams</span>
+                          <span className="font-semibold">{questions.filter(q => q.exam && !q.exam.includes('rrb') && !q.exam.includes('ssc') && !q.exam.includes('bank')).length}</span>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
