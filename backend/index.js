@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const S3Service = require('./s3Service');
 require('dotenv').config();
 
 const app = express();
@@ -34,7 +35,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/preplensadmin';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://shreyashchaudhary81:hfOYtcA7zywQsxJP@preplensadmin.mmrvf6s.mongodb.net/Preplensadmin?retryWrites=true&w=majority&appName=Preplensadmin';
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -135,7 +136,9 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'PrepLens Admin API is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    s3: process.env.AWS_ACCESS_KEY_ID ? 'configured' : 'not configured'
   });
 });
 
@@ -236,9 +239,16 @@ app.delete('/questions/:id', async (req, res) => {
 
     // Delete associated image if exists
     if (question.imageUrl) {
-      const imagePath = path.join(__dirname, '..', question.imageUrl);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
+      try {
+        // Try to delete from S3 first
+        const filename = question.imageUrl.split('/').pop();
+        await S3Service.deleteFile(filename);
+      } catch (error) {
+        // Fallback to local file deletion
+        const imagePath = path.join(__dirname, '..', question.imageUrl);
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+        }
       }
     }
 
@@ -333,8 +343,23 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'No image uploaded' });
     }
 
-    // Return the file path for storage
-    const imageUrl = `/uploads/${req.file.filename}`;
+    let imageUrl;
+
+    // Try to upload to S3 if configured
+    if (process.env.AWS_ACCESS_KEY_ID) {
+      try {
+        const s3Url = await S3Service.uploadFile(req.file.path, req.file.filename);
+        imageUrl = s3Url;
+        // Clean up local file after S3 upload
+        fs.unlinkSync(req.file.path);
+      } catch (error) {
+        console.error('S3 upload failed, falling back to local storage:', error);
+        imageUrl = `/uploads/${req.file.filename}`;
+      }
+    } else {
+      // Fallback to local storage
+      imageUrl = `/uploads/${req.file.filename}`;
+    }
 
     res.json({
       message: 'Image uploaded successfully',
@@ -351,11 +376,23 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
 app.delete('/upload-image/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
-    const imagePath = path.join(__dirname, 'uploads', filename);
     
+    // Try to delete from S3 first
+    if (process.env.AWS_ACCESS_KEY_ID) {
+      try {
+        await S3Service.deleteFile(filename);
+        res.json({ message: 'Image deleted successfully from S3' });
+        return;
+      } catch (error) {
+        console.error('S3 deletion failed, trying local file:', error);
+      }
+    }
+
+    // Fallback to local file deletion
+    const imagePath = path.join(__dirname, 'uploads', filename);
     if (fs.existsSync(imagePath)) {
       fs.unlinkSync(imagePath);
-      res.json({ message: 'Image deleted successfully' });
+      res.json({ message: 'Image deleted successfully from local storage' });
     } else {
       res.status(404).json({ error: 'Image not found' });
     }
@@ -416,7 +453,7 @@ app.post('/auth/register', async (req, res) => {
   }
 });
 
-// Serve uploaded files
+// Serve uploaded files (fallback for local files)
 app.use('/uploads', express.static('uploads'));
 
 // Error handling middleware
@@ -433,4 +470,6 @@ app.use('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`PrepLens Admin Backend running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
+  console.log(`MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
+  console.log(`S3: ${process.env.AWS_ACCESS_KEY_ID ? 'Configured' : 'Not configured'}`);
 }); 
