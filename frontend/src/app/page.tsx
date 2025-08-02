@@ -642,6 +642,7 @@ export default function Home() {
   };
 
   const handleOptionImageUpload = async (optionIndex: number) => {
+    console.log('Image upload called for option index:', optionIndex);
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -660,10 +661,15 @@ export default function Home() {
           if (response.ok) {
             const data = await response.json();
             const imageUrl = data.imageUrl;
+            console.log('Image uploaded successfully, URL:', imageUrl);
+            console.log('Adding to option index:', optionIndex);
             
             // Update the specific option with the image
             setQuestionForm(prevForm => {
-              const optionsArray = prevForm.options.split('\n');
+              console.log('Previous form options:', prevForm.options);
+              const optionsArray = [...prevForm.options.split('\n')];
+              console.log('Options array before update:', optionsArray);
+              console.log('Target option index:', optionIndex);
               
               // Ensure we have enough options
               while (optionsArray.length <= optionIndex) {
@@ -672,11 +678,17 @@ export default function Home() {
               
               // Add image to the specific option
               const currentOption = optionsArray[optionIndex] || '';
+              console.log('Current option content:', currentOption);
               optionsArray[optionIndex] = currentOption + `\n![Image](${imageUrl})`;
+              console.log('Updated option content:', optionsArray[optionIndex]);
+              console.log('Final options array:', optionsArray);
+              
+              const newOptionsString = optionsArray.join('\n');
+              console.log('New options string:', newOptionsString);
               
               return {
                 ...prevForm,
-                options: optionsArray.join('\n')
+                options: newOptionsString
               };
             });
           } else {
@@ -1409,7 +1421,10 @@ export default function Home() {
                             </button>
                             <button 
                               type="button" 
-                              onClick={() => handleOptionImageUpload(index)} 
+                              onClick={() => {
+                                console.log('Button clicked for option:', option, 'index:', index);
+                                handleOptionImageUpload(index);
+                              }} 
                               className="p-1 hover:bg-gray-200 rounded" 
                               title="Insert Image"
                               data-option-index={index}
