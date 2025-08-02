@@ -179,7 +179,7 @@ app.get('/statistics', async (req, res) => {
 // Get all questions
 app.get('/questions', async (req, res) => {
   try {
-    const { page = 1, limit = 10, subject, exam, difficulty, blooms, search } = req.query;
+    const { page = 1, limit = 100, subject, exam, difficulty, blooms, search } = req.query;
     
     let query = {};
     
@@ -209,6 +209,37 @@ app.get('/questions', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching questions:', error);
+    res.status(500).json({ error: 'Failed to fetch questions' });
+  }
+});
+
+// Get all questions without pagination (for admin dashboard)
+app.get('/questions/all', async (req, res) => {
+  try {
+    const { subject, exam, difficulty, blooms, search } = req.query;
+    
+    let query = {};
+    
+    if (subject) query.subject = subject;
+    if (exam) query.exam = exam;
+    if (difficulty) query.difficulty = difficulty;
+    if (blooms) query.blooms = blooms;
+    if (search) {
+      query.$or = [
+        { text: { $regex: search, $options: 'i' } },
+        { subject: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const questions = await Question.find(query)
+      .sort({ createdAt: -1 });
+
+    res.json({
+      questions,
+      total: questions.length
+    });
+  } catch (error) {
+    console.error('Error fetching all questions:', error);
     res.status(500).json({ error: 'Failed to fetch questions' });
   }
 });

@@ -121,7 +121,8 @@ export default function Home() {
 
   const fetchQuestions = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/questions`);
+      // Use the all questions endpoint for admin dashboard
+      const response = await fetch(`${API_BASE_URL}/questions/all`);
       if (response.ok) {
         const data = await response.json();
         setQuestions(data.questions || data);
