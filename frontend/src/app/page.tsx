@@ -1175,22 +1175,18 @@ export default function Home() {
               <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">RRB Exams</h3>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <span className="font-medium">RRB JE</span>
-                    <span className="text-sm text-gray-600">Active</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <span className="font-medium">RRB ALP</span>
-                    <span className="text-sm text-gray-600">Active</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <span className="font-medium">RRB Technician</span>
-                    <span className="text-sm text-gray-600">Active</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <span className="font-medium">RRB NTPC</span>
-                    <span className="text-sm text-gray-600">Active</span>
-                  </div>
+                  {['rrb-je', 'rrb-alp', 'rrb-technician', 'rrb-ntpc'].map((exam) => {
+                    const examQuestions = questions.filter(q => q.exam === exam);
+                    return (
+                      <div key={exam} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                        <span className="font-medium">{exam.toUpperCase().replace('-', ' ')}</span>
+                        <div className="text-right">
+                          <span className="text-sm text-gray-600">{examQuestions.length} questions</span>
+                          <div className="text-xs text-blue-600">Active</div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1198,18 +1194,18 @@ export default function Home() {
               <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">SSC Exams</h3>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <span className="font-medium">SSC CGL</span>
-                    <span className="text-sm text-gray-600">Active</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <span className="font-medium">SSC CHSL</span>
-                    <span className="text-sm text-gray-600">Active</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <span className="font-medium">SSC JE</span>
-                    <span className="text-sm text-gray-600">Active</span>
-                  </div>
+                  {['ssc-cgl', 'ssc-chsl'].map((exam) => {
+                    const examQuestions = questions.filter(q => q.exam === exam);
+                    return (
+                      <div key={exam} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                        <span className="font-medium">{exam.toUpperCase().replace('-', ' ')}</span>
+                        <div className="text-right">
+                          <span className="text-sm text-gray-600">{examQuestions.length} questions</span>
+                          <div className="text-xs text-green-600">Active</div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1219,23 +1215,26 @@ export default function Home() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
                     <span className="font-medium">Practice Questions</span>
-                    <span className="text-sm text-gray-600">1,250</span>
+                    <span className="text-sm text-gray-600">{questions.length}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                    <span className="font-medium">Section Tests</span>
-                    <span className="text-sm text-gray-600">45</span>
+                    <span className="font-medium">Subjects Covered</span>
+                    <span className="text-sm text-gray-600">{new Set(questions.map(q => q.subject)).size}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                    <span className="font-medium">Mock Tests</span>
-                    <span className="text-sm text-gray-600">12</span>
+                    <span className="font-medium">Total Marks</span>
+                    <span className="text-sm text-gray-600">{questions.reduce((sum, q) => sum + q.marks, 0)}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                    <span className="font-medium">Test Series</span>
-                    <span className="text-sm text-gray-600">8</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                    <span className="font-medium">Live Tests</span>
-                    <span className="text-sm text-gray-600">3</span>
+                    <span className="font-medium">Avg Difficulty</span>
+                    <span className="text-sm text-gray-600">
+                      {questions.length > 0 ? 
+                        questions.reduce((sum, q) => {
+                          const difficultyScore = q.difficulty === 'easy' ? 1 : q.difficulty === 'medium' ? 2 : 3;
+                          return sum + difficultyScore;
+                        }, 0) / questions.length : 0
+                      }
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1250,90 +1249,101 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Key Metrics */}
               <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">User Engagement</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Question Statistics</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Daily Active Users</span>
-                    <span className="font-semibold">2,847</span>
+                    <span className="text-gray-600">Total Questions</span>
+                    <span className="font-semibold">{questions.length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Monthly Active Users</span>
-                    <span className="font-semibold">12,456</span>
+                    <span className="text-gray-600">Subjects Covered</span>
+                    <span className="font-semibold">{new Set(questions.map(q => q.subject)).size}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Avg. Session Time</span>
-                    <span className="font-semibold">24 min</span>
+                    <span className="text-gray-600">Exams Covered</span>
+                    <span className="font-semibold">{new Set(questions.map(q => q.exam)).size}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Questions Attempted</span>
-                    <span className="font-semibold">45,234</span>
+                    <span className="text-gray-600">Total Marks</span>
+                    <span className="font-semibold">{questions.reduce((sum, q) => sum + q.marks, 0)}</span>
                   </div>
                 </div>
               </div>
 
               <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Difficulty Distribution</h3>
                 <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Avg. Accuracy</span>
-                    <span className="font-semibold text-green-600">68%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Avg. Time/Question</span>
-                    <span className="font-semibold">45 sec</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Completion Rate</span>
-                    <span className="font-semibold text-blue-600">72%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Retention Rate</span>
-                    <span className="font-semibold text-purple-600">85%</span>
-                  </div>
+                  {(() => {
+                    const easyCount = questions.filter(q => q.difficulty === 'easy').length;
+                    const mediumCount = questions.filter(q => q.difficulty === 'medium').length;
+                    const hardCount = questions.filter(q => q.difficulty === 'hard').length;
+                    const total = questions.length;
+                    
+                    return (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Easy</span>
+                          <span className="font-semibold text-green-600">{easyCount} ({total > 0 ? Math.round((easyCount/total)*100) : 0}%)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Medium</span>
+                          <span className="font-semibold text-yellow-600">{mediumCount} ({total > 0 ? Math.round((mediumCount/total)*100) : 0}%)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Hard</span>
+                          <span className="font-semibold text-red-600">{hardCount} ({total > 0 ? Math.round((hardCount/total)*100) : 0}%)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Avg Time/Question</span>
+                          <span className="font-semibold">{questions.length > 0 ? Math.round(questions.reduce((sum, q) => sum + q.timeLimit, 0) / questions.length) : 0}s</span>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
               <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Popular Subjects</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Subject Distribution</h3>
                 <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Quantitative Aptitude</span>
-                    <span className="font-semibold">42%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Reasoning</span>
-                    <span className="font-semibold">28%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">English</span>
-                    <span className="font-semibold">18%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">General Knowledge</span>
-                    <span className="font-semibold">12%</span>
-                  </div>
+                  {(() => {
+                    const subjectCounts: { [key: string]: number } = {};
+                    questions.forEach(q => {
+                      subjectCounts[q.subject] = (subjectCounts[q.subject] || 0) + 1;
+                    });
+                    const sortedSubjects = Object.entries(subjectCounts)
+                      .sort(([,a], [,b]) => (b as number) - (a as number))
+                      .slice(0, 4);
+                    
+                    return sortedSubjects.map(([subject, count]) => (
+                      <div key={subject} className="flex justify-between">
+                        <span className="text-gray-600">{subject.charAt(0).toUpperCase() + subject.slice(1)}</span>
+                        <span className="font-semibold">{count} ({questions.length > 0 ? Math.round((count as number/questions.length)*100) : 0}%)</span>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
 
               <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Exam Preferences</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Exam Distribution</h3>
                 <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">SSC CGL</span>
-                    <span className="font-semibold">38%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">RRB JE</span>
-                    <span className="font-semibold">25%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">SSC CHSL</span>
-                    <span className="font-semibold">22%</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">RRB ALP</span>
-                    <span className="font-semibold">15%</span>
-                  </div>
+                  {(() => {
+                    const examCounts: { [key: string]: number } = {};
+                    questions.forEach(q => {
+                      examCounts[q.exam] = (examCounts[q.exam] || 0) + 1;
+                    });
+                    const sortedExams = Object.entries(examCounts)
+                      .sort(([,a], [,b]) => (b as number) - (a as number))
+                      .slice(0, 4);
+                    
+                    return sortedExams.map(([exam, count]) => (
+                      <div key={exam} className="flex justify-between">
+                        <span className="text-gray-600">{exam.toUpperCase().replace('-', ' ')}</span>
+                        <span className="font-semibold">{count} ({questions.length > 0 ? Math.round((count as number/questions.length)*100) : 0}%)</span>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
             </div>
@@ -1345,76 +1355,82 @@ export default function Home() {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* User Statistics */}
+              {/* Question Statistics */}
               <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">User Statistics</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Question Statistics</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Total Users</span>
-                    <span className="font-semibold">15,234</span>
+                    <span className="text-gray-600">Total Questions</span>
+                    <span className="font-semibold">{questions.length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Free Users</span>
-                    <span className="font-semibold text-blue-600">12,456</span>
+                    <span className="text-gray-600">Subjects Covered</span>
+                    <span className="font-semibold text-blue-600">{new Set(questions.map(q => q.subject)).size}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">PrepLens+ Users</span>
-                    <span className="font-semibold text-orange-600">2,778</span>
+                    <span className="text-gray-600">Exams Covered</span>
+                    <span className="font-semibold text-orange-600">{new Set(questions.map(q => q.exam)).size}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">New This Month</span>
-                    <span className="font-semibold text-green-600">1,234</span>
+                    <span className="text-gray-600">Total Marks</span>
+                    <span className="font-semibold text-green-600">{questions.reduce((sum, q) => sum + q.marks, 0)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Referral Program */}
+              {/* Difficulty Analysis */}
               <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Earn While You Learn</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Difficulty Analysis</h3>
                 <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Referrals</span>
-                    <span className="font-semibold">3,456</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Successful Referrals</span>
-                    <span className="font-semibold text-green-600">1,234</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Total Earnings</span>
-                    <span className="font-semibold text-purple-600">₹36,900</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Avg. Referral Value</span>
-                    <span className="font-semibold">₹29.90</span>
-                  </div>
+                  {(() => {
+                    const easyCount = questions.filter(q => q.difficulty === 'easy').length;
+                    const mediumCount = questions.filter(q => q.difficulty === 'medium').length;
+                    const hardCount = questions.filter(q => q.difficulty === 'hard').length;
+                    const total = questions.length;
+                    
+                    return (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Easy Questions</span>
+                          <span className="font-semibold text-green-600">{easyCount}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Medium Questions</span>
+                          <span className="font-semibold text-yellow-600">{mediumCount}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Hard Questions</span>
+                          <span className="font-semibold text-red-600">{hardCount}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Avg Time/Question</span>
+                          <span className="font-semibold">{questions.length > 0 ? Math.round(questions.reduce((sum, q) => sum + q.timeLimit, 0) / questions.length) : 0}s</span>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 
-              {/* User Activity */}
+              {/* Content Coverage */}
               <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-                <div className="space-y-3">
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">New PrepLens+ Signup</span>
-                      <span className="text-xs text-gray-500">2 min ago</span>
-                    </div>
-                    <p className="text-xs text-gray-600">User ID: U12345</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Content Coverage</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">RRB Exams</span>
+                    <span className="font-semibold">{questions.filter(q => q.exam.includes('rrb')).length}</span>
                   </div>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Referral Bonus Earned</span>
-                      <span className="text-xs text-gray-500">15 min ago</span>
-                    </div>
-                    <p className="text-xs text-gray-600">₹29.90 earned</p>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">SSC Exams</span>
+                    <span className="font-semibold">{questions.filter(q => q.exam.includes('ssc')).length}</span>
                   </div>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Test Completion</span>
-                      <span className="text-xs text-gray-500">1 hour ago</span>
-                    </div>
-                    <p className="text-xs text-gray-600">SSC CGL Mock Test</p>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Bank Exams</span>
+                    <span className="font-semibold">{questions.filter(q => q.exam.includes('bank')).length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Other Exams</span>
+                    <span className="font-semibold">{questions.filter(q => !q.exam.includes('rrb') && !q.exam.includes('ssc') && !q.exam.includes('bank')).length}</span>
                   </div>
                 </div>
               </div>
@@ -1429,23 +1445,23 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Revenue Overview */}
               <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Overview</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Question Value Overview</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Total Revenue</span>
-                    <span className="font-semibold text-green-600">₹8,32,456</span>
+                    <span className="text-gray-600">Total Questions</span>
+                    <span className="font-semibold text-green-600">{questions.length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">This Month</span>
-                    <span className="font-semibold text-blue-600">₹1,23,456</span>
+                    <span className="text-gray-600">Total Marks</span>
+                    <span className="font-semibold text-blue-600">{questions.reduce((sum, q) => sum + q.marks, 0)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Last Month</span>
-                    <span className="font-semibold text-purple-600">₹98,765</span>
+                    <span className="text-gray-600">Avg Marks/Question</span>
+                    <span className="font-semibold text-purple-600">{questions.length > 0 ? Math.round((questions.reduce((sum, q) => sum + q.marks, 0) / questions.length) * 10) / 10 : 0}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Growth Rate</span>
-                    <span className="font-semibold text-green-600">+25%</span>
+                    <span className="text-gray-600">Avg Time/Question</span>
+                    <span className="font-semibold text-green-600">{questions.length > 0 ? Math.round(questions.reduce((sum, q) => sum + q.timeLimit, 0) / questions.length) : 0}s</span>
                   </div>
                 </div>
               </div>
