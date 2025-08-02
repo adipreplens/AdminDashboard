@@ -32,6 +32,7 @@ interface Question {
   timeLimit: number;
   blooms: string;
   imageUrl?: string;
+  solution?: string;
 }
 
 export default function Home() {
@@ -1355,63 +1356,130 @@ export default function Home() {
               <div className="space-y-4">
                 {filteredQuestions.length > 0 ? (
                   filteredQuestions.map((question) => (
-                    <div key={question._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between mb-3">
-                            <h3 className="font-medium text-gray-900 text-lg leading-relaxed">{question.text}</h3>
-                            <div className="flex items-center space-x-2 ml-4">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                                question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {question.difficulty}
-                              </span>
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                {question.marks} mark{question.marks > 1 ? 's' : ''}
-                              </span>
+                    <div key={question._id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                      <div className="space-y-4">
+                        {/* Question Header */}
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between mb-3">
+                              <h3 className="font-medium text-gray-900 text-lg leading-relaxed">{question.text}</h3>
+                              <div className="flex items-center space-x-2 ml-4">
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                                  question.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-red-100 text-red-800'
+                                }`}>
+                                  {question.difficulty}
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  {question.marks} mark{question.marks > 1 ? 's' : ''}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                          
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div className="flex items-center">
-                              <span className="text-gray-500 mr-2">📚</span>
-                              <span className="font-medium text-gray-700">{question.subject}</span>
-                            </div>
-                            <div className="flex items-center">
-                              <span className="text-gray-500 mr-2">🎯</span>
-                              <span className="font-medium text-gray-700">{question.exam}</span>
-                            </div>
-                            <div className="flex items-center">
-                              <span className="text-gray-500 mr-2">⏱️</span>
-                              <span className="font-medium text-gray-700">{question.timeLimit}s</span>
-                            </div>
-                            <div className="flex items-center">
-                              <span className="text-gray-500 mr-2">🏷️</span>
-                              <span className="font-medium text-gray-700">{question.blooms}</span>
-                            </div>
+                          <div className="flex space-x-2 ml-4">
+                            <button className="px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md border border-blue-200 hover:border-blue-300 transition-colors">
+                              ✏️ Edit
+                            </button>
+                            <button className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md border border-red-200 hover:border-red-300 transition-colors">
+                              🗑️ Delete
+                            </button>
                           </div>
-                          
+                        </div>
+
+                        {/* Question Details */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-gray-50 p-3 rounded-lg">
+                          <div className="flex items-center">
+                            <span className="text-gray-500 mr-2">📚</span>
+                            <span className="font-medium text-gray-700">{question.subject}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="text-gray-500 mr-2">🎯</span>
+                            <span className="font-medium text-gray-700">{question.exam}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="text-gray-500 mr-2">⏱️</span>
+                            <span className="font-medium text-gray-700">{question.timeLimit}s</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="text-gray-500 mr-2">🏷️</span>
+                            <span className="font-medium text-gray-700">{question.blooms}</span>
+                          </div>
+                        </div>
+
+                        {/* Options Section */}
+                        <div className="bg-blue-50 p-4 rounded-lg">
+                          <h4 className="font-medium text-blue-800 mb-3">📋 Answer Options:</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {question.options && question.options.map((option, index) => (
+                              <div key={index} className="flex items-center space-x-2">
+                                <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
+                                  {String.fromCharCode(65 + index)}
+                                </span>
+                                <span className={`flex-1 p-2 rounded border ${
+                                  option === question.answer ? 'bg-green-100 border-green-300 text-green-800' : 'bg-white border-gray-200'
+                                }`}>
+                                  {option}
+                                  {option === question.answer && (
+                                    <span className="ml-2 text-green-600">✓ Correct</span>
+                                  )}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Correct Answer */}
+                        <div className="bg-green-50 p-4 rounded-lg">
+                          <h4 className="font-medium text-green-800 mb-2">✅ Correct Answer:</h4>
+                          <p className="text-green-700 font-medium">{question.answer}</p>
+                        </div>
+
+                        {/* Solution Section */}
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                          <h4 className="font-medium text-purple-800 mb-2">💡 Solution:</h4>
+                          <div className="text-purple-700">
+                            {question.solution ? (
+                              <p>{question.solution}</p>
+                            ) : (
+                              <p className="text-gray-500 italic">No solution provided</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Additional Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Tags */}
                           {question.tags && question.tags.length > 0 && (
-                            <div className="mt-3">
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <h4 className="font-medium text-gray-800 mb-2">🏷️ Tags:</h4>
                               <div className="flex flex-wrap gap-1">
                                 {question.tags.map((tag, index) => (
-                                  <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                                  <span key={index} className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs">
                                     {tag}
                                   </span>
                                 ))}
                               </div>
                             </div>
                           )}
+
+                          {/* Image */}
+                          {question.imageUrl && (
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <h4 className="font-medium text-gray-800 mb-2">🖼️ Question Image:</h4>
+                              <img 
+                                src={question.imageUrl} 
+                                alt="Question" 
+                                className="max-w-full h-auto rounded border"
+                                style={{ maxHeight: '200px' }}
+                              />
+                            </div>
+                          )}
                         </div>
-                        <div className="flex space-x-2 ml-4">
-                          <button className="px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md border border-blue-200 hover:border-blue-300 transition-colors">
-                            ✏️ Edit
-                          </button>
-                          <button className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md border border-red-200 hover:border-red-300 transition-colors">
-                            🗑️ Delete
-                          </button>
+
+                        {/* Question ID */}
+                        <div className="text-xs text-gray-500 border-t pt-2">
+                          Question ID: {question._id}
                         </div>
                       </div>
                     </div>
