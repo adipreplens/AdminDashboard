@@ -348,7 +348,145 @@ export default function Home() {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-gray-900">Create New Question</h2>
             <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-gray-600">Question creation form will be implemented here.</p>
+              <form className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Question Text
+                    </label>
+                    <textarea
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      rows={4}
+                      placeholder="Enter your question here..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Subject
+                    </label>
+                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                      <option value="">Select Subject</option>
+                      <option value="mathematics">Mathematics</option>
+                      <option value="physics">Physics</option>
+                      <option value="chemistry">Chemistry</option>
+                      <option value="biology">Biology</option>
+                      <option value="english">English</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Exam Type
+                    </label>
+                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                      <option value="">Select Exam</option>
+                      <option value="jee">JEE</option>
+                      <option value="neet">NEET</option>
+                      <option value="gate">GATE</option>
+                      <option value="cat">CAT</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Difficulty
+                    </label>
+                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                      <option value="">Select Difficulty</option>
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Marks
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter marks"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Options (one per line)
+                    </label>
+                    <textarea
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      rows={4}
+                      placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Correct Answer
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter correct answer"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tags (comma separated)
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="tag1, tag2, tag3"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Time Limit (seconds)
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter time limit"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Bloom's Taxonomy
+                  </label>
+                  <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Select Level</option>
+                    <option value="remember">Remember</option>
+                    <option value="understand">Understand</option>
+                    <option value="apply">Apply</option>
+                    <option value="analyze">Analyze</option>
+                    <option value="evaluate">Evaluate</option>
+                    <option value="create">Create</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-end space-x-4">
+                  <button
+                    type="button"
+                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Create Question
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
@@ -357,7 +495,50 @@ export default function Home() {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-gray-900">Bulk Upload Questions</h2>
             <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-gray-600">Bulk upload form will be implemented here.</p>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Upload CSV File
+                  </label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <div className="space-y-4">
+                      <div className="text-4xl">📁</div>
+                      <div>
+                        <p className="text-sm text-gray-600">
+                          Drag and drop your CSV file here, or click to browse
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Supported format: CSV with columns: text, options, answer, subject, exam, difficulty, tags, marks, timeLimit, blooms
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                      >
+                        Choose File
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-blue-800 mb-2">CSV Format Example:</h3>
+                  <pre className="text-xs text-blue-700 bg-blue-100 p-2 rounded">
+{`text,options,answer,subject,exam,difficulty,tags,marks,timeLimit,blooms
+"What is 2+2?",["4","5","6","7"],"4",mathematics,jee,easy,"basic math,addition",2,30,remember
+"Solve for x: x²-4=0",["x=±2","x=2","x=-2","x=0"],"x=±2",mathematics,jee,medium,"algebra,quadratic",3,60,apply`}
+                  </pre>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                  >
+                    Upload Questions
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -366,7 +547,66 @@ export default function Home() {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-gray-900">Questions Management</h2>
             <div className="bg-white rounded-lg shadow p-6">
-              <p className="text-gray-600">Questions list will be implemented here.</p>
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex space-x-4">
+                  <input
+                    type="text"
+                    placeholder="Search questions..."
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <select className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Subjects</option>
+                    <option value="mathematics">Mathematics</option>
+                    <option value="physics">Physics</option>
+                    <option value="chemistry">Chemistry</option>
+                    <option value="biology">Biology</option>
+                  </select>
+                </div>
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  Add New Question
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {questions.length > 0 ? (
+                  questions.map((question) => (
+                    <div key={question._id} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900 mb-2">{question.text}</h3>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
+                            <div>
+                              <span className="font-medium">Subject:</span> {question.subject}
+                            </div>
+                            <div>
+                              <span className="font-medium">Exam:</span> {question.exam}
+                            </div>
+                            <div>
+                              <span className="font-medium">Difficulty:</span> {question.difficulty}
+                            </div>
+                            <div>
+                              <span className="font-medium">Marks:</span> {question.marks}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button className="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded">
+                            Edit
+                          </button>
+                          <button className="px-3 py-1 text-red-600 hover:bg-red-50 rounded">
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="text-4xl mb-4">📝</div>
+                    <p className="text-gray-600">No questions found. Create your first question!</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
