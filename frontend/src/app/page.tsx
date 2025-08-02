@@ -386,21 +386,43 @@ export default function Home() {
 
   // Option formatting functions
   const formatOptionText = (optionIndex: number, format: string) => {
-    const options = questionForm.options.split('\n');
-    const optionText = options[optionIndex] || '';
+    const optionDivs = document.querySelectorAll('[contenteditable]');
+    const optionDiv = optionDivs[optionIndex + 1]; // +1 because first is question text
     
-    let formattedText = '';
-    switch (format) {
-      case 'bold':
-        formattedText = `<strong>${optionText}</strong>`;
-        break;
-      case 'italic':
-        formattedText = `<em>${optionText}</em>`;
-        break;
+    if (optionDiv && window.getSelection) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const selectedText = range.toString();
+        
+        if (selectedText) {
+          let formattedText = '';
+          switch (format) {
+            case 'bold':
+              formattedText = `<strong>${selectedText}</strong>`;
+              break;
+            case 'italic':
+              formattedText = `<em>${selectedText}</em>`;
+              break;
+          }
+          
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = formattedText;
+          const fragment = document.createDocumentFragment();
+          while (tempDiv.firstChild) {
+            fragment.appendChild(tempDiv.firstChild);
+          }
+          
+          range.deleteContents();
+          range.insertNode(fragment);
+          
+          // Update the form state
+          const options = questionForm.options.split('\n');
+          options[optionIndex] = optionDiv.innerHTML;
+          setQuestionForm({...questionForm, options: options.join('\n')});
+        }
+      }
     }
-    
-    options[optionIndex] = formattedText;
-    setQuestionForm({...questionForm, options: options.join('\n')});
   };
 
   const handleOptionImageUpload = async (optionIndex: number) => {
@@ -919,6 +941,7 @@ export default function Home() {
                           className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white min-h-[200px]"
                           contentEditable
                           suppressContentEditableWarning={true}
+                          dangerouslySetInnerHTML={{ __html: questionForm.text }}
                           onInput={(e) => {
                             const target = e.currentTarget as HTMLElement;
                             setQuestionForm({...questionForm, text: target.innerHTML});
@@ -927,9 +950,7 @@ export default function Home() {
                           onDrop={handleDropImage}
                           onDragOver={(e) => e.preventDefault()}
                           style={{ color: '#171717', backgroundColor: '#ffffff' }}
-                        >
-                          {questionForm.text}
-                        </div>
+                        />
                       </div>
                       
                       {/* Image Upload Zone */}
@@ -1131,6 +1152,7 @@ export default function Home() {
                             className="w-full p-3 border-0 focus:ring-0 resize-none text-gray-900 bg-white min-h-[60px]"
                             contentEditable
                             suppressContentEditableWarning={true}
+                            dangerouslySetInnerHTML={{ __html: questionForm.options.split('\n')[index] || '' }}
                             onInput={(e) => {
                               const target = e.currentTarget as HTMLElement;
                               const options = questionForm.options.split('\n');
@@ -1138,9 +1160,7 @@ export default function Home() {
                               setQuestionForm({...questionForm, options: options.join('\n')});
                             }}
                             style={{ color: '#171717', backgroundColor: '#ffffff' }}
-                          >
-                            {questionForm.options.split('\n')[index] || ''}
-                          </div>
+                          />
                         </div>
 
                       </div>
@@ -1214,14 +1234,13 @@ export default function Home() {
                       className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white min-h-[120px]"
                       contentEditable
                       suppressContentEditableWarning={true}
+                      dangerouslySetInnerHTML={{ __html: questionForm.solution || '' }}
                       onInput={(e) => {
                         const target = e.currentTarget as HTMLElement;
                         setQuestionForm({...questionForm, solution: target.innerHTML});
                       }}
                       style={{ color: '#171717', backgroundColor: '#ffffff' }}
-                    >
-                      {questionForm.solution || ''}
-                    </div>
+                    />
                   </div>
                 </div>
 
