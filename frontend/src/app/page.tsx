@@ -754,9 +754,15 @@ export default function Home() {
                   <input
                     type="text"
                     placeholder="Search questions..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   />
-                  <select className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                  <select 
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    value={filters.subject}
+                    onChange={(e) => setFilters({...filters, subject: e.target.value})}
+                  >
                     <option value="">All Subjects</option>
                     <option value="mathematics">Mathematics</option>
                     <option value="physics">Physics</option>
@@ -764,14 +770,17 @@ export default function Home() {
                     <option value="biology">Biology</option>
                   </select>
                 </div>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                <button 
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  onClick={() => setCurrentView('create')}
+                >
                   Add New Question
                 </button>
               </div>
 
               <div className="space-y-4">
-                {questions.length > 0 ? (
-                  questions.map((question) => (
+                {filteredQuestions.length > 0 ? (
+                  filteredQuestions.map((question) => (
                     <div key={question._id} className="border border-gray-200 rounded-lg p-4">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
@@ -805,7 +814,9 @@ export default function Home() {
                 ) : (
                   <div className="text-center py-8">
                     <div className="text-4xl mb-4">📝</div>
-                    <p className="text-gray-600">No questions found. Create your first question!</p>
+                    <p className="text-gray-600">
+                      {questions.length > 0 ? 'No questions match your search criteria.' : 'No questions found. Create your first question!'}
+                    </p>
                   </div>
                 )}
               </div>
