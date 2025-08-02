@@ -58,6 +58,10 @@ const questionSchema = new mongoose.Schema({
   timeLimit: { type: Number, required: true },
   blooms: { type: String, required: true },
   imageUrl: { type: String },
+  publishStatus: { type: String, enum: ['draft', 'published'], default: 'draft' },
+  category: { type: String },
+  topic: { type: String },
+  solution: { type: String },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -222,7 +226,15 @@ app.post('/questions', async (req, res) => {
       }
     }
 
-    const question = new Question(questionData);
+    // Set default values for optional fields
+    const question = new Question({
+      ...questionData,
+      publishStatus: questionData.publishStatus || 'draft',
+      category: questionData.category || '',
+      topic: questionData.topic || '',
+      solution: questionData.solution || ''
+    });
+    
     await question.save();
 
     res.status(201).json({ 
@@ -232,6 +244,77 @@ app.post('/questions', async (req, res) => {
   } catch (error) {
     console.error('Error creating question:', error);
     res.status(500).json({ error: 'Failed to create question' });
+  }
+});
+
+// Update question
+app.put('/questions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    
+    // Validate required fields
+    const requiredFields = ['text', 'options', 'answer', 'subject', 'exam', 'difficulty', 'marks', 'timeLimit', 'blooms'];
+    for (const field of requiredFields) {
+      if (!updateData[field]) {
+        return res.status(400).json({ error: `${field} is required` });
+      }
+    }
+
+    // Update the question
+    const updatedQuestion = await Question.findByIdAndUpdate(
+      id,
+      { 
+        ...updateData,
+        updatedAt: new Date()
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedQuestion) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    res.json({ 
+      message: 'Question updated successfully',
+      question: updatedQuestion 
+    });
+  } catch (error) {
+    console.error('Error updating question:', error);
+    res.status(500).json({ error: 'Failed to update question' });
+  }
+});
+
+// Publish/Unpublish question
+app.patch('/questions/:id/publish', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { publishStatus } = req.body;
+    
+    if (!publishStatus || !['published', 'draft'].includes(publishStatus)) {
+      return res.status(400).json({ error: 'Invalid publish status. Must be "published" or "draft"' });
+    }
+
+    const updatedQuestion = await Question.findByIdAndUpdate(
+      id,
+      { 
+        publishStatus,
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!updatedQuestion) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    res.json({ 
+      message: `Question ${publishStatus === 'published' ? 'published' : 'unpublished'} successfully`,
+      question: updatedQuestion 
+    });
+  } catch (error) {
+    console.error('Error updating publish status:', error);
+    res.status(500).json({ error: 'Failed to update publish status' });
   }
 });
 
@@ -455,6 +538,31 @@ function parseQuestionData(row, headers) {
         'subject_category', 'subjectcategory', 'topic_category', 'topiccategory'
       ],
       
+      // Category - ANY column that might contain category
+      'category': [
+        'category', 'cat', 'categ', 'category_name', 'categoryname',
+        'group', 'grouping', 'classification', 'classify', 'type',
+        'category_type', 'categorytype', 'category_group', 'categorygroup',
+        'main_category', 'maincategory', 'primary_category', 'primarycategory',
+        'category_level', 'categorylevel', 'category_hierarchy', 'categoryhierarchy'
+      ],
+      
+      // Topic - ANY column that might contain topic/subtopic
+      'topic': [
+        'topic', 'subtopic', 'topic_name', 'topicname', 'subtopic_name',
+        'subtopicname', 'topic_detail', 'topicdetail', 'topic_specific',
+        'topicspecific', 'topic_area', 'topicarea', 'topic_category',
+        'topiccategory', 'topic_level', 'topiclevel', 'topic_hierarchy',
+        'topichierarchy', 'topic_group', 'topicgroup', 'topic_type',
+        'topictype', 'topic_class', 'topicclass', 'topic_subject',
+        'topicsubject', 'topic_field', 'topicfield', 'topic_domain',
+        'topicdomain', 'topic_branch', 'topicbranch', 'topic_stream',
+        'topicstream', 'topic_course', 'topiccourse', 'topic_module',
+        'topicmodule', 'topic_unit', 'topicunit', 'topic_section',
+        'topicsection', 'topic_chapter', 'topicchapter', 'topic_lesson',
+        'topiclesson'
+      ],
+      
       // Exam - ANY column that might contain exam type
       'exam': [
         'exam', 'exam_type', 'examtype', 'exam type', 'test', 'test_type',
@@ -557,7 +665,11 @@ function parseQuestionData(row, headers) {
       tags: extractTags(row, headers, foundColumns),
       marks: extractMarks(row, headers, foundColumns),
       timeLimit: extractTimeLimit(row, headers, foundColumns),
-      blooms: extractBlooms(row, headers, foundColumns)
+      blooms: extractBlooms(row, headers, foundColumns),
+      publishStatus: 'draft', // Default to draft for bulk uploads
+      category: extractCategory(row, headers, foundColumns),
+      topic: extractTopic(row, headers, foundColumns),
+      solution: extractSolution(row, headers, foundColumns)
     };
 
     return questionData;
@@ -776,6 +888,46 @@ function extractBlooms(row, headers, foundColumns) {
   }
   
   return 'remember';
+}
+
+function extractCategory(row, headers, foundColumns) {
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('category') || headerLower.includes('cat')) {
+      if (row[header]) {
+        return row[header].toString().trim();
+      }
+    }
+  }
+  
+  return '';
+}
+
+function extractTopic(row, headers, foundColumns) {
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('topic') || headerLower.includes('subtopic')) {
+      if (row[header]) {
+        return row[header].toString().trim();
+      }
+    }
+  }
+  
+  return '';
+}
+
+function extractSolution(row, headers, foundColumns) {
+  for (const header of headers) {
+    const headerLower = header.toLowerCase();
+    if (headerLower.includes('solution') || headerLower.includes('explanation') ||
+        headerLower.includes('explain') || headerLower.includes('reasoning')) {
+      if (row[header]) {
+        return row[header].toString().trim();
+      }
+    }
+  }
+  
+  return '';
 }
 
 // Helper function to parse options from individual option columns (optionA, optionB, etc.)
