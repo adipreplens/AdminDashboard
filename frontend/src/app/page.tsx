@@ -954,61 +954,14 @@ export default function Home() {
                   </select>
                 </div>
 
-                {/* Question Type Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Question Type *
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                      <input
-                        type="radio"
-                        name="questionType"
-                        value="multiple-choice"
-                        defaultChecked
-                        className="mr-2"
-                      />
-                      <div>
-                        <div className="font-medium text-sm">Multiple Choice</div>
-                        <div className="text-xs text-gray-500">A, B, C, D options</div>
-                      </div>
-                    </label>
-                    <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                      <input
-                        type="radio"
-                        name="questionType"
-                        value="true-false"
-                        className="mr-2"
-                      />
-                      <div>
-                        <div className="font-medium text-sm">True/False</div>
-                        <div className="text-xs text-gray-500">True or False</div>
-                      </div>
-                    </label>
-                    <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                      <input
-                        type="radio"
-                        name="questionType"
-                        value="fill-blank"
-                        className="mr-2"
-                      />
-                      <div>
-                        <div className="font-medium text-sm">Fill in Blank</div>
-                        <div className="text-xs text-gray-500">Short answer</div>
-                      </div>
-                    </label>
-                    <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                      <input
-                        type="radio"
-                        name="questionType"
-                        value="match-columns"
-                        className="mr-2"
-                      />
-                      <div>
-                        <div className="font-medium text-sm">Match Columns</div>
-                        <div className="text-xs text-gray-500">A-B matching</div>
-                      </div>
-                    </label>
+                {/* Question Type - Multiple Choice Only */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <span className="text-blue-600 mr-2">📋</span>
+                    <div>
+                      <h3 className="text-sm font-medium text-blue-800">Multiple Choice Question</h3>
+                      <p className="text-xs text-blue-600">Select the correct answer from options A, B, C, D</p>
+                    </div>
                   </div>
                 </div>
 
@@ -1017,6 +970,9 @@ export default function Home() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Answer Options *
                   </label>
+                  <p className="text-sm text-gray-600 mb-3">
+                    📝 Enter all 4 options below. Click the radio button next to the correct answer.
+                  </p>
                   <div className="space-y-3">
                     {['A', 'B', 'C', 'D'].map((option, index) => (
                       <div key={index} className="flex items-center space-x-3">
@@ -1078,14 +1034,7 @@ export default function Home() {
                             style={{ color: '#171717', backgroundColor: '#ffffff' }}
                           />
                         </div>
-                        <input
-                          type="number"
-                          className="w-16 p-2 border border-gray-300 rounded text-center text-gray-500"
-                          placeholder="1"
-                          min="0"
-                          value={questionForm.marks || 1}
-                          onChange={(e) => setQuestionForm({...questionForm, marks: e.target.value})}
-                        />
+
                       </div>
                     ))}
                   </div>
@@ -1094,6 +1043,23 @@ export default function Home() {
                       + Add more option
                     </button>
                   </div>
+                </div>
+
+                {/* Question Marks */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Question Marks *
+                  </label>
+                  <input
+                    type="number"
+                    className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="1"
+                    min="1"
+                    value={questionForm.marks || 1}
+                    onChange={(e) => setQuestionForm({...questionForm, marks: e.target.value})}
+                    required
+                    style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                  />
                 </div>
 
                 {/* Solution Section */}
