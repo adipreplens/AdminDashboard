@@ -80,6 +80,7 @@ export default function Home() {
   const [questionImages, setQuestionImages] = useState<string[]>([]);
   const [latexPreview, setLatexPreview] = useState('');
   const [showLatexEditor, setShowLatexEditor] = useState(false);
+  const [currentCategory, setCurrentCategory] = useState('Basic');
 
 
   // Check if user is already logged in
@@ -318,8 +319,17 @@ export default function Home() {
 
   // LaTeX handling functions
   const insertLatex = (latexCode: string) => {
-    // Insert LaTeX with proper HTML formatting
-    const latexTag = `<span class="math-formula">${latexCode}</span>`;
+    // Insert rendered math formula
+    const mathDisplay = latexCode
+      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '<span class="math-formula">$1/$2</span>')
+      .replace(/\\sqrt\{([^}]+)\}/g, '<span class="math-formula">√$1</span>')
+      .replace(/x\^(\d+)/g, '<span class="math-formula">x<sup>$1</sup></span>')
+      .replace(/\\pi/g, '<span class="math-formula">π</span>')
+      .replace(/\\infty/g, '<span class="math-formula">∞</span>')
+      .replace(/\\sum/g, '<span class="math-formula">∑</span>')
+      .replace(/\\int/g, '<span class="math-formula">∫</span>');
+    
+    const latexTag = `<span class="math-formula">${mathDisplay}</span>`;
     setQuestionForm({...questionForm, text: questionForm.text + latexTag});
     setLatexPreview(latexCode);
   };
@@ -330,33 +340,47 @@ export default function Home() {
 
   // Text formatting functions
   const formatText = (format: string) => {
-    const textarea = document.querySelector('textarea[name="questionText"]') as HTMLTextAreaElement;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const selectedText = questionForm.text.substring(start, end);
-      
-      let formattedText = '';
-      switch (format) {
-        case 'bold':
-          formattedText = `<strong>${selectedText}</strong>`;
-          break;
-        case 'italic':
-          formattedText = `<em>${selectedText}</em>`;
-          break;
-        case 'underline':
-          formattedText = `<u>${selectedText}</u>`;
-          break;
-        case 'bullet':
-          formattedText = `\n• ${selectedText}`;
-          break;
-        case 'numbered':
-          formattedText = `\n1. ${selectedText}`;
-          break;
+    const editableDiv = document.querySelector('[contenteditable]') as HTMLElement;
+    if (editableDiv && window.getSelection) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const selectedText = range.toString();
+        
+        if (selectedText) {
+          let formattedText = '';
+          switch (format) {
+            case 'bold':
+              formattedText = `<strong>${selectedText}</strong>`;
+              break;
+            case 'italic':
+              formattedText = `<em>${selectedText}</em>`;
+              break;
+            case 'underline':
+              formattedText = `<u>${selectedText}</u>`;
+              break;
+            case 'bullet':
+              formattedText = `\n• ${selectedText}`;
+              break;
+            case 'numbered':
+              formattedText = `\n1. ${selectedText}`;
+              break;
+          }
+          
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = formattedText;
+          const fragment = document.createDocumentFragment();
+          while (tempDiv.firstChild) {
+            fragment.appendChild(tempDiv.firstChild);
+          }
+          
+          range.deleteContents();
+          range.insertNode(fragment);
+          
+          // Update the form state
+          setQuestionForm({...questionForm, text: editableDiv.innerHTML});
+        }
       }
-      
-      const newText = questionForm.text.substring(0, start) + formattedText + questionForm.text.substring(end);
-      setQuestionForm({...questionForm, text: newText});
     }
   };
 
@@ -476,6 +500,54 @@ export default function Home() {
     if (mathFormula) {
       const currentSolution = questionForm.solution || '';
       setQuestionForm({...questionForm, solution: currentSolution + ` \\[${mathFormula}\\]`});
+    }
+  };
+
+  // Math Editor category functions
+  const getSymbolsForCategory = (category: string): string[] => {
+    switch (category) {
+      case 'Basic':
+        return ['.', '.', '*', '+', '-', '÷', '×', '=', '≠', ':',
+                '∴', ',', "'", '!', ';', '?', 'x̄', 'x⃗', 'ẋ', 'x̃',
+                'x̂', '\\', '/', '_', '|', '|', '[', ']', '{', '}',
+                '⌈', '⌉', '⌊', '⌋', 'π', '∞', '±', '≤', '≥', '≈'];
+      case 'Maths':
+        return ['∫', '∑', '∏', '√', '∛', '∜', 'x²', 'x³', 'xⁿ', 'e',
+                'ln', 'log', 'sin', 'cos', 'tan', 'cot', 'sec', 'csc', 'θ', 'φ',
+                'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ',
+                'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'σ', 'τ', 'υ'];
+      case 'Matrix':
+        return ['[', ']', '{', '}', '(', ')', '|', '|', '||', '||',
+                'det', 'tr', 'adj', 'inv', 'T', '†', '∗', '⊗', '⊕', '⊖',
+                '⊘', '⊙', '⊚', '⊛', '⊜', '⊝', '⊞', '⊟', '⊠', '⊡',
+                '⊢', '⊣', '⊤', '⊥', '⊦', '⊧', '⊨', '⊩', '⊪', '⊫'];
+      case 'Formula':
+        return ['\\frac{a}{b}', '\\sqrt{x}', 'x^2', 'x^3', '\\sum_{i=1}^{n}', '\\int_{a}^{b}',
+                '\\lim_{x \\to a}', '\\frac{d}{dx}', '\\frac{\\partial}{\\partial x}', '\\nabla',
+                '\\Delta', '\\delta', '\\epsilon', '\\varepsilon', '\\zeta', '\\eta',
+                '\\theta', '\\vartheta', '\\iota', '\\kappa', '\\lambda', '\\mu',
+                '\\nu', '\\xi', '\\omicron', '\\rho', '\\varrho', '\\sigma', '\\varsigma',
+                '\\tau', '\\upsilon', '\\phi', '\\varphi', '\\chi', '\\psi', '\\omega'];
+      case 'Arrow':
+        return ['→', '←', '↑', '↓', '↔', '↕', '↖', '↗', '↘', '↙',
+                '⇒', '⇐', '⇔', '⇑', '⇓', '⇕', '⇖', '⇗', '⇘', '⇙',
+                '⟶', '⟵', '⟷', '⟸', '⟹', '⟺', '⟼', '⟻', '⟽', '⟾',
+                '⟿', '⤀', '⤁', '⤂', '⤃', '⤄', '⤅', '⤆', '⤇', '⤈'];
+      case 'Alphabet':
+        return ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
+                'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+                'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D',
+                'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
+      case 'Sym':
+        return ['©', '®', '™', '℠', '℡', '™', 'Ω', '℧', 'ℨ', '℩',
+                'K', 'Å', 'ℬ', 'ℭ', '℮', 'ℯ', 'ℰ', 'ℱ', 'Ⅎ', 'ℳ',
+                'ℴ', 'ℵ', 'ℶ', 'ℷ', 'ℸ', 'ℹ', '℺', '℻', 'ℼ', 'ℽ',
+                'ℾ', 'ℿ', '⅀', '⅁', '⅂', '⅃', '⅄', 'ⅅ', 'ⅆ', 'ⅇ'];
+      default:
+        return ['.', '.', '*', '+', '-', '÷', '×', '=', '≠', ':',
+                '∴', ',', "'", '!', ';', '?', 'x̄', 'x⃗', 'ẋ', 'x̃',
+                'x̂', '\\', '/', '_', '|', '|', '[', ']', '{', '}',
+                '⌈', '⌉', '⌊', '⌋', 'π', '∞', '±', '≤', '≥', '≈'];
     }
   };
 
@@ -904,7 +976,12 @@ export default function Home() {
                                <button
                                  key={category}
                                  type="button"
-                                 className="px-4 py-2 text-sm font-medium border-b-2 border-transparent hover:text-orange-600"
+                                 onClick={() => setCurrentCategory(category)}
+                                 className={`px-4 py-2 text-sm font-medium border-b-2 ${
+                                   currentCategory === category 
+                                     ? 'border-orange-500 text-orange-600' 
+                                     : 'border-transparent text-gray-600 hover:text-orange-600'
+                                 }`}
                                >
                                  {category}
                                </button>
@@ -914,12 +991,7 @@ export default function Home() {
                            
                            {/* Math Symbols Grid */}
                            <div className="grid grid-cols-10 gap-1 mb-4">
-                             {/* Basic Symbols */}
-                             {['.', '.', '*', '+', '-', '÷', '×', '=', '≠', ':',
-                               '∴', ',', "'", '!', ';', '?', 'x̄', 'x⃗', 'ẋ', 'x̃',
-                               'x̂', '\\', '/', '_', '|', '|', '[', ']', '{', '}',
-                               '⌈', '⌉', '⌊', '⌋', 'π', '∞', '±', '≤', '≥', '≈'
-                             ].map((symbol, index) => (
+                             {getSymbolsForCategory(currentCategory).map((symbol, index) => (
                                <button
                                  key={index}
                                  type="button"
