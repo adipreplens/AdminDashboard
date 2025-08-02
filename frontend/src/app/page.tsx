@@ -81,6 +81,8 @@ export default function Home() {
   const [latexPreview, setLatexPreview] = useState('');
   const [showLatexEditor, setShowLatexEditor] = useState(false);
   const [currentCategory, setCurrentCategory] = useState('Basic');
+  const [mathEditorTarget, setMathEditorTarget] = useState<'question' | 'option' | 'solution'>('question');
+  const [mathEditorOptionIndex, setMathEditorOptionIndex] = useState(0);
 
 
   // Check if user is already logged in
@@ -329,22 +331,58 @@ export default function Home() {
       .replace(/\\sum/g, '∑')
       .replace(/\\int/g, '∫');
     
-    const textarea = document.querySelector('textarea[name="questionText"]') as HTMLTextAreaElement;
-    if (textarea) {
-      const cursorPos = textarea.selectionStart;
-      const newText = questionForm.text.substring(0, cursorPos) + ' ' + mathText + questionForm.text.substring(cursorPos);
-      setQuestionForm({...questionForm, text: newText});
+    if (mathEditorTarget === 'question') {
+      const textarea = document.querySelector('textarea[name="questionText"]') as HTMLTextAreaElement;
+      if (textarea) {
+        const cursorPos = textarea.selectionStart;
+        const newText = questionForm.text.substring(0, cursorPos) + ' ' + mathText + questionForm.text.substring(cursorPos);
+        setQuestionForm({...questionForm, text: newText});
+        
+        // Restore cursor position after insertion
+        setTimeout(() => {
+          textarea.focus();
+          textarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
+        }, 0);
+      }
+    } else if (mathEditorTarget === 'option') {
+      const optionTextareas = document.querySelectorAll('textarea');
+      const optionTextarea = optionTextareas[mathEditorOptionIndex + 1] as HTMLTextAreaElement;
       
-      // Restore cursor position after insertion
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
-      }, 0);
+      if (optionTextarea) {
+        const cursorPos = optionTextarea.selectionStart;
+        const options = questionForm.options.split('\n');
+        const currentOption = options[mathEditorOptionIndex] || '';
+        const newOption = currentOption.substring(0, cursorPos) + ' ' + mathText + currentOption.substring(cursorPos);
+        options[mathEditorOptionIndex] = newOption;
+        setQuestionForm({...questionForm, options: options.join('\n')});
+        
+        // Restore cursor position after insertion
+        setTimeout(() => {
+          optionTextarea.focus();
+          optionTextarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
+        }, 0);
+      }
+    } else if (mathEditorTarget === 'solution') {
+      const solutionTextarea = document.querySelector('textarea[rows="6"]') as HTMLTextAreaElement;
+      if (solutionTextarea) {
+        const cursorPos = solutionTextarea.selectionStart;
+        const currentSolution = questionForm.solution || '';
+        const newSolution = currentSolution.substring(0, cursorPos) + ' ' + mathText + currentSolution.substring(cursorPos);
+        setQuestionForm({...questionForm, solution: newSolution});
+        
+        // Restore cursor position after insertion
+        setTimeout(() => {
+          solutionTextarea.focus();
+          solutionTextarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
+        }, 0);
+      }
     }
+    
     setLatexPreview(latexCode);
   };
 
   const handleLatexButton = () => {
+    setMathEditorTarget('question');
     setShowLatexEditor(!showLatexEditor);
   };
 
@@ -454,6 +492,12 @@ export default function Home() {
     input.click();
   };
 
+  const handleOptionMathEditor = (optionIndex: number) => {
+    setMathEditorTarget('option');
+    setMathEditorOptionIndex(optionIndex);
+    setShowLatexEditor(true);
+  };
+
   const handleOptionMathInsert = (optionIndex: number) => {
     const mathFormula = prompt('Enter math formula (e.g., x^2, \\frac{a}{b}):');
     if (mathFormula) {
@@ -530,6 +574,11 @@ export default function Home() {
       }
     };
     input.click();
+  };
+
+  const handleSolutionMathEditor = () => {
+    setMathEditorTarget('solution');
+    setShowLatexEditor(true);
   };
 
   const handleSolutionMathInsert = () => {
@@ -1155,7 +1204,7 @@ export default function Home() {
                             </button>
                             <button 
                               type="button" 
-                              onClick={() => handleOptionMathInsert(index)} 
+                              onClick={() => handleOptionMathEditor(index)} 
                               className="p-1 hover:bg-gray-200 rounded" 
                               title="Math"
                             >
@@ -1237,7 +1286,7 @@ export default function Home() {
                       </button>
                       <button 
                         type="button" 
-                        onClick={handleSolutionMathInsert} 
+                        onClick={handleSolutionMathEditor} 
                         className="p-1 hover:bg-gray-200 rounded" 
                         title="Math"
                       >
