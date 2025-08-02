@@ -69,7 +69,7 @@ const userSchema = new mongoose.Schema({
 const Question = mongoose.model('Question', questionSchema);
 const User = mongoose.model('User', userSchema);
 
-// File upload configuration
+// File upload configuration with cleanup
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const uploadDir = 'uploads/';
@@ -79,20 +79,56 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
+    // Add timestamp to prevent conflicts
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
   }
 });
 
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
+    // Check file type
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
       cb(new Error('Only image files are allowed!'), false);
     }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
   }
 });
+
+// Cleanup old files function
+const cleanupOldFiles = () => {
+  const uploadDir = 'uploads/';
+  if (fs.existsSync(uploadDir)) {
+    fs.readdir(uploadDir, (err, files) => {
+      if (err) return;
+      
+      const now = Date.now();
+      const oneDay = 24 * 60 * 60 * 1000; // 24 hours
+      
+      files.forEach(file => {
+        const filePath = path.join(uploadDir, file);
+        fs.stat(filePath, (err, stats) => {
+          if (err) return;
+          
+          // Delete files older than 24 hours
+          if (now - stats.mtime.getTime() > oneDay) {
+            fs.unlink(filePath, (err) => {
+              if (err) console.error('Error deleting old file:', err);
+            });
+          }
+        });
+      });
+    });
+  }
+};
+
+// Run cleanup every hour
+setInterval(cleanupOldFiles, 60 * 60 * 1000);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -192,11 +228,21 @@ app.post('/questions', async (req, res) => {
 app.delete('/questions/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const question = await Question.findByIdAndDelete(id);
+    const question = await Question.findById(id);
     
     if (!question) {
       return res.status(404).json({ error: 'Question not found' });
     }
+
+    // Delete associated image if exists
+    if (question.imageUrl) {
+      const imagePath = path.join(__dirname, '..', question.imageUrl);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+      }
+    }
+
+    await Question.findByIdAndDelete(id);
 
     res.json({ message: 'Question deleted successfully' });
   } catch (error) {
@@ -213,6 +259,8 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
     }
 
     if (!req.file.originalname.endsWith('.csv')) {
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Only CSV files are allowed' });
     }
 
@@ -285,17 +333,35 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'No image uploaded' });
     }
 
-    // In a real application, you would upload to cloud storage
-    // For now, we'll return the local file path
+    // Return the file path for storage
     const imageUrl = `/uploads/${req.file.filename}`;
 
     res.json({
       message: 'Image uploaded successfully',
-      imageUrl: imageUrl
+      imageUrl: imageUrl,
+      filename: req.file.filename
     });
   } catch (error) {
     console.error('Error uploading image:', error);
     res.status(500).json({ error: 'Failed to upload image' });
+  }
+});
+
+// Delete image endpoint
+app.delete('/upload-image/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const imagePath = path.join(__dirname, 'uploads', filename);
+    
+    if (fs.existsSync(imagePath)) {
+      fs.unlinkSync(imagePath);
+      res.json({ message: 'Image deleted successfully' });
+    } else {
+      res.status(404).json({ error: 'Image not found' });
+    }
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    res.status(500).json({ error: 'Failed to delete image' });
   }
 });
 
