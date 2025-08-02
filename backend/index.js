@@ -18,6 +18,7 @@ app.use(helmet());
 app.use(cors({
   origin: [
     'http://localhost:3000',
+    'https://preplensdashboard.netlify.app',
     'https://preplensadmin.netlify.app',
     'https://preplensadmin.vercel.app',
     'https://preplensadmin.pages.dev'
