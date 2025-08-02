@@ -1,0 +1,4 @@
+text,options,answer,subject,exam,difficulty,tags,marks,timeLimit,blooms
+"What is the capital of France?","Paris, London, Berlin, Madrid",Paris,Geography,SSC,Basic,"capital, europe, geography",1,60,Remember
+"What is 2 + 2?","3, 4, 5, 6",4,Math,SSC,Basic,"addition, basic math",1,30,Understand
+"What is the chemical symbol for gold?","Au, Ag, Fe, Cu",Au,Science,SSC,Basic,"chemistry, elements",1,45,Remember 

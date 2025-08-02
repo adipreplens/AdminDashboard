@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PrepLens Admin Dashboard
 
-## Getting Started
+Educational platform admin panel for managing questions, exams, and student data.
 
-First, run the development server:
+## 🚀 Quick Start
 
+### Frontend (Next.js)
 ```bash
+cd frontend
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Backend (Node.js)
+```bash
+cd backend
+npm install
+npm start
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Project Structure
+```
+AdminDashboard/
+├── frontend/          # Next.js 14 + React + TypeScript
+├── backend/           # Node.js + Express + MongoDB
+└── README.md
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🔐 Login Credentials
+- `admin@preplens.com` / `admin123`
+- `admin` / `admin`
+- `test@test.com` / `test`
+- `user` / `user`
 
-## Learn More
+## 🌐 API Endpoints
+- `GET /health` - Health check
+- `GET /statistics` - Dashboard stats
+- `GET /questions` - List questions
+- `POST /questions` - Create question
+- `DELETE /questions/:id` - Delete question
+- `POST /bulk-upload` - Upload CSV
+- `POST /upload-image` - Upload images
 
-To learn more about Next.js, take a look at the following resources:
+## 🚀 Deployment
+- **Backend:** Render (Node.js)
+- **Frontend:** Netlify (Next.js)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📊 Features
+- Dashboard with statistics
+- Question management (CRUD)
+- Bulk CSV upload
+- Search and filtering
+- Image upload support

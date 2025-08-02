@@ -1,10 +1,11 @@
 # Dependencies
 node_modules/
-*/node_modules/
 
-# Build outputs
+# Next.js
 .next/
-dist/
+out/
+
+# Production
 build/
 
 # Environment files
@@ -16,18 +17,10 @@ build/
 *.log
 npm-debug.log*
 
-# Runtime data
-pids
-*.pid
-*.seed
-
-# Coverage directory used by tools like istanbul
-coverage/
-
 # IDE
 .vscode/
 .idea/
 
 # OS
 .DS_Store
-Thumbs.db 
+Thumbs.db
