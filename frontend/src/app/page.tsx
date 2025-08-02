@@ -618,7 +618,10 @@ export default function Home() {
       
       // Use functional update to avoid race conditions
       setQuestionForm(prevForm => {
-        const options = prevForm.options.split('\n').filter(opt => opt !== '');
+        let options: string[] = [];
+        if (prevForm.options && prevForm.options.trim()) {
+          options = prevForm.options.split('\n').filter(opt => opt !== '');
+        }
         // Ensure we have exactly 4 options (A, B, C, D)
         while (options.length < 4) {
           options.push('');
@@ -668,8 +671,12 @@ export default function Home() {
             setQuestionForm(prevForm => {
               console.log('Previous form options:', prevForm.options);
               
-              // Split options and ensure we have exactly 4 options
-              let optionsArray = prevForm.options.split('\n').filter(opt => opt !== '');
+              // Handle the case where options is empty or just whitespace
+              let optionsArray: string[] = [];
+              if (prevForm.options && prevForm.options.trim()) {
+                optionsArray = prevForm.options.split('\n').filter(opt => opt !== '');
+              }
+              
               console.log('Options array before update:', optionsArray);
               console.log('Target option index:', optionIndex);
               
@@ -722,7 +729,10 @@ export default function Home() {
         
         // Use functional update to avoid race conditions
         setQuestionForm(prevForm => {
-          const options = prevForm.options.split('\n').filter(opt => opt !== '');
+          let options: string[] = [];
+          if (prevForm.options && prevForm.options.trim()) {
+            options = prevForm.options.split('\n').filter(opt => opt !== '');
+          }
           // Ensure we have exactly 4 options (A, B, C, D)
           while (options.length < 4) {
             options.push('');
@@ -751,6 +761,39 @@ export default function Home() {
         });
       }
     }
+  };
+
+  const handleOptionImageRemove = (optionIndex: number) => {
+    setQuestionForm(prevForm => {
+      let options: string[] = [];
+      if (prevForm.options && prevForm.options.trim()) {
+        options = prevForm.options.split('\n').filter(opt => opt !== '');
+      }
+      // Ensure we have exactly 4 options (A, B, C, D)
+      while (options.length < 4) {
+        options.push('');
+      }
+      
+      const currentOption = options[optionIndex] || '';
+      // Remove image markdown syntax from the option
+      const cleanedOption = currentOption.replace(/\n!\[Image\]\([^)]+\)/g, '');
+      options[optionIndex] = cleanedOption;
+      
+      return {
+        ...prevForm,
+        options: options.join('\n')
+      };
+    });
+  };
+
+  const hasImageInOption = (optionIndex: number) => {
+    let options: string[] = [];
+    if (questionForm.options && questionForm.options.trim()) {
+      options = questionForm.options.split('\n').filter(opt => opt !== '');
+    }
+    if (options.length <= optionIndex) return false;
+    const option = options[optionIndex] || '';
+    return option.includes('![Image](');
   };
 
 
@@ -812,6 +855,30 @@ export default function Home() {
       const currentSolution = questionForm.solution || '';
       setQuestionForm({...questionForm, solution: currentSolution + ` \\[${mathFormula}\\]`});
     }
+  };
+
+  const handleSolutionImageRemove = () => {
+    const currentSolution = questionForm.solution || '';
+    // Remove image markdown syntax from the solution
+    const cleanedSolution = currentSolution.replace(/\n!\[Image\]\([^)]+\)/g, '');
+    setQuestionForm({...questionForm, solution: cleanedSolution});
+  };
+
+  const hasImageInSolution = () => {
+    const solution = questionForm.solution || '';
+    return solution.includes('![Image](');
+  };
+
+  const handleQuestionImageRemove = () => {
+    const currentText = questionForm.text || '';
+    // Remove image markdown syntax from the question text
+    const cleanedText = currentText.replace(/\n!\[Image\]\([^)]+\)/g, '');
+    setQuestionForm({...questionForm, text: cleanedText});
+  };
+
+  const hasImageInQuestion = () => {
+    const text = questionForm.text || '';
+    return text.includes('![Image](');
   };
 
   // Math Editor category functions
@@ -1171,6 +1238,16 @@ export default function Home() {
                         <button type="button" onClick={() => document.getElementById('imageUpload')?.click()} className="p-2 hover:bg-gray-200 rounded" title="Upload Image">
                           <span className="text-sm">📷</span>
                         </button>
+                        {hasImageInQuestion() && (
+                          <button 
+                            type="button" 
+                            onClick={handleQuestionImageRemove} 
+                            className="p-2 hover:bg-red-200 rounded text-red-600" 
+                            title="Remove Image"
+                          >
+                            <span className="text-sm">🗑️</span>
+                          </button>
+                        )}
                         <button type="button" onClick={() => navigator.clipboard.read().then(items => {
                           for (const item of items) {
                             if (item.types.includes('image/png') || item.types.includes('image/jpeg')) {
@@ -1433,6 +1510,17 @@ export default function Home() {
                             >
                               <span className="text-sm">📷</span>
                             </button>
+                            {hasImageInOption(index) && (
+                              <button 
+                                type="button" 
+                                onClick={() => handleOptionImageRemove(index)} 
+                                className="p-1 hover:bg-red-200 rounded text-red-600" 
+                                title="Remove Image"
+                                data-option-index={index}
+                              >
+                                <span className="text-sm">🗑️</span>
+                              </button>
+                            )}
                             <button 
                               type="button" 
                               onClick={() => handleOptionMathEditor(index)} 
@@ -1452,7 +1540,10 @@ export default function Home() {
                             onChange={(e) => {
                               setQuestionForm(prevForm => {
                                 // Split the options string into an array and filter empty strings
-                                const optionsArray = prevForm.options.split('\n').filter(opt => opt !== '');
+                                let optionsArray: string[] = [];
+                                if (prevForm.options && prevForm.options.trim()) {
+                                  optionsArray = prevForm.options.split('\n').filter(opt => opt !== '');
+                                }
                                 
                                 // Create a new array to avoid mutation issues
                                 const newOptionsArray = [...optionsArray];
@@ -1537,6 +1628,16 @@ export default function Home() {
                       >
                         <span className="text-sm">📷</span>
                       </button>
+                      {hasImageInSolution() && (
+                        <button 
+                          type="button" 
+                          onClick={handleSolutionImageRemove} 
+                          className="p-1 hover:bg-red-200 rounded text-red-600" 
+                          title="Remove Image"
+                        >
+                          <span className="text-sm">🗑️</span>
+                        </button>
+                      )}
                       <button 
                         type="button" 
                         onClick={handleSolutionMathEditor} 
