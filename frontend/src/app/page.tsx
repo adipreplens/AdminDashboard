@@ -315,7 +315,8 @@ export default function Home() {
 
   // LaTeX handling functions
   const insertLatex = (latexCode: string) => {
-    const latexTag = `$${latexCode}$`;
+    // Insert LaTeX without dollar signs - use display math format
+    const latexTag = `\\[${latexCode}\\]`;
     setQuestionForm({...questionForm, text: questionForm.text + latexTag});
     setLatexPreview(latexCode);
   };
@@ -745,9 +746,9 @@ export default function Home() {
                     </div>
                     
                                          {/* LaTeX Preview */}
-                     {questionForm.text.includes('\\') && (
+                     {questionForm.text.includes('\\[') && (
                        <div className="bg-blue-50 border-t border-blue-200 p-3">
-                         <div className="text-sm font-medium text-blue-800 mb-2">LaTeX Preview:</div>
+                         <div className="text-sm font-medium text-blue-800 mb-2">Math Formula Preview:</div>
                          <div className="bg-white p-2 rounded border">
                            <code className="text-sm text-blue-600">{questionForm.text}</code>
                          </div>
@@ -758,16 +759,17 @@ export default function Home() {
                      {showLatexEditor && (
                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                           <h3 className="text-lg font-semibold mb-4">Insert LaTeX Formula</h3>
+                           <h3 className="text-lg font-semibold mb-4">Insert Math Formula</h3>
                            <div className="space-y-4">
                              <div>
-                               <label className="block text-sm font-medium text-gray-700 mb-2">LaTeX Code:</label>
+                               <label className="block text-sm font-medium text-gray-700 mb-2">Math Formula:</label>
                                <input
                                  type="text"
-                                 placeholder="e.g., \\frac{a}{b}, \\sqrt{x}, x^2"
+                                 placeholder="e.g., x^2, \\frac{a}{b}, \\sqrt{x}, \\pi"
                                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
                                  onChange={(e) => setLatexPreview(e.target.value)}
                                />
+                               <p className="text-xs text-gray-500 mt-1">Just type the formula - no dollar signs needed!</p>
                              </div>
                              <div className="flex space-x-2">
                                <button
