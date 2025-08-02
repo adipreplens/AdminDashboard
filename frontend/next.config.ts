@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // Ensure dynamic rendering
+  trailingSlash: false,
 };
 
 export default nextConfig;

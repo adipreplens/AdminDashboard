@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 
-const API_BASE_URL = 'https://preplensadmin.onrender.com';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 // Hardcoded login credentials
 const VALID_CREDENTIALS = [
@@ -12,6 +12,28 @@ const VALID_CREDENTIALS = [
   { email: 'user', password: 'user' }
 ];
 
+interface Statistics {
+  totalQuestions: number;
+  totalUsers: number;
+  totalExams: number;
+  recentUploads: number;
+}
+
+interface Question {
+  _id: string;
+  text: string;
+  options: string[];
+  answer: string;
+  subject: string;
+  exam: string;
+  difficulty: string;
+  tags: string[];
+  marks: number;
+  timeLimit: number;
+  blooms: string;
+  imageUrl?: string;
+}
+
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'upload' | 'questions'>('dashboard');
@@ -20,31 +42,81 @@ export default function Home() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [statistics, setStatistics] = useState<Statistics>({
+    totalQuestions: 0,
+    totalUsers: 0,
+    totalExams: 0,
+    recentUploads: 0
+  });
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    subject: '',
+    exam: '',
+    difficulty: '',
+    blooms: ''
+  });
 
   // Check if user is already logged in
   useEffect(() => {
     const token = localStorage.getItem('authToken');
     if (token) {
       setIsLoggedIn(true);
+      fetchStatistics();
+      fetchQuestions();
     }
   }, []);
+
+  const fetchStatistics = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/statistics`);
+      if (response.ok) {
+        const data = await response.json();
+        setStatistics(data);
+      }
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+    }
+  };
+
+  const fetchQuestions = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/questions`);
+      if (response.ok) {
+        const data = await response.json();
+        setQuestions(data.questions || data);
+      }
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // Check hardcoded credentials
-    const isValid = VALID_CREDENTIALS.some(
-      cred => cred.email === email && cred.password === password
-    );
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (isValid) {
-      localStorage.setItem('authToken', 'demo-token');
-      localStorage.setItem('userEmail', email);
-      setIsLoggedIn(true);
-    } else {
-      setError('Invalid credentials. Please try again.');
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('userEmail', email);
+        setIsLoggedIn(true);
+        fetchStatistics();
+        fetchQuestions();
+      } else {
+        setError('Invalid credentials. Please try again.');
+      }
+    } catch (error) {
+      setError('Network error. Please try again.');
     }
 
     setLoading(false);
@@ -56,6 +128,18 @@ export default function Home() {
     setIsLoggedIn(false);
     setCurrentView('dashboard');
   };
+
+  const filteredQuestions = questions.filter(question => {
+    const matchesSearch = question.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         question.subject.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesSubject = !filters.subject || question.subject === filters.subject;
+    const matchesExam = !filters.exam || question.exam === filters.exam;
+    const matchesDifficulty = !filters.difficulty || question.difficulty === filters.difficulty;
+    const matchesBlooms = !filters.blooms || question.blooms === filters.blooms;
+
+    return matchesSearch && matchesSubject && matchesExam && matchesDifficulty && matchesBlooms;
+  });
 
   if (!isLoggedIn) {
     return (
@@ -219,7 +303,7 @@ export default function Home() {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500">Total Questions</p>
-                    <p className="text-2xl font-semibold text-gray-900">0</p>
+                    <p className="text-2xl font-semibold text-gray-900">{statistics.totalQuestions}</p>
                   </div>
                 </div>
               </div>
@@ -230,7 +314,7 @@ export default function Home() {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500">Total Users</p>
-                    <p className="text-2xl font-semibold text-gray-900">0</p>
+                    <p className="text-2xl font-semibold text-gray-900">{statistics.totalUsers}</p>
                   </div>
                 </div>
               </div>
@@ -241,7 +325,7 @@ export default function Home() {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500">Total Exams</p>
-                    <p className="text-2xl font-semibold text-gray-900">0</p>
+                    <p className="text-2xl font-semibold text-gray-900">{statistics.totalExams}</p>
                   </div>
                 </div>
               </div>
@@ -252,7 +336,7 @@ export default function Home() {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500">Recent Uploads</p>
-                    <p className="text-2xl font-semibold text-gray-900">0</p>
+                    <p className="text-2xl font-semibold text-gray-900">{statistics.recentUploads}</p>
                   </div>
                 </div>
               </div>

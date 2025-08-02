@@ -62,7 +62,7 @@ export default function MathEditor({ value, onChange, placeholder = "Enter LaTeX
           value={value}
           onChange={(e) => handleChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           rows={3}
         />
       )}
@@ -72,13 +72,7 @@ export default function MathEditor({ value, onChange, placeholder = "Enter LaTeX
       )}
       
       <div className="text-xs text-gray-500">
-        <p>LaTeX Examples:</p>
-        <ul className="mt-1 space-y-1">
-          <li>• Inline: <code>$x^2 + y^2 = z^2$</code></li>
-          <li>• Block: <code>$$\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$$</code></li>
-          <li>• Fractions: <code>$\frac{a}{b}$</code></li>
-          <li>• Greek: <code>$\alpha, \beta, \gamma$</code></li>
-        </ul>
+        <p>LaTeX Examples: x² + y² = z², fractions, Greek letters</p>
       </div>
     </div>
   );
