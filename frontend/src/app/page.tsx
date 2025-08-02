@@ -569,13 +569,13 @@ export default function Home() {
       let formattedText = '';
       switch (format) {
         case 'bold':
-          formattedText = `<strong>${selectedText}</strong>`;
+          formattedText = `**${selectedText}**`;
           break;
         case 'italic':
-          formattedText = `<em>${selectedText}</em>`;
+          formattedText = `*${selectedText}*`;
           break;
         case 'underline':
-          formattedText = `<u>${selectedText}</u>`;
+          formattedText = `__${selectedText}__`;
           break;
         case 'bullet':
           formattedText = `\n• ${selectedText}`;
@@ -609,10 +609,10 @@ export default function Home() {
       let formattedText = '';
       switch (format) {
         case 'bold':
-          formattedText = `<strong>${selectedText}</strong>`;
+          formattedText = `**${selectedText}**`;
           break;
         case 'italic':
-          formattedText = `<em>${selectedText}</em>`;
+          formattedText = `*${selectedText}*`;
           break;
       }
       
@@ -663,21 +663,20 @@ export default function Home() {
             
             // Update the specific option with the image
             setQuestionForm(prevForm => {
-              const options = prevForm.options.split('\n');
-              const newOptions = [...options];
+              const optionsArray = prevForm.options.split('\n');
               
               // Ensure we have enough options
-              while (newOptions.length <= optionIndex) {
-                newOptions.push('');
+              while (optionsArray.length <= optionIndex) {
+                optionsArray.push('');
               }
               
               // Add image to the specific option
-              const currentOption = newOptions[optionIndex] || '';
-              newOptions[optionIndex] = currentOption + `\n![Image](${imageUrl})`;
+              const currentOption = optionsArray[optionIndex] || '';
+              optionsArray[optionIndex] = currentOption + `\n![Image](${imageUrl})`;
               
               return {
                 ...prevForm,
-                options: newOptions.join('\n')
+                options: optionsArray.join('\n')
               };
             });
           } else {
@@ -1434,11 +1433,9 @@ export default function Home() {
                             value={questionForm.options.split('\n')[index] || ''}
                             data-option-index={index}
                             onChange={(e) => {
-                              console.log(`Updating option ${index} with value:`, e.target.value); // Debug log
                               setQuestionForm(prevForm => {
                                 // Split the options string into an array
                                 const optionsArray = prevForm.options.split('\n');
-                                console.log('Current options array before update:', optionsArray); // Debug log
                                 
                                 // Create a new array to avoid mutation issues
                                 const newOptionsArray = [...optionsArray];
@@ -1450,11 +1447,9 @@ export default function Home() {
                                 
                                 // Update the specific option
                                 newOptionsArray[index] = e.target.value;
-                                console.log(`Updated options array for index ${index}:`, newOptionsArray); // Debug log
                                 
                                 // Join back to string and update state
                                 const newOptionsString = newOptionsArray.join('\n');
-                                console.log('New options string:', newOptionsString); // Debug log
                                 
                                 return {
                                   ...prevForm,
