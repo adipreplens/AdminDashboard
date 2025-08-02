@@ -277,29 +277,20 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
     // Handle different file types
     if (fileName.endsWith('.csv')) {
       // Process CSV file
+      let headers = [];
+      let isFirstRow = true;
+      
       fs.createReadStream(req.file.path)
         .pipe(csv())
         .on('data', (data) => {
+          if (isFirstRow) {
+            // Get headers from first row
+            headers = Object.keys(data);
+            isFirstRow = false;
+          }
+          
           try {
-            // Parse options (comma-separated string to array)
-            const options = data.options ? data.options.split(',').map(opt => opt.trim()) : [];
-            
-            // Parse tags (comma-separated string to array)
-            const tags = data.tags ? data.tags.split(',').map(tag => tag.trim()) : [];
-
-            const questionData = {
-              text: data.text,
-              options: options,
-              answer: data.answer,
-              subject: data.subject,
-              exam: data.exam,
-              difficulty: data.difficulty,
-              tags: tags,
-              marks: parseInt(data.marks) || 1,
-              timeLimit: parseInt(data.timeLimit) || 60,
-              blooms: data.blooms
-            };
-
+            const questionData = parseQuestionData(data, headers);
             results.push(questionData);
           } catch (error) {
             errors.push({ row: data, error: error.message });
@@ -318,31 +309,17 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
         const workbook = XLSX.readFile(req.file.path);
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json(worksheet);
-
-        for (const row of data) {
-          try {
-            // Parse options (comma-separated string to array)
-            const options = row.options ? row.options.split(',').map(opt => opt.trim()) : [];
-            
-            // Parse tags (comma-separated string to array)
-            const tags = row.tags ? row.tags.split(',').map(tag => tag.trim()) : [];
-
-            const questionData = {
-              text: row.text,
-              options: options,
-              answer: row.answer,
-              subject: row.subject,
-              exam: row.exam,
-              difficulty: row.difficulty,
-              tags: tags,
-              marks: parseInt(row.marks) || 1,
-              timeLimit: parseInt(row.timeLimit) || 60,
-              blooms: row.blooms
-            };
-
-            results.push(questionData);
-          } catch (error) {
-            errors.push({ row: row, error: error.message });
+        
+        if (data.length > 0) {
+          const headers = Object.keys(data[0]);
+          
+          for (const row of data) {
+            try {
+              const questionData = parseQuestionData(row, headers);
+              results.push(questionData);
+            } catch (error) {
+              errors.push({ row: row, error: error.message });
+            }
           }
         }
 
@@ -398,6 +375,151 @@ async function saveQuestions(results, errors, filePath, res) {
     }
     res.status(500).json({ error: 'Failed to save questions' });
   }
+}
+
+// Smart data parser that adapts to different formats
+function parseQuestionData(row, headers) {
+  try {
+    // Map common column names to our standard format
+    const columnMapping = {
+      // Question text variations
+      'text': ['text', 'question', 'question_text', 'questiontext', 'question text', 'questiontext'],
+      'question': ['text', 'question', 'question_text', 'questiontext', 'question text', 'questiontext'],
+      'question_text': ['text', 'question', 'question_text', 'questiontext', 'question text', 'questiontext'],
+      
+      // Options variations
+      'options': ['options', 'option', 'choices', 'choice', 'option_a', 'option_b', 'option_c', 'option_d'],
+      'choices': ['options', 'option', 'choices', 'choice', 'option_a', 'option_b', 'option_c', 'option_d'],
+      
+      // Answer variations
+      'answer': ['answer', 'correct_answer', 'correctanswer', 'correct answer', 'solution', 'key'],
+      'correct_answer': ['answer', 'correct_answer', 'correctanswer', 'correct answer', 'solution', 'key'],
+      
+      // Subject variations
+      'subject': ['subject', 'topic', 'category', 'subject_name', 'subjectname'],
+      'topic': ['subject', 'topic', 'category', 'subject_name', 'subjectname'],
+      
+      // Exam variations
+      'exam': ['exam', 'exam_type', 'examtype', 'exam type', 'test', 'test_type'],
+      'exam_type': ['exam', 'exam_type', 'examtype', 'exam type', 'test', 'test_type'],
+      
+      // Difficulty variations
+      'difficulty': ['difficulty', 'level', 'complexity', 'difficulty_level', 'difficultylevel'],
+      'level': ['difficulty', 'level', 'complexity', 'difficulty_level', 'difficultylevel'],
+      
+      // Tags variations
+      'tags': ['tags', 'tag', 'keywords', 'keyword', 'topics', 'topic'],
+      'tag': ['tags', 'tag', 'keywords', 'keyword', 'topics', 'topic'],
+      
+      // Marks variations
+      'marks': ['marks', 'mark', 'points', 'point', 'score', 'weight'],
+      'points': ['marks', 'mark', 'points', 'point', 'score', 'weight'],
+      
+      // Time limit variations
+      'timeLimit': ['timelimit', 'time_limit', 'time limit', 'duration', 'time', 'timeallowed'],
+      'time_limit': ['timelimit', 'time_limit', 'time limit', 'duration', 'time', 'timeallowed'],
+      
+      // Bloom's taxonomy variations
+      'blooms': ['blooms', 'bloom', 'bloomstaxonomy', 'bloom\'s', 'taxonomy', 'cognitive_level'],
+      'bloom': ['blooms', 'bloom', 'bloomstaxonomy', 'bloom\'s', 'taxonomy', 'cognitive_level']
+    };
+
+    // Find the actual column names in the uploaded file
+    const foundColumns = {};
+    headers.forEach(header => {
+      const headerLower = header.toLowerCase().trim();
+      for (const [standardName, variations] of Object.entries(columnMapping)) {
+        if (variations.some(variation => headerLower.includes(variation))) {
+          foundColumns[standardName] = header;
+          break;
+        }
+      }
+    });
+
+    // Extract data using found column names
+    const questionData = {
+      text: row[foundColumns.text] || row[foundColumns.question] || 'Question text not found',
+      options: parseOptions(row[foundColumns.options] || row[foundColumns.choices]),
+      answer: row[foundColumns.answer] || row[foundColumns.correct_answer] || 'Answer not found',
+      subject: row[foundColumns.subject] || row[foundColumns.topic] || 'general',
+      exam: row[foundColumns.exam] || row[foundColumns.exam_type] || 'general',
+      difficulty: row[foundColumns.difficulty] || row[foundColumns.level] || 'medium',
+      tags: parseTags(row[foundColumns.tags] || row[foundColumns.tag] || ''),
+      marks: parseInt(row[foundColumns.marks] || row[foundColumns.points]) || 1,
+      timeLimit: parseInt(row[foundColumns.timeLimit] || row[foundColumns.time_limit]) || 60,
+      blooms: row[foundColumns.blooms] || row[foundColumns.bloom] || 'remember'
+    };
+
+    return questionData;
+  } catch (error) {
+    throw new Error(`Error parsing row: ${error.message}`);
+  }
+}
+
+// Helper function to parse options from different formats
+function parseOptions(optionsData) {
+  if (!optionsData) return [];
+  
+  // If it's already an array
+  if (Array.isArray(optionsData)) {
+    return optionsData.map(opt => opt.toString().trim());
+  }
+  
+  // If it's a string, try different parsing methods
+  const optionsStr = optionsData.toString();
+  
+  // Try JSON array format: ["A","B","C","D"]
+  try {
+    const jsonOptions = JSON.parse(optionsStr);
+    if (Array.isArray(jsonOptions)) {
+      return jsonOptions.map(opt => opt.toString().trim());
+    }
+  } catch (e) {
+    // Not JSON, continue with other formats
+  }
+  
+  // Try comma-separated format: "A,B,C,D"
+  if (optionsStr.includes(',')) {
+    return optionsStr.split(',').map(opt => opt.trim().replace(/['"]/g, ''));
+  }
+  
+  // Try semicolon-separated format: "A;B;C;D"
+  if (optionsStr.includes(';')) {
+    return optionsStr.split(';').map(opt => opt.trim().replace(/['"]/g, ''));
+  }
+  
+  // Try pipe-separated format: "A|B|C|D"
+  if (optionsStr.includes('|')) {
+    return optionsStr.split('|').map(opt => opt.trim().replace(/['"]/g, ''));
+  }
+  
+  // If none of the above, treat as single option
+  return [optionsStr.trim()];
+}
+
+// Helper function to parse tags from different formats
+function parseTags(tagsData) {
+  if (!tagsData) return [];
+  
+  const tagsStr = tagsData.toString();
+  
+  // Try comma-separated format: "tag1,tag2,tag3"
+  if (tagsStr.includes(',')) {
+    return tagsStr.split(',').map(tag => tag.trim()).filter(tag => tag);
+  }
+  
+  // Try semicolon-separated format: "tag1;tag2;tag3"
+  if (tagsStr.includes(';')) {
+    return tagsStr.split(';').map(tag => tag.trim()).filter(tag => tag);
+  }
+  
+  // Try pipe-separated format: "tag1|tag2|tag3"
+  if (tagsStr.includes('|')) {
+    return tagsStr.split('|').map(tag => tag.trim()).filter(tag => tag);
+  }
+  
+  // If none of the above, treat as single tag
+  return tagsStr.trim() ? [tagsStr.trim()] : [];
 }
 
 // Image upload endpoint

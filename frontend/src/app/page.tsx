@@ -674,7 +674,8 @@ export default function Home() {
                           Drag and drop your file here, or click to browse
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Supported formats: CSV, XLSX, XLS, and other spreadsheet formats with columns: text, options, answer, subject, exam, difficulty, tags, marks, timeLimit, blooms
+                          Upload any format! The system automatically detects and adapts to your file structure. 
+                          Common formats: CSV, XLSX, XLS. Any column names will work.
                         </p>
                       </div>
                       {selectedFile && (
@@ -703,19 +704,28 @@ export default function Home() {
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-blue-800 mb-2">File Format Example:</h3>
+                  <h3 className="text-sm font-medium text-blue-800 mb-2">Flexible Format Examples:</h3>
                   <div className="space-y-2">
                     <div>
-                      <p className="text-xs font-medium text-blue-700">CSV Format:</p>
+                      <p className="text-xs font-medium text-blue-700">Standard Format:</p>
                       <pre className="text-xs text-blue-700 bg-blue-100 p-2 rounded">
 {`text,options,answer,subject,exam,difficulty,tags,marks,timeLimit,blooms
-"What is 2+2?",["4","5","6","7"],"4",mathematics,jee,easy,"basic math,addition",2,30,remember
-"Solve for x: x²-4=0",["x=±2","x=2","x=-2","x=0"],"x=±2",mathematics,jee,medium,"algebra,quadratic",3,60,apply`}
+"What is 2+2?",["4","5","6","7"],"4",mathematics,jee,easy,"basic math,addition",2,30,remember`}
                       </pre>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-blue-700">Excel Format:</p>
-                      <p className="text-xs text-blue-700">Create an Excel file with the same columns as CSV format above.</p>
+                      <p className="text-xs font-medium text-blue-700">Alternative Column Names (all work):</p>
+                      <p className="text-xs text-blue-700">
+                        Question/Question Text, Choices/Options, Correct Answer/Solution, Topic/Subject, 
+                        Exam Type/Test, Level/Difficulty, Keywords/Tags, Points/Marks, Duration/Time Limit, 
+                        Bloom's/Cognitive Level
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-blue-700">Options Formats (all work):</p>
+                      <p className="text-xs text-blue-700">
+                        ["A","B","C","D"] or "A,B,C,D" or "A;B;C;D" or "A|B|C|D"
+                      </p>
                     </div>
                   </div>
                 </div>

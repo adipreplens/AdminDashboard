@@ -1,0 +1,6 @@
+text,options,answer,subject,exam,difficulty,tags,marks,timeLimit,blooms
+"What is 2+2?",["4","5","6","7"],"4",mathematics,jee,easy,"basic math,addition",2,30,remember
+"Solve for x: x²-4=0",["x=±2","x=2","x=-2","x=0"],"x=±2",mathematics,jee,medium,"algebra,quadratic",3,60,apply
+"What is the chemical formula for water?",["H2O","CO2","O2","H2"],"H2O",chemistry,neet,easy,"chemistry,basics",2,30,remember
+"Which planet is closest to the Sun?",["Mercury","Venus","Earth","Mars"],"Mercury",physics,gate,medium,"astronomy,solar system",3,45,understand
+"What is the capital of France?",["Paris","London","Berlin","Madrid"],"Paris",english,cat,easy,"geography,capitals",1,20,remember 
