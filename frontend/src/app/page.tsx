@@ -618,9 +618,9 @@ export default function Home() {
       
       // Use functional update to avoid race conditions
       setQuestionForm(prevForm => {
-        const options = prevForm.options.split('\n');
-        // Ensure we have enough options array elements
-        while (options.length <= optionIndex) {
+        const options = prevForm.options.split('\n').filter(opt => opt !== '');
+        // Ensure we have exactly 4 options (A, B, C, D)
+        while (options.length < 4) {
           options.push('');
         }
         const currentOption = options[optionIndex] || '';
@@ -667,12 +667,14 @@ export default function Home() {
             // Update the specific option with the image
             setQuestionForm(prevForm => {
               console.log('Previous form options:', prevForm.options);
-              const optionsArray = [...prevForm.options.split('\n')];
+              
+              // Split options and ensure we have exactly 4 options
+              let optionsArray = prevForm.options.split('\n').filter(opt => opt !== '');
               console.log('Options array before update:', optionsArray);
               console.log('Target option index:', optionIndex);
               
-              // Ensure we have enough options
-              while (optionsArray.length <= optionIndex) {
+              // Ensure we have exactly 4 options (A, B, C, D)
+              while (optionsArray.length < 4) {
                 optionsArray.push('');
               }
               
@@ -720,9 +722,9 @@ export default function Home() {
         
         // Use functional update to avoid race conditions
         setQuestionForm(prevForm => {
-          const options = prevForm.options.split('\n');
-          // Ensure we have enough options array elements
-          while (options.length <= optionIndex) {
+          const options = prevForm.options.split('\n').filter(opt => opt !== '');
+          // Ensure we have exactly 4 options (A, B, C, D)
+          while (options.length < 4) {
             options.push('');
           }
           const currentOption = options[optionIndex] || '';
@@ -1449,14 +1451,14 @@ export default function Home() {
                             data-option-index={index}
                             onChange={(e) => {
                               setQuestionForm(prevForm => {
-                                // Split the options string into an array
-                                const optionsArray = prevForm.options.split('\n');
+                                // Split the options string into an array and filter empty strings
+                                const optionsArray = prevForm.options.split('\n').filter(opt => opt !== '');
                                 
                                 // Create a new array to avoid mutation issues
                                 const newOptionsArray = [...optionsArray];
                                 
-                                // Ensure the array has enough elements
-                                while (newOptionsArray.length <= index) {
+                                // Ensure we have exactly 4 options (A, B, C, D)
+                                while (newOptionsArray.length < 4) {
                                   newOptionsArray.push('');
                                 }
                                 
