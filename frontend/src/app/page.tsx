@@ -110,20 +110,7 @@ export default function Home() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const validTypes = [
-        'text/csv',
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      ];
-      const validExtensions = ['.csv', '.xlsx', '.xls'];
-      
-      const isValidType = validTypes.includes(file.type) || 
-                         validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
-      
-      if (!isValidType) {
-        alert('Please select a CSV or Excel file (.csv, .xlsx, .xls)');
-        return;
-      }
+      // Accept any file format - let the backend handle validation
       setSelectedFile(file);
     }
   };
@@ -677,17 +664,17 @@ export default function Home() {
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload CSV or Excel File
+                    Upload Questions File
                   </label>
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                     <div className="space-y-4">
                       <div className="text-4xl">📁</div>
                       <div>
                         <p className="text-sm text-gray-600">
-                          Drag and drop your CSV or Excel file here, or click to browse
+                          Drag and drop your file here, or click to browse
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Supported formats: CSV, XLSX, XLS with columns: text, options, answer, subject, exam, difficulty, tags, marks, timeLimit, blooms
+                          Supported formats: CSV, XLSX, XLS, and other spreadsheet formats with columns: text, options, answer, subject, exam, difficulty, tags, marks, timeLimit, blooms
                         </p>
                       </div>
                       {selectedFile && (
@@ -699,7 +686,7 @@ export default function Home() {
                       )}
                       <input
                         type="file"
-                        accept=".csv,.xlsx,.xls"
+                        accept="*/*"
                         onChange={handleFileSelect}
                         ref={fileInputRef}
                         className="hidden"

@@ -270,16 +270,13 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    if (!req.file.originalname.endsWith('.csv') && !req.file.originalname.endsWith('.xlsx')) {
-      // Clean up uploaded file
-      fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: 'Only CSV or XLSX files are allowed' });
-    }
-
     const results = [];
     const errors = [];
+    const fileName = req.file.originalname.toLowerCase();
 
-    if (req.file.originalname.endsWith('.csv')) {
+    // Handle different file types
+    if (fileName.endsWith('.csv')) {
+      // Process CSV file
       fs.createReadStream(req.file.path)
         .pipe(csv())
         .on('data', (data) => {
@@ -309,85 +306,99 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
           }
         })
         .on('end', async () => {
-          try {
-            if (results.length > 0) {
-              await Question.insertMany(results);
-            }
-
-            // Clean up uploaded file
-            fs.unlinkSync(req.file.path);
-
-            res.json({
-              message: 'Bulk upload completed',
-              successCount: results.length,
-              errorCount: errors.length,
-              errors: errors
-            });
-          } catch (error) {
-            console.error('Error saving questions:', error);
-            res.status(500).json({ error: 'Failed to save questions' });
-          }
+          await saveQuestions(results, errors, req.file.path, res);
         })
         .on('error', (error) => {
           console.error('Error processing CSV:', error);
           res.status(500).json({ error: 'Failed to process CSV file' });
         });
-    } else if (req.file.originalname.endsWith('.xlsx')) {
-      const workbook = XLSX.readFile(req.file.path);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const data = XLSX.utils.sheet_to_json(worksheet);
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      // Process Excel file
+      try {
+        const workbook = XLSX.readFile(req.file.path);
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(worksheet);
 
-      for (const row of data) {
-        try {
-          // Parse options (comma-separated string to array)
-          const options = row.options ? row.options.split(',').map(opt => opt.trim()) : [];
-          
-          // Parse tags (comma-separated string to array)
-          const tags = row.tags ? row.tags.split(',').map(tag => tag.trim()) : [];
+        for (const row of data) {
+          try {
+            // Parse options (comma-separated string to array)
+            const options = row.options ? row.options.split(',').map(opt => opt.trim()) : [];
+            
+            // Parse tags (comma-separated string to array)
+            const tags = row.tags ? row.tags.split(',').map(tag => tag.trim()) : [];
 
-          const questionData = {
-            text: row.text,
-            options: options,
-            answer: row.answer,
-            subject: row.subject,
-            exam: row.exam,
-            difficulty: row.difficulty,
-            tags: tags,
-            marks: parseInt(row.marks) || 1,
-            timeLimit: parseInt(row.timeLimit) || 60,
-            blooms: row.blooms
-          };
+            const questionData = {
+              text: row.text,
+              options: options,
+              answer: row.answer,
+              subject: row.subject,
+              exam: row.exam,
+              difficulty: row.difficulty,
+              tags: tags,
+              marks: parseInt(row.marks) || 1,
+              timeLimit: parseInt(row.timeLimit) || 60,
+              blooms: row.blooms
+            };
 
-          results.push(questionData);
-        } catch (error) {
-          errors.push({ row: row, error: error.message });
+            results.push(questionData);
+          } catch (error) {
+            errors.push({ row: row, error: error.message });
+          }
         }
-      }
 
+        await saveQuestions(results, errors, req.file.path, res);
+      } catch (error) {
+        console.error('Error processing Excel file:', error);
+        // Clean up uploaded file
+        if (fs.existsSync(req.file.path)) {
+          fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ error: 'Failed to process Excel file' });
+      }
+    } else {
       // Clean up uploaded file
       fs.unlinkSync(req.file.path);
-
-      try {
-        if (results.length > 0) {
-          await Question.insertMany(results);
-        }
-        res.json({
-          message: 'Bulk upload completed',
-          successCount: results.length,
-          errorCount: errors.length,
-          errors: errors
-        });
-      } catch (error) {
-        console.error('Error saving questions:', error);
-        res.status(500).json({ error: 'Failed to save questions' });
-      }
+      return res.status(400).json({ error: 'Unsupported file format. Please upload CSV or Excel files.' });
     }
 
   } catch (error) {
     console.error('Error in bulk upload:', error);
+    // Clean up uploaded file if it exists
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
     res.status(500).json({ error: 'Failed to process upload' });
   }
 });
+
+// Helper function to save questions
+async function saveQuestions(results, errors, filePath, res) {
+  try {
+    if (results.length > 0) {
+      await Question.insertMany(results);
+    }
+
+    // Clean up uploaded file
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    res.json({
+      message: 'Bulk upload completed',
+      uploaded: results.length,
+      successCount: results.length,
+      errorCount: errors.length,
+      errors: errors
+    });
+  } catch (error) {
+    console.error('Error saving questions:', error);
+    // Clean up uploaded file
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    res.status(500).json({ error: 'Failed to save questions' });
+  }
+}
 
 // Image upload endpoint
 app.post('/upload-image', upload.single('image'), async (req, res) => {
