@@ -75,6 +75,9 @@ export default function Home() {
     publishStatus: 'draft'
   });
   const [creatingQuestion, setCreatingQuestion] = useState(false);
+  const [questionImages, setQuestionImages] = useState<string[]>([]);
+  const [latexPreview, setLatexPreview] = useState('');
+  const [showLatexEditor, setShowLatexEditor] = useState(false);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -258,6 +261,98 @@ export default function Home() {
     localStorage.removeItem('userEmail');
     setIsLoggedIn(false);
     setCurrentView('dashboard');
+  };
+
+  // Image handling functions
+  const handleImageUpload = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch(`${API_BASE_URL}/upload-image`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const imageUrl = data.imageUrl;
+        setQuestionImages([...questionImages, imageUrl]);
+        
+        // Insert image into question text
+        const imageTag = `\n![Image](${imageUrl})\n`;
+        setQuestionForm({...questionForm, text: questionForm.text + imageTag});
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+    }
+  };
+
+  const handlePasteImage = (event: React.ClipboardEvent) => {
+    const items = event.clipboardData?.items;
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            handleImageUpload(file);
+            event.preventDefault();
+            break;
+          }
+        }
+      }
+    }
+  };
+
+  const handleDropImage = (event: React.DragEvent) => {
+    event.preventDefault();
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+      handleImageUpload(files[0]);
+    }
+  };
+
+  // LaTeX handling functions
+  const insertLatex = (latexCode: string) => {
+    const latexTag = `$${latexCode}$`;
+    setQuestionForm({...questionForm, text: questionForm.text + latexTag});
+    setLatexPreview(latexCode);
+  };
+
+  const handleLatexButton = () => {
+    setShowLatexEditor(!showLatexEditor);
+  };
+
+  // Text formatting functions
+  const formatText = (format: string) => {
+    const textarea = document.querySelector('textarea[name="questionText"]') as HTMLTextAreaElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = questionForm.text.substring(start, end);
+      
+      let formattedText = '';
+      switch (format) {
+        case 'bold':
+          formattedText = `**${selectedText}**`;
+          break;
+        case 'italic':
+          formattedText = `*${selectedText}*`;
+          break;
+        case 'underline':
+          formattedText = `__${selectedText}__`;
+          break;
+        case 'bullet':
+          formattedText = `\n• ${selectedText}`;
+          break;
+        case 'numbered':
+          formattedText = `\n1. ${selectedText}`;
+          break;
+      }
+      
+      const newText = questionForm.text.substring(0, start) + formattedText + questionForm.text.substring(end);
+      setQuestionForm({...questionForm, text: newText});
+    }
   };
 
   const filteredQuestions = questions.filter(question => {
@@ -530,13 +625,13 @@ export default function Home() {
                     <div className="bg-gray-50 border-b border-gray-300 p-3 flex items-center space-x-2 flex-wrap">
                       {/* Text Formatting */}
                       <div className="flex items-center space-x-1">
-                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Bold">
+                        <button type="button" onClick={() => formatText('bold')} className="p-2 hover:bg-gray-200 rounded" title="Bold">
                           <strong className="text-sm">B</strong>
                         </button>
-                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Italic">
+                        <button type="button" onClick={() => formatText('italic')} className="p-2 hover:bg-gray-200 rounded" title="Italic">
                           <em className="text-sm">I</em>
                         </button>
-                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Underline">
+                        <button type="button" onClick={() => formatText('underline')} className="p-2 hover:bg-gray-200 rounded" title="Underline">
                           <u className="text-sm">U</u>
                         </button>
                       </div>
@@ -545,10 +640,10 @@ export default function Home() {
                       
                       {/* Lists */}
                       <div className="flex items-center space-x-1">
-                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Bullet List">
+                        <button type="button" onClick={() => formatText('bullet')} className="p-2 hover:bg-gray-200 rounded" title="Bullet List">
                           <span className="text-sm">•</span>
                         </button>
-                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Numbered List">
+                        <button type="button" onClick={() => formatText('numbered')} className="p-2 hover:bg-gray-200 rounded" title="Numbered List">
                           <span className="text-sm">1.</span>
                         </button>
                       </div>
@@ -557,13 +652,29 @@ export default function Home() {
                       
                       {/* Images & Media */}
                       <div className="flex items-center space-x-1">
-                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Upload Image">
+                        <input
+                          type="file"
+                          id="imageUpload"
+                          accept="image/*"
+                          onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])}
+                          className="hidden"
+                        />
+                        <button type="button" onClick={() => document.getElementById('imageUpload')?.click()} className="p-2 hover:bg-gray-200 rounded" title="Upload Image">
                           <span className="text-sm">📷</span>
                         </button>
-                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Paste Image">
+                        <button type="button" onClick={() => navigator.clipboard.read().then(items => {
+                          for (const item of items) {
+                            if (item.types.includes('image/png') || item.types.includes('image/jpeg')) {
+                              item.getType('image/png').then(blob => {
+                                const file = new File([blob], 'pasted-image.png', { type: 'image/png' });
+                                handleImageUpload(file);
+                              });
+                            }
+                          }
+                        })} className="p-2 hover:bg-gray-200 rounded" title="Paste Image">
                           <span className="text-sm">📋</span>
                         </button>
-                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Drag & Drop">
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Drag & Drop (Active)">
                           <span className="text-sm">📁</span>
                         </button>
                       </div>
@@ -572,16 +683,16 @@ export default function Home() {
                       
                       {/* Math & Symbols */}
                       <div className="flex items-center space-x-1">
-                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="LaTeX Math">
+                        <button type="button" onClick={handleLatexButton} className="p-2 hover:bg-gray-200 rounded" title="LaTeX Math">
                           <span className="text-sm">Σ</span>
                         </button>
-                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Fractions">
+                        <button type="button" onClick={() => insertLatex('\\frac{a}{b}')} className="p-2 hover:bg-gray-200 rounded" title="Fractions">
                           <span className="text-sm">⅟</span>
                         </button>
-                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Square Root">
+                        <button type="button" onClick={() => insertLatex('\\sqrt{x}')} className="p-2 hover:bg-gray-200 rounded" title="Square Root">
                           <span className="text-sm">√</span>
                         </button>
-                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Power">
+                        <button type="button" onClick={() => insertLatex('x^2')} className="p-2 hover:bg-gray-200 rounded" title="Power">
                           <span className="text-sm">x²</span>
                         </button>
                       </div>
@@ -608,11 +719,15 @@ export default function Home() {
                     {/* Enhanced Question Text Area with Image Support */}
                     <div className="relative">
                       <textarea
+                        name="questionText"
                         className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
                         rows={8}
                         placeholder="Type your question here... You can paste images directly or use the toolbar above to insert them."
                         value={questionForm.text}
                         onChange={(e) => setQuestionForm({...questionForm, text: e.target.value})}
+                        onPaste={handlePasteImage}
+                        onDrop={handleDropImage}
+                        onDragOver={(e) => e.preventDefault()}
                         required
                         style={{ color: '#171717', backgroundColor: '#ffffff' }}
                       />
@@ -628,15 +743,55 @@ export default function Home() {
                       </div>
                     </div>
                     
-                    {/* LaTeX Preview */}
-                    {questionForm.text.includes('\\') && (
-                      <div className="bg-blue-50 border-t border-blue-200 p-3">
-                        <div className="text-sm font-medium text-blue-800 mb-2">LaTeX Preview:</div>
-                        <div className="bg-white p-2 rounded border">
-                          <code className="text-sm text-blue-600">{questionForm.text}</code>
-                        </div>
-                      </div>
-                    )}
+                                         {/* LaTeX Preview */}
+                     {questionForm.text.includes('\\') && (
+                       <div className="bg-blue-50 border-t border-blue-200 p-3">
+                         <div className="text-sm font-medium text-blue-800 mb-2">LaTeX Preview:</div>
+                         <div className="bg-white p-2 rounded border">
+                           <code className="text-sm text-blue-600">{questionForm.text}</code>
+                         </div>
+                       </div>
+                     )}
+                     
+                     {/* LaTeX Editor Modal */}
+                     {showLatexEditor && (
+                       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                         <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                           <h3 className="text-lg font-semibold mb-4">Insert LaTeX Formula</h3>
+                           <div className="space-y-4">
+                             <div>
+                               <label className="block text-sm font-medium text-gray-700 mb-2">LaTeX Code:</label>
+                               <input
+                                 type="text"
+                                 placeholder="e.g., \\frac{a}{b}, \\sqrt{x}, x^2"
+                                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                 onChange={(e) => setLatexPreview(e.target.value)}
+                               />
+                             </div>
+                             <div className="flex space-x-2">
+                               <button
+                                 type="button"
+                                 onClick={() => {
+                                   insertLatex(latexPreview);
+                                   setShowLatexEditor(false);
+                                   setLatexPreview('');
+                                 }}
+                                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                               >
+                                 Insert
+                               </button>
+                               <button
+                                 type="button"
+                                 onClick={() => setShowLatexEditor(false)}
+                                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                               >
+                                 Cancel
+                               </button>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     )}
                   </div>
                 </div>
 
