@@ -73,12 +73,16 @@ export default function Home() {
     blooms: '',
     category: '',
     topic: '',
-    publishStatus: 'draft'
+    publishStatus: 'draft',
+    solution: ''
   });
   const [creatingQuestion, setCreatingQuestion] = useState(false);
   const [questionImages, setQuestionImages] = useState<string[]>([]);
   const [latexPreview, setLatexPreview] = useState('');
   const [showLatexEditor, setShowLatexEditor] = useState(false);
+  const [solutionTab, setSolutionTab] = useState<'video' | 'text'>('video');
+  const [solutionType, setSolutionType] = useState<'map' | 'browse'>('map');
+  const [solutionFile, setSolutionFile] = useState<File | null>(null);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -211,7 +215,8 @@ export default function Home() {
           blooms: '',
           category: '',
           topic: '',
-          publishStatus: 'draft'
+          publishStatus: 'draft',
+          solution: ''
         });
         fetchQuestions(); // Refresh the questions list
       } else {
@@ -354,6 +359,131 @@ export default function Home() {
       
       const newText = questionForm.text.substring(0, start) + formattedText + questionForm.text.substring(end);
       setQuestionForm({...questionForm, text: newText});
+    }
+  };
+
+  // Option formatting functions
+  const formatOptionText = (optionIndex: number, format: string) => {
+    const options = questionForm.options.split('\n');
+    const optionText = options[optionIndex] || '';
+    
+    let formattedText = '';
+    switch (format) {
+      case 'bold':
+        formattedText = `**${optionText}**`;
+        break;
+      case 'italic':
+        formattedText = `*${optionText}*`;
+        break;
+    }
+    
+    options[optionIndex] = formattedText;
+    setQuestionForm({...questionForm, options: options.join('\n')});
+  };
+
+  const handleOptionImageUpload = async (optionIndex: number) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        try {
+          const formData = new FormData();
+          formData.append('image', file);
+          
+          const response = await fetch(`${API_BASE_URL}/upload-image`, {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const imageUrl = data.imageUrl;
+            
+            // Insert image into option text
+            const options = questionForm.options.split('\n');
+            const currentOption = options[optionIndex] || '';
+            options[optionIndex] = currentOption + `\n![Image](${imageUrl})`;
+            setQuestionForm({...questionForm, options: options.join('\n')});
+          }
+        } catch (error) {
+          console.error('Error uploading image for option:', error);
+        }
+      }
+    };
+    input.click();
+  };
+
+  const handleOptionMathInsert = (optionIndex: number) => {
+    const mathFormula = prompt('Enter math formula (e.g., x^2, \\frac{a}{b}):');
+    if (mathFormula) {
+      const options = questionForm.options.split('\n');
+      const currentOption = options[optionIndex] || '';
+      options[optionIndex] = currentOption + ` \\[${mathFormula}\\]`;
+      setQuestionForm({...questionForm, options: options.join('\n')});
+    }
+  };
+
+  // Solution handling functions
+  const handleSolutionFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSolutionFile(file);
+    }
+  };
+
+  const formatSolutionText = (format: string) => {
+    const solutionText = questionForm.solution || '';
+    let formattedText = '';
+    switch (format) {
+      case 'bold':
+        formattedText = `**${solutionText}**`;
+        break;
+      case 'italic':
+        formattedText = `*${solutionText}*`;
+        break;
+    }
+    setQuestionForm({...questionForm, solution: formattedText});
+  };
+
+  const handleSolutionImageUpload = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        try {
+          const formData = new FormData();
+          formData.append('image', file);
+          
+          const response = await fetch(`${API_BASE_URL}/upload-image`, {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            const imageUrl = data.imageUrl;
+            
+            // Insert image into solution text
+            const currentSolution = questionForm.solution || '';
+            setQuestionForm({...questionForm, solution: currentSolution + `\n![Image](${imageUrl})`});
+          }
+        } catch (error) {
+          console.error('Error uploading image for solution:', error);
+        }
+      }
+    };
+    input.click();
+  };
+
+  const handleSolutionMathInsert = () => {
+    const mathFormula = prompt('Enter math formula (e.g., x^2, \\frac{a}{b}):');
+    if (mathFormula) {
+      const currentSolution = questionForm.solution || '';
+      setQuestionForm({...questionForm, solution: currentSolution + ` \\[${mathFormula}\\]`});
     }
   };
 
@@ -901,16 +1031,36 @@ export default function Home() {
                         </div>
                         <div className="flex-1 border border-gray-300 rounded-lg">
                           <div className="bg-gray-50 border-b border-gray-300 p-2 flex items-center space-x-2">
-                            <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Bold">
+                            <button 
+                              type="button" 
+                              onClick={() => formatOptionText(index, 'bold')} 
+                              className="p-1 hover:bg-gray-200 rounded" 
+                              title="Bold"
+                            >
                               <strong className="text-sm">B</strong>
                             </button>
-                            <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Italic">
+                            <button 
+                              type="button" 
+                              onClick={() => formatOptionText(index, 'italic')} 
+                              className="p-1 hover:bg-gray-200 rounded" 
+                              title="Italic"
+                            >
                               <em className="text-sm">I</em>
                             </button>
-                            <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Insert Image">
+                            <button 
+                              type="button" 
+                              onClick={() => handleOptionImageUpload(index)} 
+                              className="p-1 hover:bg-gray-200 rounded" 
+                              title="Insert Image"
+                            >
                               <span className="text-sm">📷</span>
                             </button>
-                            <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Math">
+                            <button 
+                              type="button" 
+                              onClick={() => handleOptionMathInsert(index)} 
+                              className="p-1 hover:bg-gray-200 rounded" 
+                              title="Math"
+                            >
                               <span className="text-sm">Σ</span>
                             </button>
                           </div>
@@ -931,8 +1081,10 @@ export default function Home() {
                         <input
                           type="number"
                           className="w-16 p-2 border border-gray-300 rounded text-center text-gray-500"
-                          placeholder="00"
+                          placeholder="1"
                           min="0"
+                          value={questionForm.marks || 1}
+                          onChange={(e) => setQuestionForm({...questionForm, marks: e.target.value})}
                         />
                       </div>
                     ))}
@@ -954,13 +1106,23 @@ export default function Home() {
                     <div className="flex border-b border-gray-300">
                       <button
                         type="button"
-                        className="px-4 py-2 border-b-2 border-orange-500 text-orange-600 font-medium"
+                        onClick={() => setSolutionTab('video')}
+                        className={`px-4 py-2 border-b-2 font-medium ${
+                          solutionTab === 'video' 
+                            ? 'border-orange-500 text-orange-600' 
+                            : 'border-transparent text-gray-600 hover:text-gray-800'
+                        }`}
                       >
                         Video Solution
                       </button>
                       <button
                         type="button"
-                        className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                        onClick={() => setSolutionTab('text')}
+                        className={`px-4 py-2 border-b-2 font-medium ${
+                          solutionTab === 'text' 
+                            ? 'border-orange-500 text-orange-600' 
+                            : 'border-transparent text-gray-600 hover:text-gray-800'
+                        }`}
                       >
                         Text Solution
                       </button>
@@ -968,38 +1130,118 @@ export default function Home() {
                     
                     {/* Solution Content */}
                     <div className="p-4">
-                      <div className="space-y-4">
-                        <div className="flex items-center space-x-4">
-                          <label className="flex items-center">
-                            <input type="radio" name="solutionType" value="map" className="mr-2" defaultChecked />
-                            Map Content
-                          </label>
-                          <label className="flex items-center">
-                            <input type="radio" name="solutionType" value="browse" className="mr-2" />
-                            Browse
-                          </label>
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Attach file for English
-                          </label>
-                          <div className="flex items-center space-x-3">
-                            <input
-                              type="file"
-                              className="flex-1 p-2 border border-gray-300 rounded"
-                              accept="video/*,image/*,.pdf,.doc,.docx"
-                            />
-                            <button type="button" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                      {solutionTab === 'video' ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-4">
+                            <label className="flex items-center">
+                                                             <input 
+                                 type="radio" 
+                                 name="solutionType" 
+                                 value="map" 
+                                 className="mr-2" 
+                                 checked={solutionType === 'map'}
+                                 onChange={(e) => setSolutionType(e.target.value as 'map' | 'browse')}
+                               />
+                              Map Content
+                            </label>
+                            <label className="flex items-center">
+                                                             <input 
+                                 type="radio" 
+                                 name="solutionType" 
+                                 value="browse" 
+                                 className="mr-2"
+                                 checked={solutionType === 'browse'}
+                                 onChange={(e) => setSolutionType(e.target.value as 'map' | 'browse')}
+                               />
                               Browse
-                            </button>
+                            </label>
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Upload Video/File
+                            </label>
+                            <div className="flex items-center space-x-3">
+                              <input
+                                type="file"
+                                accept="video/*,image/*,.pdf,.doc,.docx"
+                                onChange={handleSolutionFileUpload}
+                                className="flex-1 p-2 border border-gray-300 rounded"
+                              />
+                                                             <button 
+                                 type="button" 
+                                 onClick={() => (document.querySelector('input[type="file"]') as HTMLInputElement)?.click()}
+                                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                               >
+                                Browse
+                              </button>
+                            </div>
+                            {solutionFile && (
+                              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                                <p className="text-sm text-green-800">
+                                  File selected: <strong>{solutionFile.name}</strong>
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
-                        
-                        <button type="button" className="text-blue-600 hover:text-blue-700 text-sm">
-                          + Add More
-                        </button>
-                      </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Text Solution
+                            </label>
+                            <div className="border border-gray-300 rounded-lg">
+                              <div className="bg-gray-50 border-b border-gray-300 p-2 flex items-center space-x-2">
+                                <button 
+                                  type="button" 
+                                  onClick={() => formatSolutionText('bold')} 
+                                  className="p-1 hover:bg-gray-200 rounded" 
+                                  title="Bold"
+                                >
+                                  <strong className="text-sm">B</strong>
+                                </button>
+                                <button 
+                                  type="button" 
+                                  onClick={() => formatSolutionText('italic')} 
+                                  className="p-1 hover:bg-gray-200 rounded" 
+                                  title="Italic"
+                                >
+                                  <em className="text-sm">I</em>
+                                </button>
+                                <button 
+                                  type="button" 
+                                  onClick={handleSolutionImageUpload} 
+                                  className="p-1 hover:bg-gray-200 rounded" 
+                                  title="Insert Image"
+                                >
+                                  <span className="text-sm">📷</span>
+                                </button>
+                                <button 
+                                  type="button" 
+                                  onClick={handleSolutionMathInsert} 
+                                  className="p-1 hover:bg-gray-200 rounded" 
+                                  title="Math"
+                                >
+                                  <span className="text-sm">Σ</span>
+                                </button>
+                              </div>
+                              <textarea
+                                className="w-full p-3 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
+                                rows={4}
+                                placeholder="Enter your solution explanation here..."
+                                value={questionForm.solution || ''}
+                                onChange={(e) => setQuestionForm({...questionForm, solution: e.target.value})}
+                                style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <button type="button" className="text-blue-600 hover:text-blue-700 text-sm">
+                        + Add More
+                      </button>
                     </div>
                   </div>
                 </div>
