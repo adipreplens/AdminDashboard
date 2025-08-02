@@ -100,12 +100,7 @@ export default function Home() {
     }
   }, []);
 
-  // Debug effect to monitor options changes
-  useEffect(() => {
-    console.log('=== OPTIONS STATE CHANGED ===');
-    console.log('Current questionForm.options:', questionForm.options);
-    console.log('Current options split:', questionForm.options.split('\n'));
-  }, [questionForm.options]);
+
 
   const fetchStatistics = async () => {
     try {
@@ -574,13 +569,13 @@ export default function Home() {
       let formattedText = '';
       switch (format) {
         case 'bold':
-          formattedText = `**${selectedText}**`;
+          formattedText = `<strong>${selectedText}</strong>`;
           break;
         case 'italic':
-          formattedText = `*${selectedText}*`;
+          formattedText = `<em>${selectedText}</em>`;
           break;
         case 'underline':
-          formattedText = `__${selectedText}__`;
+          formattedText = `<u>${selectedText}</u>`;
           break;
         case 'bullet':
           formattedText = `\n• ${selectedText}`;
@@ -614,10 +609,10 @@ export default function Home() {
       let formattedText = '';
       switch (format) {
         case 'bold':
-          formattedText = `**${selectedText}**`;
+          formattedText = `<strong>${selectedText}</strong>`;
           break;
         case 'italic':
-          formattedText = `*${selectedText}*`;
+          formattedText = `<em>${selectedText}</em>`;
           break;
       }
       
@@ -647,11 +642,6 @@ export default function Home() {
   };
 
   const handleOptionImageUpload = async (optionIndex: number) => {
-    console.log('=== IMAGE UPLOAD DEBUG ===');
-    console.log('Uploading image for option index:', optionIndex); // Debug log
-    console.log('Current questionForm.options:', questionForm.options); // Debug log
-    console.log('Current options split:', questionForm.options.split('\n')); // Debug log
-    
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -671,48 +661,31 @@ export default function Home() {
             const data = await response.json();
             const imageUrl = data.imageUrl;
             
-            console.log('Image uploaded successfully, inserting into option:', optionIndex); // Debug log
-            
-            // Use a more robust approach with explicit array handling
+            // Update the specific option with the image
             setQuestionForm(prevForm => {
-              // Split the options string into an array
-              const optionsArray = prevForm.options.split('\n');
-              console.log('Current options array:', optionsArray); // Debug log
-              console.log('Target option index:', optionIndex); // Debug log
+              const options = prevForm.options.split('\n');
+              const newOptions = [...options];
               
-              // Create a new array to avoid mutation issues
-              const newOptionsArray = [...optionsArray];
-              
-              // Ensure the array has enough elements
-              while (newOptionsArray.length <= optionIndex) {
-                newOptionsArray.push('');
+              // Ensure we have enough options
+              while (newOptions.length <= optionIndex) {
+                newOptions.push('');
               }
               
-              // Get the current option text
-              const currentOptionText = newOptionsArray[optionIndex] || '';
-              console.log('Current option text for index', optionIndex, ':', currentOptionText); // Debug log
+              // Add image to the specific option
+              const currentOption = newOptions[optionIndex] || '';
+              newOptions[optionIndex] = currentOption + `\n![Image](${imageUrl})`;
               
-              // Add the image to the specific option
-              const newOptionText = currentOptionText + `\n![Image](${imageUrl})`;
-              newOptionsArray[optionIndex] = newOptionText;
-              
-              console.log('New option text for index', optionIndex, ':', newOptionText); // Debug log
-              console.log('Final options array:', newOptionsArray); // Debug log
-              
-              // Join back to string and update state
-              const newOptionsString = newOptionsArray.join('\n');
-              console.log('New options string:', newOptionsString); // Debug log
-              
-              const newState = {
+              return {
                 ...prevForm,
-                options: newOptionsString
+                options: newOptions.join('\n')
               };
-              console.log('New state after update:', newState); // Debug log
-              return newState;
             });
+          } else {
+            alert('Failed to upload image');
           }
         } catch (error) {
-          console.error('Error uploading image for option:', error);
+          console.error('Error uploading image:', error);
+          alert('Error uploading image');
         }
       }
     };
