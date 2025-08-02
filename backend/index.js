@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const XLSX = require('xlsx');
 const S3Service = require('./s3Service');
 require('dotenv').config();
 
@@ -269,67 +270,118 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    if (!req.file.originalname.endsWith('.csv')) {
+    if (!req.file.originalname.endsWith('.csv') && !req.file.originalname.endsWith('.xlsx')) {
       // Clean up uploaded file
       fs.unlinkSync(req.file.path);
-      return res.status(400).json({ error: 'Only CSV files are allowed' });
+      return res.status(400).json({ error: 'Only CSV or XLSX files are allowed' });
     }
 
     const results = [];
     const errors = [];
 
-    fs.createReadStream(req.file.path)
-      .pipe(csv())
-      .on('data', (data) => {
+    if (req.file.originalname.endsWith('.csv')) {
+      fs.createReadStream(req.file.path)
+        .pipe(csv())
+        .on('data', (data) => {
+          try {
+            // Parse options (comma-separated string to array)
+            const options = data.options ? data.options.split(',').map(opt => opt.trim()) : [];
+            
+            // Parse tags (comma-separated string to array)
+            const tags = data.tags ? data.tags.split(',').map(tag => tag.trim()) : [];
+
+            const questionData = {
+              text: data.text,
+              options: options,
+              answer: data.answer,
+              subject: data.subject,
+              exam: data.exam,
+              difficulty: data.difficulty,
+              tags: tags,
+              marks: parseInt(data.marks) || 1,
+              timeLimit: parseInt(data.timeLimit) || 60,
+              blooms: data.blooms
+            };
+
+            results.push(questionData);
+          } catch (error) {
+            errors.push({ row: data, error: error.message });
+          }
+        })
+        .on('end', async () => {
+          try {
+            if (results.length > 0) {
+              await Question.insertMany(results);
+            }
+
+            // Clean up uploaded file
+            fs.unlinkSync(req.file.path);
+
+            res.json({
+              message: 'Bulk upload completed',
+              successCount: results.length,
+              errorCount: errors.length,
+              errors: errors
+            });
+          } catch (error) {
+            console.error('Error saving questions:', error);
+            res.status(500).json({ error: 'Failed to save questions' });
+          }
+        })
+        .on('error', (error) => {
+          console.error('Error processing CSV:', error);
+          res.status(500).json({ error: 'Failed to process CSV file' });
+        });
+    } else if (req.file.originalname.endsWith('.xlsx')) {
+      const workbook = XLSX.readFile(req.file.path);
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      for (const row of data) {
         try {
           // Parse options (comma-separated string to array)
-          const options = data.options ? data.options.split(',').map(opt => opt.trim()) : [];
+          const options = row.options ? row.options.split(',').map(opt => opt.trim()) : [];
           
           // Parse tags (comma-separated string to array)
-          const tags = data.tags ? data.tags.split(',').map(tag => tag.trim()) : [];
+          const tags = row.tags ? row.tags.split(',').map(tag => tag.trim()) : [];
 
           const questionData = {
-            text: data.text,
+            text: row.text,
             options: options,
-            answer: data.answer,
-            subject: data.subject,
-            exam: data.exam,
-            difficulty: data.difficulty,
+            answer: row.answer,
+            subject: row.subject,
+            exam: row.exam,
+            difficulty: row.difficulty,
             tags: tags,
-            marks: parseInt(data.marks) || 1,
-            timeLimit: parseInt(data.timeLimit) || 60,
-            blooms: data.blooms
+            marks: parseInt(row.marks) || 1,
+            timeLimit: parseInt(row.timeLimit) || 60,
+            blooms: row.blooms
           };
 
           results.push(questionData);
         } catch (error) {
-          errors.push({ row: data, error: error.message });
+          errors.push({ row: row, error: error.message });
         }
-      })
-      .on('end', async () => {
-        try {
-          if (results.length > 0) {
-            await Question.insertMany(results);
-          }
+      }
 
-          // Clean up uploaded file
-          fs.unlinkSync(req.file.path);
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
 
-          res.json({
-            message: 'Bulk upload completed',
-            successCount: results.length,
-            errorCount: errors.length,
-            errors: errors
-          });
-        } catch (error) {
-          console.error('Error saving questions:', error);
-          res.status(500).json({ error: 'Failed to save questions' });
+      try {
+        if (results.length > 0) {
+          await Question.insertMany(results);
         }
-      })
-      .on('error', (error) => {
-        console.error('Error processing CSV:', error);
-        res.status(500).json({ error: 'Failed to process CSV file' });
-      });
+        res.json({
+          message: 'Bulk upload completed',
+          successCount: results.length,
+          errorCount: errors.length,
+          errors: errors
+        });
+      } catch (error) {
+        console.error('Error saving questions:', error);
+        res.status(500).json({ error: 'Failed to save questions' });
+      }
+    }
 
   } catch (error) {
     console.error('Error in bulk upload:', error);

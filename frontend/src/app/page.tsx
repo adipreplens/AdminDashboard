@@ -110,8 +110,18 @@ export default function Home() {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-        alert('Please select a CSV file');
+      const validTypes = [
+        'text/csv',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ];
+      const validExtensions = ['.csv', '.xlsx', '.xls'];
+      
+      const isValidType = validTypes.includes(file.type) || 
+                         validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+      
+      if (!isValidType) {
+        alert('Please select a CSV or Excel file (.csv, .xlsx, .xls)');
         return;
       }
       setSelectedFile(file);
@@ -667,17 +677,17 @@ export default function Home() {
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload CSV File
+                    Upload CSV or Excel File
                   </label>
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                     <div className="space-y-4">
                       <div className="text-4xl">📁</div>
                       <div>
                         <p className="text-sm text-gray-600">
-                          Drag and drop your CSV file here, or click to browse
+                          Drag and drop your CSV or Excel file here, or click to browse
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          Supported format: CSV with columns: text, options, answer, subject, exam, difficulty, tags, marks, timeLimit, blooms
+                          Supported formats: CSV, XLSX, XLS with columns: text, options, answer, subject, exam, difficulty, tags, marks, timeLimit, blooms
                         </p>
                       </div>
                       {selectedFile && (
@@ -689,7 +699,7 @@ export default function Home() {
                       )}
                       <input
                         type="file"
-                        accept=".csv"
+                        accept=".csv,.xlsx,.xls"
                         onChange={handleFileSelect}
                         ref={fileInputRef}
                         className="hidden"
@@ -706,12 +716,21 @@ export default function Home() {
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-blue-800 mb-2">CSV Format Example:</h3>
-                  <pre className="text-xs text-blue-700 bg-blue-100 p-2 rounded">
+                  <h3 className="text-sm font-medium text-blue-800 mb-2">File Format Example:</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs font-medium text-blue-700">CSV Format:</p>
+                      <pre className="text-xs text-blue-700 bg-blue-100 p-2 rounded">
 {`text,options,answer,subject,exam,difficulty,tags,marks,timeLimit,blooms
 "What is 2+2?",["4","5","6","7"],"4",mathematics,jee,easy,"basic math,addition",2,30,remember
 "Solve for x: x²-4=0",["x=±2","x=2","x=-2","x=0"],"x=±2",mathematics,jee,medium,"algebra,quadratic",3,60,apply`}
-                  </pre>
+                      </pre>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-blue-700">Excel Format:</p>
+                      <p className="text-xs text-blue-700">Create an Excel file with the same columns as CSV format above.</p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex justify-end">
