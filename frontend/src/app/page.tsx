@@ -33,6 +33,9 @@ interface Question {
   blooms: string;
   imageUrl?: string;
   solution?: string;
+  publishStatus?: string;
+  category?: string;
+  topic?: string;
 }
 
 export default function Home() {
@@ -83,6 +86,8 @@ export default function Home() {
   const [currentCategory, setCurrentCategory] = useState('Basic');
   const [mathEditorTarget, setMathEditorTarget] = useState<'question' | 'option' | 'solution'>('question');
   const [mathEditorOptionIndex, setMathEditorOptionIndex] = useState(0);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<{show: boolean, questionId: string | null}>({show: false, questionId: null});
 
 
   // Check if user is already logged in
@@ -186,6 +191,12 @@ export default function Home() {
       const answerIndex = correctAnswer ? correctAnswer.charCodeAt(0) - 65 : 0; // A=0, B=1, C=2, D=3
       const answerText = options[answerIndex] || options[0] || '';
       
+      // Validate that we have a valid answer
+      if (!answerText || answerText.trim() === '') {
+        alert('Please select a valid correct answer.');
+        return;
+      }
+      
       const questionData = {
         text: questionForm.text,
         options: options,
@@ -275,6 +286,152 @@ export default function Home() {
     localStorage.removeItem('userEmail');
     setIsLoggedIn(false);
     setCurrentView('dashboard');
+  };
+
+  // Delete question function
+  const handleDeleteQuestion = async (questionId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/questions/${questionId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        alert('Question deleted successfully!');
+        fetchQuestions(); // Refresh the questions list
+        setShowDeleteConfirm({show: false, questionId: null});
+      } else {
+        const error = await response.json();
+        alert(`Failed to delete question: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error deleting question:', error);
+      alert('Failed to delete question');
+    }
+  };
+
+  // Edit question function
+  const handleEditQuestion = (question: Question) => {
+    // Check if question is published
+    if (question.publishStatus === 'published') {
+      alert('Cannot edit published questions. Please unpublish first.');
+      return;
+    }
+    
+    // Check if question has required fields
+    if (!question.text || !question.options || question.options.length === 0) {
+      alert('Cannot edit questions with missing required fields.');
+      return;
+    }
+    
+    setEditingQuestion(question);
+    setCurrentView('create');
+    
+    // Populate the form with question data
+    setQuestionForm({
+      text: question.text,
+      options: Array.isArray(question.options) ? question.options.join('\n') : question.options || '',
+      answer: question.answer,
+      subject: question.subject,
+      exam: question.exam,
+      difficulty: question.difficulty,
+      tags: Array.isArray(question.tags) ? question.tags.join(', ') : question.tags || '',
+      marks: question.marks.toString(),
+      timeLimit: question.timeLimit.toString(),
+      blooms: question.blooms,
+      category: question.category || '',
+      topic: question.topic || '',
+      publishStatus: question.publishStatus || 'draft',
+      solution: question.solution || ''
+    });
+  };
+
+  // Publish/Unpublish question function
+  const handleTogglePublish = async (questionId: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+      const response = await fetch(`${API_BASE_URL}/questions/${questionId}/publish`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ publishStatus: newStatus }),
+      });
+
+      if (response.ok) {
+        alert(`Question ${newStatus === 'published' ? 'published' : 'unpublished'} successfully!`);
+        fetchQuestions(); // Refresh the questions list
+      } else {
+        const error = await response.json();
+        alert(`Failed to ${newStatus === 'published' ? 'publish' : 'unpublish'} question: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error toggling publish status:', error);
+      alert('Failed to update publish status');
+    }
+  };
+
+  // Update question function
+  const handleUpdateQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingQuestion) return;
+    
+    setCreatingQuestion(true);
+
+    try {
+      // Get the selected correct answer from radio buttons
+      const formData = new FormData(e.target as HTMLFormElement);
+      const correctAnswer = formData.get('correctAnswer') as string;
+      
+      // Get options from the individual option fields
+      const options = questionForm.options.split('\n').filter(option => option.trim());
+      
+      // Find the correct answer text based on the selected radio button
+      const answerIndex = correctAnswer ? correctAnswer.charCodeAt(0) - 65 : 0; // A=0, B=1, C=2, D=3
+      const answerText = options[answerIndex] || options[0] || '';
+      
+      // Validate that we have a valid answer
+      if (!answerText || answerText.trim() === '') {
+        alert('Please select a valid correct answer.');
+        return;
+      }
+      
+      const questionData = {
+        text: questionForm.text,
+        options: options,
+        answer: answerText,
+        subject: questionForm.subject,
+        exam: questionForm.exam || 'general',
+        difficulty: questionForm.difficulty,
+        tags: questionForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        marks: parseInt(questionForm.marks) || 1,
+        timeLimit: parseInt(questionForm.timeLimit) || 60,
+        blooms: questionForm.blooms
+      };
+
+      const response = await fetch(`${API_BASE_URL}/questions/${editingQuestion._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(questionData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert('Question updated successfully!');
+        setEditingQuestion(null);
+        setCurrentView('questions');
+        fetchQuestions(); // Refresh the questions list
+      } else {
+        const error = await response.json();
+        alert(`Failed to update question: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error updating question:', error);
+      alert('Failed to update question');
+    } finally {
+      setCreatingQuestion(false);
+    }
   };
 
   // Image handling functions
@@ -975,9 +1132,11 @@ export default function Home() {
         
         {currentView === 'create' && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900">Create New Question</h2>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {editingQuestion ? 'Edit Question' : 'Create New Question'}
+            </h2>
             <div className="bg-white rounded-lg shadow p-6">
-              <form onSubmit={handleCreateQuestion} className="space-y-6">
+              <form onSubmit={editingQuestion ? handleUpdateQuestion : handleCreateQuestion} className="space-y-6">
                 {/* Question Input Section */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1528,13 +1687,25 @@ export default function Home() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex justify-end">
+                <div className="flex justify-end space-x-4">
+                  {editingQuestion && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingQuestion(null);
+                        setCurrentView('questions');
+                      }}
+                      className="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 font-medium"
+                    >
+                      Cancel
+                    </button>
+                  )}
                   <button
                     type="submit"
                     disabled={creatingQuestion}
                     className="px-8 py-3 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
-                    {creatingQuestion ? 'Submitting...' : 'Submit Question'}
+                    {creatingQuestion ? 'Submitting...' : (editingQuestion ? 'Update Question' : 'Submit Question')}
                   </button>
                 </div>
               </form>
@@ -1778,14 +1949,35 @@ export default function Home() {
                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                   {question.marks} mark{question.marks > 1 ? 's' : ''}
                                 </span>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  question.publishStatus === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {question.publishStatus === 'published' ? 'Published' : 'Draft'}
+                                </span>
                               </div>
                             </div>
                           </div>
                           <div className="flex space-x-2 ml-4">
-                            <button className="px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md border border-blue-200 hover:border-blue-300 transition-colors">
+                            <button 
+                              onClick={() => handleEditQuestion(question)}
+                              className="px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-md border border-blue-200 hover:border-blue-300 transition-colors"
+                            >
                               ✏️ Edit
                             </button>
-                            <button className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md border border-red-200 hover:border-red-300 transition-colors">
+                            <button 
+                              onClick={() => handleTogglePublish(question._id, question.publishStatus || 'draft')}
+                              className={`px-3 py-2 rounded-md border transition-colors ${
+                                question.publishStatus === 'published' 
+                                  ? 'text-orange-600 hover:bg-orange-50 border-orange-200 hover:border-orange-300' 
+                                  : 'text-green-600 hover:bg-green-50 border-green-200 hover:border-green-300'
+                              }`}
+                            >
+                              {question.publishStatus === 'published' ? '📤 Unpublish' : '📥 Publish'}
+                            </button>
+                            <button 
+                              onClick={() => setShowDeleteConfirm({show: true, questionId: question._id})}
+                              className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-md border border-red-200 hover:border-red-300 transition-colors"
+                            >
                               🗑️ Delete
                             </button>
                           </div>
@@ -1815,28 +2007,41 @@ export default function Home() {
                         <div className="bg-blue-50 p-4 rounded-lg">
                           <h4 className="font-medium text-blue-800 mb-3">📋 Answer Options:</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {question.options && question.options.map((option, index) => (
-                              <div key={index} className="flex items-center space-x-2">
-                                <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
-                                  {String.fromCharCode(65 + index)}
-                                </span>
-                                <span className={`flex-1 p-2 rounded border ${
-                                  option === question.answer ? 'bg-green-100 border-green-300 text-green-800' : 'bg-white border-gray-200'
-                                }`}>
-                                  {option}
-                                  {option === question.answer && (
-                                    <span className="ml-2 text-green-600">✓ Correct</span>
-                                  )}
-                                </span>
+                            {question.options && question.options.length > 0 ? (
+                              question.options.map((option, index) => (
+                                <div key={index} className="flex items-center space-x-2">
+                                  <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
+                                    {String.fromCharCode(65 + index)}
+                                  </span>
+                                  <span className={`flex-1 p-2 rounded border ${
+                                    option && option.trim() === question.answer ? 'bg-green-100 border-green-300 text-green-800' : 'bg-white border-gray-200'
+                                  }`}>
+                                    {option && option.trim() ? option : `Option ${String.fromCharCode(65 + index)} (empty)`}
+                                    {option && option.trim() === question.answer && (
+                                      <span className="ml-2 text-green-600">✓ Correct</span>
+                                    )}
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="col-span-2 text-center text-gray-500 py-4">
+                                No options available
                               </div>
-                            ))}
+                            )}
                           </div>
                         </div>
 
                         {/* Correct Answer */}
                         <div className="bg-green-50 p-4 rounded-lg">
                           <h4 className="font-medium text-green-800 mb-2">✅ Correct Answer:</h4>
-                          <p className="text-green-700 font-medium">{question.answer}</p>
+                          <p className="text-green-700 font-medium">
+                            {question.answer && question.answer.trim() ? question.answer : 'No answer specified'}
+                          </p>
+                          {question.answer && question.answer.trim() && (
+                            <p className="text-xs text-green-600 mt-1">
+                              Answer found in options: {question.options && question.options.includes(question.answer) ? 'Yes' : 'No'}
+                            </p>
+                          )}
                         </div>
 
                         {/* Solution Section */}
@@ -2314,6 +2519,40 @@ export default function Home() {
                     <span className="font-semibold text-green-600">₹1,45,678</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm.show && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Confirm Delete</h3>
+                <button
+                  onClick={() => setShowDeleteConfirm({show: false, questionId: null})}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to delete this question? This action cannot be undone.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowDeleteConfirm({show: false, questionId: null})}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => showDeleteConfirm.questionId && handleDeleteQuestion(showDeleteConfirm.questionId)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                >
+                  Delete
+                </button>
               </div>
             </div>
           </div>
