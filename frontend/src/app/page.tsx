@@ -80,9 +80,7 @@ export default function Home() {
   const [questionImages, setQuestionImages] = useState<string[]>([]);
   const [latexPreview, setLatexPreview] = useState('');
   const [showLatexEditor, setShowLatexEditor] = useState(false);
-  const [solutionTab, setSolutionTab] = useState<'video' | 'text'>('video');
-  const [solutionType, setSolutionType] = useState<'map' | 'browse'>('map');
-  const [solutionFile, setSolutionFile] = useState<File | null>(null);
+
 
   // Check if user is already logged in
   useEffect(() => {
@@ -425,13 +423,7 @@ export default function Home() {
     }
   };
 
-  // Solution handling functions
-  const handleSolutionFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSolutionFile(file);
-    }
-  };
+
 
   const formatSolutionText = (format: string) => {
     const solutionText = questionForm.solution || '';
@@ -1062,153 +1054,54 @@ export default function Home() {
                   />
                 </div>
 
-                {/* Solution Section */}
+                                {/* Solution Section */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Solution
                   </label>
                   <div className="border border-gray-300 rounded-lg">
-                    {/* Solution Tabs */}
-                    <div className="flex border-b border-gray-300">
-                      <button
-                        type="button"
-                        onClick={() => setSolutionTab('video')}
-                        className={`px-4 py-2 border-b-2 font-medium ${
-                          solutionTab === 'video' 
-                            ? 'border-orange-500 text-orange-600' 
-                            : 'border-transparent text-gray-600 hover:text-gray-800'
-                        }`}
+                    <div className="bg-gray-50 border-b border-gray-300 p-2 flex items-center space-x-2">
+                      <button 
+                        type="button" 
+                        onClick={() => formatSolutionText('bold')} 
+                        className="p-1 hover:bg-gray-200 rounded" 
+                        title="Bold"
                       >
-                        Video Solution
+                        <strong className="text-sm">B</strong>
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setSolutionTab('text')}
-                        className={`px-4 py-2 border-b-2 font-medium ${
-                          solutionTab === 'text' 
-                            ? 'border-orange-500 text-orange-600' 
-                            : 'border-transparent text-gray-600 hover:text-gray-800'
-                        }`}
+                      <button 
+                        type="button" 
+                        onClick={() => formatSolutionText('italic')} 
+                        className="p-1 hover:bg-gray-200 rounded" 
+                        title="Italic"
                       >
-                        Text Solution
+                        <em className="text-sm">I</em>
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={handleSolutionImageUpload} 
+                        className="p-1 hover:bg-gray-200 rounded" 
+                        title="Insert Image"
+                      >
+                        <span className="text-sm">📷</span>
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={handleSolutionMathInsert} 
+                        className="p-1 hover:bg-gray-200 rounded" 
+                        title="Math"
+                      >
+                        <span className="text-sm">Σ</span>
                       </button>
                     </div>
-                    
-                    {/* Solution Content */}
-                    <div className="p-4">
-                      {solutionTab === 'video' ? (
-                        <div className="space-y-4">
-                          <div className="flex items-center space-x-4">
-                            <label className="flex items-center">
-                                                             <input 
-                                 type="radio" 
-                                 name="solutionType" 
-                                 value="map" 
-                                 className="mr-2" 
-                                 checked={solutionType === 'map'}
-                                 onChange={(e) => setSolutionType(e.target.value as 'map' | 'browse')}
-                               />
-                              Map Content
-                            </label>
-                            <label className="flex items-center">
-                                                             <input 
-                                 type="radio" 
-                                 name="solutionType" 
-                                 value="browse" 
-                                 className="mr-2"
-                                 checked={solutionType === 'browse'}
-                                 onChange={(e) => setSolutionType(e.target.value as 'map' | 'browse')}
-                               />
-                              Browse
-                            </label>
-                          </div>
-                          
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Upload Video/File
-                            </label>
-                            <div className="flex items-center space-x-3">
-                              <input
-                                type="file"
-                                accept="video/*,image/*,.pdf,.doc,.docx"
-                                onChange={handleSolutionFileUpload}
-                                className="flex-1 p-2 border border-gray-300 rounded"
-                              />
-                                                             <button 
-                                 type="button" 
-                                 onClick={() => (document.querySelector('input[type="file"]') as HTMLInputElement)?.click()}
-                                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                               >
-                                Browse
-                              </button>
-                            </div>
-                            {solutionFile && (
-                              <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
-                                <p className="text-sm text-green-800">
-                                  File selected: <strong>{solutionFile.name}</strong>
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Text Solution
-                            </label>
-                            <div className="border border-gray-300 rounded-lg">
-                              <div className="bg-gray-50 border-b border-gray-300 p-2 flex items-center space-x-2">
-                                <button 
-                                  type="button" 
-                                  onClick={() => formatSolutionText('bold')} 
-                                  className="p-1 hover:bg-gray-200 rounded" 
-                                  title="Bold"
-                                >
-                                  <strong className="text-sm">B</strong>
-                                </button>
-                                <button 
-                                  type="button" 
-                                  onClick={() => formatSolutionText('italic')} 
-                                  className="p-1 hover:bg-gray-200 rounded" 
-                                  title="Italic"
-                                >
-                                  <em className="text-sm">I</em>
-                                </button>
-                                <button 
-                                  type="button" 
-                                  onClick={handleSolutionImageUpload} 
-                                  className="p-1 hover:bg-gray-200 rounded" 
-                                  title="Insert Image"
-                                >
-                                  <span className="text-sm">📷</span>
-                                </button>
-                                <button 
-                                  type="button" 
-                                  onClick={handleSolutionMathInsert} 
-                                  className="p-1 hover:bg-gray-200 rounded" 
-                                  title="Math"
-                                >
-                                  <span className="text-sm">Σ</span>
-                                </button>
-                              </div>
-                              <textarea
-                                className="w-full p-3 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
-                                rows={4}
-                                placeholder="Enter your solution explanation here..."
-                                value={questionForm.solution || ''}
-                                onChange={(e) => setQuestionForm({...questionForm, solution: e.target.value})}
-                                style={{ color: '#171717', backgroundColor: '#ffffff' }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <button type="button" className="text-blue-600 hover:text-blue-700 text-sm">
-                        + Add More
-                      </button>
-                    </div>
+                    <textarea
+                      className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
+                      rows={6}
+                      placeholder="Enter your solution explanation here... You can add images, math formulas, and formatting."
+                      value={questionForm.solution || ''}
+                      onChange={(e) => setQuestionForm({...questionForm, solution: e.target.value})}
+                      style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                    />
                   </div>
                 </div>
 
