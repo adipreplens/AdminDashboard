@@ -392,10 +392,10 @@ export default function Home() {
     let formattedText = '';
     switch (format) {
       case 'bold':
-        formattedText = `**${optionText}**`;
+        formattedText = `<strong>${optionText}</strong>`;
         break;
       case 'italic':
-        formattedText = `*${optionText}*`;
+        formattedText = `<em>${optionText}</em>`;
         break;
     }
     
@@ -918,13 +918,18 @@ export default function Home() {
                         <div 
                           className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white min-h-[200px]"
                           contentEditable
-                          dangerouslySetInnerHTML={{ __html: questionForm.text }}
-                          onInput={(e) => setQuestionForm({...questionForm, text: e.currentTarget.innerHTML})}
+                          suppressContentEditableWarning={true}
+                          onInput={(e) => {
+                            const target = e.currentTarget as HTMLElement;
+                            setQuestionForm({...questionForm, text: target.innerHTML});
+                          }}
                           onPaste={handlePasteImage}
                           onDrop={handleDropImage}
                           onDragOver={(e) => e.preventDefault()}
                           style={{ color: '#171717', backgroundColor: '#ffffff' }}
-                        />
+                        >
+                          {questionForm.text}
+                        </div>
                       </div>
                       
                       {/* Image Upload Zone */}
@@ -1122,19 +1127,20 @@ export default function Home() {
                               <span className="text-sm">Σ</span>
                             </button>
                           </div>
-                          <textarea
-                            className="w-full p-3 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
-                            rows={2}
-                            placeholder={`Option ${option}`}
-                            value={questionForm.options.split('\n')[index] || ''}
-                            onChange={(e) => {
+                          <div 
+                            className="w-full p-3 border-0 focus:ring-0 resize-none text-gray-900 bg-white min-h-[60px]"
+                            contentEditable
+                            suppressContentEditableWarning={true}
+                            onInput={(e) => {
+                              const target = e.currentTarget as HTMLElement;
                               const options = questionForm.options.split('\n');
-                              options[index] = e.target.value;
+                              options[index] = target.innerHTML;
                               setQuestionForm({...questionForm, options: options.join('\n')});
                             }}
-                            required
                             style={{ color: '#171717', backgroundColor: '#ffffff' }}
-                          />
+                          >
+                            {questionForm.options.split('\n')[index] || ''}
+                          </div>
                         </div>
 
                       </div>
@@ -1204,14 +1210,18 @@ export default function Home() {
                         <span className="text-sm">Σ</span>
                       </button>
                     </div>
-                    <textarea
-                      className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
-                      rows={6}
-                      placeholder="Enter your solution explanation here... You can add images, math formulas, and formatting."
-                      value={questionForm.solution || ''}
-                      onChange={(e) => setQuestionForm({...questionForm, solution: e.target.value})}
+                    <div 
+                      className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white min-h-[120px]"
+                      contentEditable
+                      suppressContentEditableWarning={true}
+                      onInput={(e) => {
+                        const target = e.currentTarget as HTMLElement;
+                        setQuestionForm({...questionForm, solution: target.innerHTML});
+                      }}
                       style={{ color: '#171717', backgroundColor: '#ffffff' }}
-                    />
+                    >
+                      {questionForm.solution || ''}
+                    </div>
                   </div>
                 </div>
 
