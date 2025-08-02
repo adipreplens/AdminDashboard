@@ -318,8 +318,8 @@ export default function Home() {
 
   // LaTeX handling functions
   const insertLatex = (latexCode: string) => {
-    // Insert LaTeX without dollar signs - use display math format
-    const latexTag = `\\[${latexCode}\\]`;
+    // Insert LaTeX with proper HTML formatting
+    const latexTag = `<span class="math-formula">${latexCode}</span>`;
     setQuestionForm({...questionForm, text: questionForm.text + latexTag});
     setLatexPreview(latexCode);
   };
@@ -339,13 +339,13 @@ export default function Home() {
       let formattedText = '';
       switch (format) {
         case 'bold':
-          formattedText = `**${selectedText}**`;
+          formattedText = `<strong>${selectedText}</strong>`;
           break;
         case 'italic':
-          formattedText = `*${selectedText}*`;
+          formattedText = `<em>${selectedText}</em>`;
           break;
         case 'underline':
-          formattedText = `__${selectedText}__`;
+          formattedText = `<u>${selectedText}</u>`;
           break;
         case 'bullet':
           formattedText = `\n• ${selectedText}`;
@@ -842,19 +842,18 @@ export default function Home() {
                     
                     {/* Enhanced Question Text Area with Image Support */}
                     <div className="relative">
-                      <textarea
-                        name="questionText"
-                        className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
-                        rows={8}
-                        placeholder="Type your question here... You can paste images directly or use the toolbar above to insert them."
-                        value={questionForm.text}
-                        onChange={(e) => setQuestionForm({...questionForm, text: e.target.value})}
-                        onPaste={handlePasteImage}
-                        onDrop={handleDropImage}
-                        onDragOver={(e) => e.preventDefault()}
-                        required
-                        style={{ color: '#171717', backgroundColor: '#ffffff' }}
-                      />
+                      <div className="relative">
+                        <div 
+                          className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white min-h-[200px]"
+                          contentEditable
+                          dangerouslySetInnerHTML={{ __html: questionForm.text }}
+                          onInput={(e) => setQuestionForm({...questionForm, text: e.currentTarget.innerHTML})}
+                          onPaste={handlePasteImage}
+                          onDrop={handleDropImage}
+                          onDragOver={(e) => e.preventDefault()}
+                          style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                        />
+                      </div>
                       
                       {/* Image Upload Zone */}
                       <div className="absolute inset-0 pointer-events-none">
@@ -867,15 +866,7 @@ export default function Home() {
                       </div>
                     </div>
                     
-                                         {/* LaTeX Preview */}
-                     {questionForm.text.includes('\\[') && (
-                       <div className="bg-blue-50 border-t border-blue-200 p-3">
-                         <div className="text-sm font-medium text-blue-800 mb-2">Math Formula Preview:</div>
-                         <div className="bg-white p-2 rounded border">
-                           <code className="text-sm text-blue-600">{questionForm.text}</code>
-                         </div>
-                       </div>
-                     )}
+                    
                      
                      {/* Enhanced Math Editor Modal */}
                      {showLatexEditor && (

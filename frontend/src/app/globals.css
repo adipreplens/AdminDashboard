@@ -46,3 +46,26 @@ label {
 button {
   color: inherit;
 }
+
+/* Math formula styling */
+.math-formula {
+  font-family: 'Times New Roman', serif;
+  font-style: italic;
+  background-color: #f8f9fa;
+  padding: 2px 4px;
+  border-radius: 3px;
+  border: 1px solid #e9ecef;
+}
+
+/* Content editable styling */
+[contenteditable] {
+  outline: none;
+  min-height: 200px;
+  line-height: 1.6;
+}
+
+[contenteditable]:empty:before {
+  content: "Type your question here... You can paste images directly or use the toolbar above to insert them.";
+  color: #9ca3af;
+  pointer-events: none;
+}
