@@ -585,7 +585,7 @@ export default function Home() {
                     
                     {/* Question Text Area */}
                     <textarea
-                      className="w-full p-4 border-0 focus:ring-0 resize-none"
+                      className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900"
                       rows={6}
                       placeholder="Type your question here..."
                       value={questionForm.text}
@@ -593,6 +593,31 @@ export default function Home() {
                       required
                     />
                   </div>
+                </div>
+
+                {/* Exam Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Exam *
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    value={questionForm.exam}
+                    onChange={(e) => setQuestionForm({...questionForm, exam: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Exam</option>
+                    <option value="rrb-alp">RRB ALP</option>
+                    <option value="rrb-je">RRB JE</option>
+                    <option value="rrb-technician">RRB Technician</option>
+                    <option value="rrb-ntpc">RRB NTPC</option>
+                    <option value="ssc-cgl">SSC CGL</option>
+                    <option value="ssc-chsl">SSC CHSL</option>
+                    <option value="bank-po">Bank PO</option>
+                    <option value="bank-clerk">Bank Clerk</option>
+                    <option value="upsc">UPSC</option>
+                    <option value="general">General</option>
+                  </select>
                 </div>
 
                 {/* Options Section */}
@@ -628,7 +653,7 @@ export default function Home() {
                             </button>
                           </div>
                           <textarea
-                            className="w-full p-3 border-0 focus:ring-0 resize-none"
+                            className="w-full p-3 border-0 focus:ring-0 resize-none text-gray-900"
                             rows={2}
                             placeholder={`Option ${option}`}
                             value={questionForm.options.split('\n')[index] || ''}
@@ -735,6 +760,9 @@ export default function Home() {
                         <option value="chemistry">Chemistry</option>
                         <option value="biology">Biology</option>
                         <option value="english">English</option>
+                        <option value="general-knowledge">General Knowledge</option>
+                        <option value="reasoning">Reasoning</option>
+                        <option value="computer-science">Computer Science</option>
                       </select>
                     </div>
                     
@@ -953,6 +981,44 @@ export default function Home() {
                     <option value="physics">Physics</option>
                     <option value="chemistry">Chemistry</option>
                     <option value="biology">Biology</option>
+                    <option value="english">English</option>
+                    <option value="general-knowledge">General Knowledge</option>
+                    <option value="reasoning">Reasoning</option>
+                    <option value="computer-science">Computer Science</option>
+                  </select>
+                  <select 
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    value={filters.exam}
+                    onChange={(e) => setFilters({...filters, exam: e.target.value})}
+                  >
+                    <option value="">All Exams</option>
+                    <option value="rrb-alp">RRB ALP</option>
+                    <option value="rrb-je">RRB JE</option>
+                    <option value="rrb-technician">RRB Technician</option>
+                    <option value="rrb-ntpc">RRB NTPC</option>
+                    <option value="ssc-cgl">SSC CGL</option>
+                    <option value="ssc-chsl">SSC CHSL</option>
+                    <option value="bank-po">Bank PO</option>
+                    <option value="bank-clerk">Bank Clerk</option>
+                    <option value="upsc">UPSC</option>
+                    <option value="general">General</option>
+                  </select>
+                  <select 
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    value={filters.exam}
+                    onChange={(e) => setFilters({...filters, exam: e.target.value})}
+                  >
+                    <option value="">All Exams</option>
+                    <option value="rrb-alp">RRB ALP</option>
+                    <option value="rrb-je">RRB JE</option>
+                    <option value="rrb-technician">RRB Technician</option>
+                    <option value="rrb-ntpc">RRB NTPC</option>
+                    <option value="ssc-cgl">SSC CGL</option>
+                    <option value="ssc-chsl">SSC CHSL</option>
+                    <option value="bank-po">Bank PO</option>
+                    <option value="bank-clerk">Bank Clerk</option>
+                    <option value="upsc">UPSC</option>
+                    <option value="general">General</option>
                   </select>
                 </div>
                 <button 
