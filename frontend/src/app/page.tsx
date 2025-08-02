@@ -95,6 +95,13 @@ export default function Home() {
     }
   }, []);
 
+  // Debug effect to monitor options changes
+  useEffect(() => {
+    console.log('=== OPTIONS STATE CHANGED ===');
+    console.log('Current questionForm.options:', questionForm.options);
+    console.log('Current options split:', questionForm.options.split('\n'));
+  }, [questionForm.options]);
+
   const fetchStatistics = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/statistics`);
@@ -350,17 +357,29 @@ export default function Home() {
       
       if (optionTextarea) {
         const cursorPos = optionTextarea.selectionStart;
-        const options = questionForm.options.split('\n');
-        const currentOption = options[mathEditorOptionIndex] || '';
-        const newOption = currentOption.substring(0, cursorPos) + ' ' + mathText + currentOption.substring(cursorPos);
-        options[mathEditorOptionIndex] = newOption;
-        setQuestionForm({...questionForm, options: options.join('\n')});
         
-        // Restore cursor position after insertion
-        setTimeout(() => {
-          optionTextarea.focus();
-          optionTextarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
-        }, 0);
+        // Use functional update to avoid race conditions
+        setQuestionForm(prevForm => {
+          const options = prevForm.options.split('\n');
+          // Ensure we have enough options array elements
+          while (options.length <= mathEditorOptionIndex) {
+            options.push('');
+          }
+          const currentOption = options[mathEditorOptionIndex] || '';
+          const newOption = currentOption.substring(0, cursorPos) + ' ' + mathText + currentOption.substring(cursorPos);
+          options[mathEditorOptionIndex] = newOption;
+          
+          // Restore cursor position after insertion
+          setTimeout(() => {
+            optionTextarea.focus();
+            optionTextarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
+          }, 0);
+          
+          return {
+            ...prevForm,
+            options: options.join('\n')
+          };
+        });
       }
     } else if (mathEditorTarget === 'solution') {
       const solutionTextarea = document.querySelector('textarea[rows="6"]') as HTMLTextAreaElement;
@@ -444,21 +463,37 @@ export default function Home() {
           break;
       }
       
-      const options = questionForm.options.split('\n');
-      const currentOption = options[optionIndex] || '';
-      const newOption = currentOption.substring(0, start) + formattedText + currentOption.substring(end);
-      options[optionIndex] = newOption;
-      setQuestionForm({...questionForm, options: options.join('\n')});
-      
-      // Restore cursor position after formatting
-      setTimeout(() => {
-        optionTextarea.focus();
-        optionTextarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
-      }, 0);
+      // Use functional update to avoid race conditions
+      setQuestionForm(prevForm => {
+        const options = prevForm.options.split('\n');
+        // Ensure we have enough options array elements
+        while (options.length <= optionIndex) {
+          options.push('');
+        }
+        const currentOption = options[optionIndex] || '';
+        const newOption = currentOption.substring(0, start) + formattedText + currentOption.substring(end);
+        options[optionIndex] = newOption;
+        
+        // Restore cursor position after formatting
+        setTimeout(() => {
+          optionTextarea.focus();
+          optionTextarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
+        }, 0);
+        
+        return {
+          ...prevForm,
+          options: options.join('\n')
+        };
+      });
     }
   };
 
   const handleOptionImageUpload = async (optionIndex: number) => {
+    console.log('=== IMAGE UPLOAD DEBUG ===');
+    console.log('Uploading image for option index:', optionIndex); // Debug log
+    console.log('Current questionForm.options:', questionForm.options); // Debug log
+    console.log('Current options split:', questionForm.options.split('\n')); // Debug log
+    
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -478,11 +513,45 @@ export default function Home() {
             const data = await response.json();
             const imageUrl = data.imageUrl;
             
-            // Insert image into option text
-            const options = questionForm.options.split('\n');
-            const currentOption = options[optionIndex] || '';
-            options[optionIndex] = currentOption + `\n![Image](${imageUrl})`;
-            setQuestionForm({...questionForm, options: options.join('\n')});
+            console.log('Image uploaded successfully, inserting into option:', optionIndex); // Debug log
+            
+            // Use a more robust approach with explicit array handling
+            setQuestionForm(prevForm => {
+              // Split the options string into an array
+              const optionsArray = prevForm.options.split('\n');
+              console.log('Current options array:', optionsArray); // Debug log
+              console.log('Target option index:', optionIndex); // Debug log
+              
+              // Create a new array to avoid mutation issues
+              const newOptionsArray = [...optionsArray];
+              
+              // Ensure the array has enough elements
+              while (newOptionsArray.length <= optionIndex) {
+                newOptionsArray.push('');
+              }
+              
+              // Get the current option text
+              const currentOptionText = newOptionsArray[optionIndex] || '';
+              console.log('Current option text for index', optionIndex, ':', currentOptionText); // Debug log
+              
+              // Add the image to the specific option
+              const newOptionText = currentOptionText + `\n![Image](${imageUrl})`;
+              newOptionsArray[optionIndex] = newOptionText;
+              
+              console.log('New option text for index', optionIndex, ':', newOptionText); // Debug log
+              console.log('Final options array:', newOptionsArray); // Debug log
+              
+              // Join back to string and update state
+              const newOptionsString = newOptionsArray.join('\n');
+              console.log('New options string:', newOptionsString); // Debug log
+              
+              const newState = {
+                ...prevForm,
+                options: newOptionsString
+              };
+              console.log('New state after update:', newState); // Debug log
+              return newState;
+            });
           }
         } catch (error) {
           console.error('Error uploading image for option:', error);
@@ -506,24 +575,36 @@ export default function Home() {
       
       if (optionTextarea) {
         const cursorPos = optionTextarea.selectionStart;
-        const options = questionForm.options.split('\n');
-        const currentOption = options[optionIndex] || '';
-        const mathText = mathFormula
-          .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')
-          .replace(/\\sqrt\{([^}]+)\}/g, '√$1')
-          .replace(/x\^(\d+)/g, 'x^$1')
-          .replace(/\\pi/g, 'π')
-          .replace(/\\infty/g, '∞');
         
-        const newOption = currentOption.substring(0, cursorPos) + ' ' + mathText + currentOption.substring(cursorPos);
-        options[optionIndex] = newOption;
-        setQuestionForm({...questionForm, options: options.join('\n')});
-        
-        // Restore cursor position after insertion
-        setTimeout(() => {
-          optionTextarea.focus();
-          optionTextarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
-        }, 0);
+        // Use functional update to avoid race conditions
+        setQuestionForm(prevForm => {
+          const options = prevForm.options.split('\n');
+          // Ensure we have enough options array elements
+          while (options.length <= optionIndex) {
+            options.push('');
+          }
+          const currentOption = options[optionIndex] || '';
+          const mathText = mathFormula
+            .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')
+            .replace(/\\sqrt\{([^}]+)\}/g, '√$1')
+            .replace(/x\^(\d+)/g, 'x^$1')
+            .replace(/\\pi/g, 'π')
+            .replace(/\\infty/g, '∞');
+          
+          const newOption = currentOption.substring(0, cursorPos) + ' ' + mathText + currentOption.substring(cursorPos);
+          options[optionIndex] = newOption;
+          
+          // Restore cursor position after insertion
+          setTimeout(() => {
+            optionTextarea.focus();
+            optionTextarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
+          }, 0);
+          
+          return {
+            ...prevForm,
+            options: options.join('\n')
+          };
+        });
       }
     }
   };
@@ -1166,7 +1247,7 @@ export default function Home() {
                   </p>
                   <div className="space-y-3">
                     {['A', 'B', 'C', 'D'].map((option, index) => (
-                      <div key={index} className="flex items-center space-x-3">
+                      <div key={`option-container-${index}-${option}`} className="flex items-center space-x-3">
                         <div className="flex items-center space-x-2">
                           <span className="text-gray-500">⋮⋮</span>
                           <input
@@ -1199,6 +1280,7 @@ export default function Home() {
                               onClick={() => handleOptionImageUpload(index)} 
                               className="p-1 hover:bg-gray-200 rounded" 
                               title="Insert Image"
+                              data-option-index={index}
                             >
                               <span className="text-sm">📷</span>
                             </button>
@@ -1212,14 +1294,40 @@ export default function Home() {
                             </button>
                           </div>
                           <textarea
+                            key={`option-${index}`}
                             className="w-full p-3 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
                             rows={2}
                             placeholder={`Option ${option}`}
                             value={questionForm.options.split('\n')[index] || ''}
+                            data-option-index={index}
                             onChange={(e) => {
-                              const options = questionForm.options.split('\n');
-                              options[index] = e.target.value;
-                              setQuestionForm({...questionForm, options: options.join('\n')});
+                              console.log(`Updating option ${index} with value:`, e.target.value); // Debug log
+                              setQuestionForm(prevForm => {
+                                // Split the options string into an array
+                                const optionsArray = prevForm.options.split('\n');
+                                console.log('Current options array before update:', optionsArray); // Debug log
+                                
+                                // Create a new array to avoid mutation issues
+                                const newOptionsArray = [...optionsArray];
+                                
+                                // Ensure the array has enough elements
+                                while (newOptionsArray.length <= index) {
+                                  newOptionsArray.push('');
+                                }
+                                
+                                // Update the specific option
+                                newOptionsArray[index] = e.target.value;
+                                console.log(`Updated options array for index ${index}:`, newOptionsArray); // Debug log
+                                
+                                // Join back to string and update state
+                                const newOptionsString = newOptionsArray.join('\n');
+                                console.log('New options string:', newOptionsString); // Debug log
+                                
+                                return {
+                                  ...prevForm,
+                                  options: newOptionsString
+                                };
+                              });
                             }}
                             required
                             style={{ color: '#171717', backgroundColor: '#ffffff' }}
@@ -1454,7 +1562,7 @@ export default function Home() {
                           Upload any format! The system automatically detects and adapts to your file structure. 
                           Common formats: CSV, XLSX, XLS. Any column names will work.
                         </p>
-                      </div>
+            </div>
                       {selectedFile && (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                           <p className="text-sm text-green-800">
@@ -1539,7 +1647,7 @@ export default function Home() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
                       style={{ color: '#171717', backgroundColor: '#ffffff' }}
                     />
-                  </div>
+            </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Subject</label>
                     <select 
