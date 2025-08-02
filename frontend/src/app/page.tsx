@@ -319,18 +319,17 @@ export default function Home() {
 
   // LaTeX handling functions
   const insertLatex = (latexCode: string) => {
-    // Insert rendered math formula
-    const mathDisplay = latexCode
-      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '<span class="math-formula">$1/$2</span>')
-      .replace(/\\sqrt\{([^}]+)\}/g, '<span class="math-formula">√$1</span>')
-      .replace(/x\^(\d+)/g, '<span class="math-formula">x<sup>$1</sup></span>')
-      .replace(/\\pi/g, '<span class="math-formula">π</span>')
-      .replace(/\\infty/g, '<span class="math-formula">∞</span>')
-      .replace(/\\sum/g, '<span class="math-formula">∑</span>')
-      .replace(/\\int/g, '<span class="math-formula">∫</span>');
+    // Insert simple math formula text
+    const mathText = latexCode
+      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')
+      .replace(/\\sqrt\{([^}]+)\}/g, '√$1')
+      .replace(/x\^(\d+)/g, 'x^$1')
+      .replace(/\\pi/g, 'π')
+      .replace(/\\infty/g, '∞')
+      .replace(/\\sum/g, '∑')
+      .replace(/\\int/g, '∫');
     
-    const latexTag = `<span class="math-formula">${mathDisplay}</span>`;
-    setQuestionForm({...questionForm, text: questionForm.text + latexTag});
+    setQuestionForm({...questionForm, text: questionForm.text + ' ' + mathText});
     setLatexPreview(latexCode);
   };
 
@@ -340,89 +339,53 @@ export default function Home() {
 
   // Text formatting functions
   const formatText = (format: string) => {
-    const editableDiv = document.querySelector('[contenteditable]') as HTMLElement;
-    if (editableDiv && window.getSelection) {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        const selectedText = range.toString();
-        
-        if (selectedText) {
-          let formattedText = '';
-          switch (format) {
-            case 'bold':
-              formattedText = `<strong>${selectedText}</strong>`;
-              break;
-            case 'italic':
-              formattedText = `<em>${selectedText}</em>`;
-              break;
-            case 'underline':
-              formattedText = `<u>${selectedText}</u>`;
-              break;
-            case 'bullet':
-              formattedText = `\n• ${selectedText}`;
-              break;
-            case 'numbered':
-              formattedText = `\n1. ${selectedText}`;
-              break;
-          }
-          
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = formattedText;
-          const fragment = document.createDocumentFragment();
-          while (tempDiv.firstChild) {
-            fragment.appendChild(tempDiv.firstChild);
-          }
-          
-          range.deleteContents();
-          range.insertNode(fragment);
-          
-          // Update the form state
-          setQuestionForm({...questionForm, text: editableDiv.innerHTML});
-        }
+    const textarea = document.querySelector('textarea[name="questionText"]') as HTMLTextAreaElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const selectedText = questionForm.text.substring(start, end);
+      
+      let formattedText = '';
+      switch (format) {
+        case 'bold':
+          formattedText = `**${selectedText}**`;
+          break;
+        case 'italic':
+          formattedText = `*${selectedText}*`;
+          break;
+        case 'underline':
+          formattedText = `__${selectedText}__`;
+          break;
+        case 'bullet':
+          formattedText = `\n• ${selectedText}`;
+          break;
+        case 'numbered':
+          formattedText = `\n1. ${selectedText}`;
+          break;
       }
+      
+      const newText = questionForm.text.substring(0, start) + formattedText + questionForm.text.substring(end);
+      setQuestionForm({...questionForm, text: newText});
     }
   };
 
   // Option formatting functions
   const formatOptionText = (optionIndex: number, format: string) => {
-    const optionDivs = document.querySelectorAll('[contenteditable]');
-    const optionDiv = optionDivs[optionIndex + 1]; // +1 because first is question text
+    const options = questionForm.options.split('\n');
+    const optionText = options[optionIndex] || '';
     
-    if (optionDiv && window.getSelection) {
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        const selectedText = range.toString();
-        
-        if (selectedText) {
-          let formattedText = '';
-          switch (format) {
-            case 'bold':
-              formattedText = `<strong>${selectedText}</strong>`;
-              break;
-            case 'italic':
-              formattedText = `<em>${selectedText}</em>`;
-              break;
-          }
-          
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = formattedText;
-          const fragment = document.createDocumentFragment();
-          while (tempDiv.firstChild) {
-            fragment.appendChild(tempDiv.firstChild);
-          }
-          
-          range.deleteContents();
-          range.insertNode(fragment);
-          
-          // Update the form state
-          const options = questionForm.options.split('\n');
-          options[optionIndex] = optionDiv.innerHTML;
-          setQuestionForm({...questionForm, options: options.join('\n')});
-        }
-      }
+    let formattedText = '';
+    switch (format) {
+      case 'bold':
+        formattedText = `**${optionText}**`;
+        break;
+      case 'italic':
+        formattedText = `*${optionText}*`;
+        break;
     }
+    
+    options[optionIndex] = formattedText;
+    setQuestionForm({...questionForm, options: options.join('\n')});
   };
 
   const handleOptionImageUpload = async (optionIndex: number) => {
@@ -937,18 +900,17 @@ export default function Home() {
                     {/* Enhanced Question Text Area with Image Support */}
                     <div className="relative">
                       <div className="relative">
-                        <div 
-                          className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white min-h-[200px]"
-                          contentEditable
-                          suppressContentEditableWarning={true}
-                          dangerouslySetInnerHTML={{ __html: questionForm.text }}
-                          onInput={(e) => {
-                            const target = e.currentTarget as HTMLElement;
-                            setQuestionForm({...questionForm, text: target.innerHTML});
-                          }}
+                        <textarea
+                          name="questionText"
+                          className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
+                          rows={8}
+                          placeholder="Type your question here... You can paste images directly or use the toolbar above to insert them."
+                          value={questionForm.text}
+                          onChange={(e) => setQuestionForm({...questionForm, text: e.target.value})}
                           onPaste={handlePasteImage}
                           onDrop={handleDropImage}
                           onDragOver={(e) => e.preventDefault()}
+                          required
                           style={{ color: '#171717', backgroundColor: '#ffffff' }}
                         />
                       </div>
@@ -1148,17 +1110,17 @@ export default function Home() {
                               <span className="text-sm">Σ</span>
                             </button>
                           </div>
-                          <div 
-                            className="w-full p-3 border-0 focus:ring-0 resize-none text-gray-900 bg-white min-h-[60px]"
-                            contentEditable
-                            suppressContentEditableWarning={true}
-                            dangerouslySetInnerHTML={{ __html: questionForm.options.split('\n')[index] || '' }}
-                            onInput={(e) => {
-                              const target = e.currentTarget as HTMLElement;
+                          <textarea
+                            className="w-full p-3 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
+                            rows={2}
+                            placeholder={`Option ${option}`}
+                            value={questionForm.options.split('\n')[index] || ''}
+                            onChange={(e) => {
                               const options = questionForm.options.split('\n');
-                              options[index] = target.innerHTML;
+                              options[index] = e.target.value;
                               setQuestionForm({...questionForm, options: options.join('\n')});
                             }}
+                            required
                             style={{ color: '#171717', backgroundColor: '#ffffff' }}
                           />
                         </div>
@@ -1230,15 +1192,12 @@ export default function Home() {
                         <span className="text-sm">Σ</span>
                       </button>
                     </div>
-                    <div 
-                      className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white min-h-[120px]"
-                      contentEditable
-                      suppressContentEditableWarning={true}
-                      dangerouslySetInnerHTML={{ __html: questionForm.solution || '' }}
-                      onInput={(e) => {
-                        const target = e.currentTarget as HTMLElement;
-                        setQuestionForm({...questionForm, solution: target.innerHTML});
-                      }}
+                    <textarea
+                      className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
+                      rows={6}
+                      placeholder="Enter your solution explanation here... You can add images, math formulas, and formatting."
+                      value={questionForm.solution || ''}
+                      onChange={(e) => setQuestionForm({...questionForm, solution: e.target.value})}
                       style={{ color: '#171717', backgroundColor: '#ffffff' }}
                     />
                   </div>
