@@ -585,12 +585,13 @@ export default function Home() {
                     
                     {/* Question Text Area */}
                     <textarea
-                      className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900"
+                      className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
                       rows={6}
                       placeholder="Type your question here..."
                       value={questionForm.text}
                       onChange={(e) => setQuestionForm({...questionForm, text: e.target.value})}
                       required
+                      style={{ color: '#171717', backgroundColor: '#ffffff' }}
                     />
                   </div>
                 </div>
@@ -601,10 +602,11 @@ export default function Home() {
                     Exam *
                   </label>
                   <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                     value={questionForm.exam}
                     onChange={(e) => setQuestionForm({...questionForm, exam: e.target.value})}
                     required
+                    style={{ color: '#171717', backgroundColor: '#ffffff' }}
                   >
                     <option value="">Select Exam</option>
                     <option value="rrb-alp">RRB ALP</option>
@@ -653,7 +655,7 @@ export default function Home() {
                             </button>
                           </div>
                           <textarea
-                            className="w-full p-3 border-0 focus:ring-0 resize-none text-gray-900"
+                            className="w-full p-3 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
                             rows={2}
                             placeholder={`Option ${option}`}
                             value={questionForm.options.split('\n')[index] || ''}
@@ -663,6 +665,7 @@ export default function Home() {
                               setQuestionForm({...questionForm, options: options.join('\n')});
                             }}
                             required
+                            style={{ color: '#171717', backgroundColor: '#ffffff' }}
                           />
                         </div>
                         <input
@@ -749,10 +752,11 @@ export default function Home() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div>
                       <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
                         value={questionForm.subject}
                         onChange={(e) => setQuestionForm({...questionForm, subject: e.target.value})}
                         required
+                        style={{ color: '#171717', backgroundColor: '#ffffff' }}
                       >
                         <option value="">Select Subject</option>
                         <option value="mathematics">Mathematics</option>
