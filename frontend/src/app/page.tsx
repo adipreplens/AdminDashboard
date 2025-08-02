@@ -877,42 +877,89 @@ export default function Home() {
                        </div>
                      )}
                      
-                     {/* LaTeX Editor Modal */}
+                     {/* Enhanced Math Editor Modal */}
                      {showLatexEditor && (
                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                         <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                           <h3 className="text-lg font-semibold mb-4">Insert Math Formula</h3>
-                           <div className="space-y-4">
+                         <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+                           <div className="flex items-center justify-between mb-4">
                              <div>
-                               <label className="block text-sm font-medium text-gray-700 mb-2">Math Formula:</label>
-                               <input
-                                 type="text"
-                                 placeholder="e.g., x^2, \\frac{a}{b}, \\sqrt{x}, \\pi"
-                                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                 onChange={(e) => setLatexPreview(e.target.value)}
-                               />
-                               <p className="text-xs text-gray-500 mt-1">Just type the formula - no dollar signs needed!</p>
+                               <h3 className="text-xl font-semibold text-orange-600">Math Editor</h3>
+                               <h4 className="text-lg font-medium text-orange-600">f(x) Math Editor</h4>
                              </div>
-                             <div className="flex space-x-2">
+                             <button
+                               type="button"
+                               onClick={() => setShowLatexEditor(false)}
+                               className="text-gray-400 hover:text-gray-600"
+                             >
+                               ✕
+                             </button>
+                           </div>
+                           
+                           {/* Math Input Area */}
+                           <div className="mb-4">
+                             <textarea
+                               className="w-full p-4 border border-gray-300 rounded-lg text-gray-900"
+                               rows={4}
+                               placeholder="Type your math formula here..."
+                               value={latexPreview}
+                               onChange={(e) => setLatexPreview(e.target.value)}
+                               style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                             />
+                           </div>
+                           
+                           {/* Math Categories */}
+                           <div className="flex border-b border-gray-300 mb-4">
+                             {['Basic', 'Maths', 'Matrix', 'Formula', 'Arrow', 'Alphabet', 'Sym'].map((category) => (
                                <button
+                                 key={category}
                                  type="button"
-                                 onClick={() => {
-                                   insertLatex(latexPreview);
-                                   setShowLatexEditor(false);
-                                   setLatexPreview('');
-                                 }}
-                                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                 className="px-4 py-2 text-sm font-medium border-b-2 border-transparent hover:text-orange-600"
                                >
-                                 Insert
+                                 {category}
                                </button>
+                             ))}
+                             <span className="px-2 py-2 text-gray-400">...</span>
+                           </div>
+                           
+                           {/* Math Symbols Grid */}
+                           <div className="grid grid-cols-10 gap-1 mb-4">
+                             {/* Basic Symbols */}
+                             {['.', '.', '*', '+', '-', '÷', '×', '=', '≠', ':',
+                               '∴', ',', "'", '!', ';', '?', 'x̄', 'x⃗', 'ẋ', 'x̃',
+                               'x̂', '\\', '/', '_', '|', '|', '[', ']', '{', '}',
+                               '⌈', '⌉', '⌊', '⌋', 'π', '∞', '±', '≤', '≥', '≈'
+                             ].map((symbol, index) => (
                                <button
+                                 key={index}
                                  type="button"
-                                 onClick={() => setShowLatexEditor(false)}
-                                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                                 onClick={() => setLatexPreview(latexPreview + symbol)}
+                                 className="p-2 bg-gray-100 hover:bg-gray-200 rounded text-sm font-mono"
                                >
-                                 Cancel
+                                 {symbol}
                                </button>
-                             </div>
+                             ))}
+                           </div>
+                           
+                           {/* Action Buttons */}
+                           <div className="flex justify-between items-center">
+                             <button
+                               type="button"
+                               onClick={() => setLatexPreview(latexPreview + '\\frac{a}{b}')}
+                               className="px-3 py-2 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 text-sm"
+                             >
+                               Add latex
+                             </button>
+                             <button
+                               type="button"
+                               onClick={() => {
+                                 insertLatex(latexPreview);
+                                 setShowLatexEditor(false);
+                                 setLatexPreview('');
+                               }}
+                               className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium"
+                             >
+                               Add to Editor
+                             </button>
                            </div>
                          </div>
                        </div>
