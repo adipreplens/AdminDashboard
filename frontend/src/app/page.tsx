@@ -526,73 +526,117 @@ export default function Home() {
                     Question Text *
                   </label>
                   <div className="border border-gray-300 rounded-lg">
-                    {/* Rich Text Toolbar */}
-                    <div className="bg-gray-50 border-b border-gray-300 p-2 flex items-center space-x-2">
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Bold">
-                        <strong>B</strong>
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Underline">
-                        <u>U</u>
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Italic">
-                        <em>I</em>
-                      </button>
+                    {/* Enhanced Rich Text Toolbar */}
+                    <div className="bg-gray-50 border-b border-gray-300 p-3 flex items-center space-x-2 flex-wrap">
+                      {/* Text Formatting */}
+                      <div className="flex items-center space-x-1">
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Bold">
+                          <strong className="text-sm">B</strong>
+                        </button>
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Italic">
+                          <em className="text-sm">I</em>
+                        </button>
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Underline">
+                          <u className="text-sm">U</u>
+                        </button>
+                      </div>
+                      
                       <div className="w-px h-6 bg-gray-300 mx-2"></div>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Bullet List">
-                        •
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Numbered List">
-                        1.
-                      </button>
+                      
+                      {/* Lists */}
+                      <div className="flex items-center space-x-1">
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Bullet List">
+                          <span className="text-sm">•</span>
+                        </button>
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Numbered List">
+                          <span className="text-sm">1.</span>
+                        </button>
+                      </div>
+                      
                       <div className="w-px h-6 bg-gray-300 mx-2"></div>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Left Align">
-                        ⬅
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Center">
-                        ↔
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Right Align">
-                        ➡
-                      </button>
+                      
+                      {/* Images & Media */}
+                      <div className="flex items-center space-x-1">
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Upload Image">
+                          <span className="text-sm">📷</span>
+                        </button>
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Paste Image">
+                          <span className="text-sm">📋</span>
+                        </button>
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Drag & Drop">
+                          <span className="text-sm">📁</span>
+                        </button>
+                      </div>
+                      
                       <div className="w-px h-6 bg-gray-300 mx-2"></div>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Insert Image">
-                        🖼️
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Code">
-                        &lt;/&gt;
-                      </button>
-                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Math">
-                        Σ
-                      </button>
-                      <div className="ml-auto flex items-center space-x-2">
-                        <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Function">
-                          f(x)
+                      
+                      {/* Math & Symbols */}
+                      <div className="flex items-center space-x-1">
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="LaTeX Math">
+                          <span className="text-sm">Σ</span>
                         </button>
-                        <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Ruler">
-                          📏
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Fractions">
+                          <span className="text-sm">⅟</span>
                         </button>
-                        <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Chemistry">
-                          🧪
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Square Root">
+                          <span className="text-sm">√</span>
                         </button>
-                        <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Text Box">
-                          T
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Power">
+                          <span className="text-sm">x²</span>
                         </button>
-                        <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Code Block">
-                          &lt;&gt;
+                      </div>
+                      
+                      <div className="w-px h-6 bg-gray-300 mx-2"></div>
+                      
+                      {/* Special Symbols for Government Exams */}
+                      <div className="flex items-center space-x-1">
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Arrow">
+                          <span className="text-sm">→</span>
+                        </button>
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Checkmark">
+                          <span className="text-sm">✓</span>
+                        </button>
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Cross">
+                          <span className="text-sm">✗</span>
+                        </button>
+                        <button type="button" className="p-2 hover:bg-gray-200 rounded" title="Star">
+                          <span className="text-sm">★</span>
                         </button>
                       </div>
                     </div>
                     
-                    {/* Question Text Area */}
-                    <textarea
-                      className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
-                      rows={6}
-                      placeholder="Type your question here..."
-                      value={questionForm.text}
-                      onChange={(e) => setQuestionForm({...questionForm, text: e.target.value})}
-                      required
-                      style={{ color: '#171717', backgroundColor: '#ffffff' }}
-                    />
+                    {/* Enhanced Question Text Area with Image Support */}
+                    <div className="relative">
+                      <textarea
+                        className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
+                        rows={8}
+                        placeholder="Type your question here... You can paste images directly or use the toolbar above to insert them."
+                        value={questionForm.text}
+                        onChange={(e) => setQuestionForm({...questionForm, text: e.target.value})}
+                        required
+                        style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                      />
+                      
+                      {/* Image Upload Zone */}
+                      <div className="absolute inset-0 pointer-events-none">
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg m-2 h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <div className="text-center text-gray-500">
+                            <div className="text-2xl mb-2">📷</div>
+                            <div className="text-sm">Drop images here or paste from clipboard</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* LaTeX Preview */}
+                    {questionForm.text.includes('\\') && (
+                      <div className="bg-blue-50 border-t border-blue-200 p-3">
+                        <div className="text-sm font-medium text-blue-800 mb-2">LaTeX Preview:</div>
+                        <div className="bg-white p-2 rounded border">
+                          <code className="text-sm text-blue-600">{questionForm.text}</code>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -622,10 +666,68 @@ export default function Home() {
                   </select>
                 </div>
 
+                {/* Question Type Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Question Type *
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="questionType"
+                        value="multiple-choice"
+                        defaultChecked
+                        className="mr-2"
+                      />
+                      <div>
+                        <div className="font-medium text-sm">Multiple Choice</div>
+                        <div className="text-xs text-gray-500">A, B, C, D options</div>
+                      </div>
+                    </label>
+                    <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="questionType"
+                        value="true-false"
+                        className="mr-2"
+                      />
+                      <div>
+                        <div className="font-medium text-sm">True/False</div>
+                        <div className="text-xs text-gray-500">True or False</div>
+                      </div>
+                    </label>
+                    <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="questionType"
+                        value="fill-blank"
+                        className="mr-2"
+                      />
+                      <div>
+                        <div className="font-medium text-sm">Fill in Blank</div>
+                        <div className="text-xs text-gray-500">Short answer</div>
+                      </div>
+                    </label>
+                    <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="questionType"
+                        value="match-columns"
+                        className="mr-2"
+                      />
+                      <div>
+                        <div className="font-medium text-sm">Match Columns</div>
+                        <div className="text-xs text-gray-500">A-B matching</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
                 {/* Options Section */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Options *
+                    Answer Options *
                   </label>
                   <div className="space-y-3">
                     {['A', 'B', 'C', 'D'].map((option, index) => (
@@ -642,16 +744,16 @@ export default function Home() {
                         <div className="flex-1 border border-gray-300 rounded-lg">
                           <div className="bg-gray-50 border-b border-gray-300 p-2 flex items-center space-x-2">
                             <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Bold">
-                              <strong>B</strong>
+                              <strong className="text-sm">B</strong>
                             </button>
                             <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Italic">
-                              <em>I</em>
+                              <em className="text-sm">I</em>
                             </button>
                             <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Insert Image">
-                              🖼️
+                              <span className="text-sm">📷</span>
                             </button>
                             <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Math">
-                              Σ
+                              <span className="text-sm">Σ</span>
                             </button>
                           </div>
                           <textarea
@@ -759,32 +861,38 @@ export default function Home() {
                         style={{ color: '#171717', backgroundColor: '#ffffff' }}
                       >
                         <option value="">Select Subject</option>
-                        <option value="mathematics">Mathematics</option>
-                        <option value="physics">Physics</option>
-                        <option value="chemistry">Chemistry</option>
-                        <option value="biology">Biology</option>
-                        <option value="english">English</option>
                         <option value="general-knowledge">General Knowledge</option>
                         <option value="reasoning">Reasoning</option>
-                        <option value="computer-science">Computer Science</option>
+                        <option value="english">English</option>
+                        <option value="quantitative-aptitude">Quantitative Aptitude</option>
+                        <option value="current-affairs">Current Affairs</option>
+                        <option value="history">History</option>
+                        <option value="geography">Geography</option>
+                        <option value="polity">Polity</option>
+                        <option value="economics">Economics</option>
+                        <option value="science">Science</option>
+                        <option value="computer-awareness">Computer Awareness</option>
                       </select>
                     </div>
                     
                     <div>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Select Class</option>
-                        <option value="class-10">Class 10</option>
-                        <option value="class-11">Class 11</option>
-                        <option value="class-12">Class 12</option>
-                      </select>
+                      <input
+                        type="text"
+                        placeholder="Topic (e.g., Blood Relations, Coding-Decoding)"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+                        style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                      />
                     </div>
                     
                     <div>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Select Board</option>
-                        <option value="cbse">CBSE</option>
-                        <option value="icse">ICSE</option>
-                        <option value="state">State Board</option>
+                      <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white" style={{ color: '#171717', backgroundColor: '#ffffff' }}>
+                        <option value="">Select Exam Category</option>
+                        <option value="rrb">RRB (Railway)</option>
+                        <option value="ssc">SSC</option>
+                        <option value="bank">Banking</option>
+                        <option value="upsc">UPSC</option>
+                        <option value="state-pcs">State PCS</option>
+                        <option value="other">Other</option>
                       </select>
                     </div>
                     
