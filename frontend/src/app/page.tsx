@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admindashboard-x0hk.onrender.com';
 
@@ -56,6 +56,22 @@ export default function Home() {
     difficulty: '',
     blooms: ''
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [questionForm, setQuestionForm] = useState({
+    text: '',
+    options: '',
+    answer: '',
+    subject: '',
+    exam: '',
+    difficulty: '',
+    tags: '',
+    marks: '',
+    timeLimit: '',
+    blooms: ''
+  });
+  const [creatingQuestion, setCreatingQuestion] = useState(false);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -88,6 +104,109 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Error fetching questions:', error);
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+        alert('Please select a CSV file');
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const handleBulkUpload = async () => {
+    if (!selectedFile) {
+      alert('Please select a CSV file first');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const response = await fetch(`${API_BASE_URL}/bulk-upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Successfully uploaded ${data.uploaded} questions!`);
+        setSelectedFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        fetchQuestions(); // Refresh the questions list
+      } else {
+        const error = await response.json();
+        alert(`Upload failed: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCreateQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreatingQuestion(true);
+
+    try {
+      const options = questionForm.options.split('\n').filter(option => option.trim());
+      
+      const questionData = {
+        text: questionForm.text,
+        options: options,
+        answer: questionForm.answer,
+        subject: questionForm.subject,
+        exam: questionForm.exam,
+        difficulty: questionForm.difficulty,
+        tags: questionForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        marks: parseInt(questionForm.marks),
+        timeLimit: parseInt(questionForm.timeLimit),
+        blooms: questionForm.blooms
+      };
+
+      const response = await fetch(`${API_BASE_URL}/questions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(questionData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert('Question created successfully!');
+        setQuestionForm({
+          text: '',
+          options: '',
+          answer: '',
+          subject: '',
+          exam: '',
+          difficulty: '',
+          tags: '',
+          marks: '',
+          timeLimit: '',
+          blooms: ''
+        });
+        fetchQuestions(); // Refresh the questions list
+      } else {
+        const error = await response.json();
+        alert(`Failed to create question: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating question:', error);
+      alert('Failed to create question');
+    } finally {
+      setCreatingQuestion(false);
     }
   };
 
@@ -348,7 +467,7 @@ export default function Home() {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-gray-900">Create New Question</h2>
             <div className="bg-white rounded-lg shadow p-6">
-              <form className="space-y-6">
+              <form className="space-y-6" onSubmit={handleCreateQuestion}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -358,13 +477,21 @@ export default function Home() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       rows={4}
                       placeholder="Enter your question here..."
+                      value={questionForm.text}
+                      onChange={(e) => setQuestionForm({...questionForm, text: e.target.value})}
+                      required
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Subject
                     </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      value={questionForm.subject}
+                      onChange={(e) => setQuestionForm({...questionForm, subject: e.target.value})}
+                      required
+                    >
                       <option value="">Select Subject</option>
                       <option value="mathematics">Mathematics</option>
                       <option value="physics">Physics</option>
@@ -380,7 +507,12 @@ export default function Home() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Exam Type
                     </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      value={questionForm.exam}
+                      onChange={(e) => setQuestionForm({...questionForm, exam: e.target.value})}
+                      required
+                    >
                       <option value="">Select Exam</option>
                       <option value="jee">JEE</option>
                       <option value="neet">NEET</option>
@@ -392,7 +524,12 @@ export default function Home() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Difficulty
                     </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      value={questionForm.difficulty}
+                      onChange={(e) => setQuestionForm({...questionForm, difficulty: e.target.value})}
+                      required
+                    >
                       <option value="">Select Difficulty</option>
                       <option value="easy">Easy</option>
                       <option value="medium">Medium</option>
@@ -407,6 +544,9 @@ export default function Home() {
                       type="number"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter marks"
+                      value={questionForm.marks}
+                      onChange={(e) => setQuestionForm({...questionForm, marks: e.target.value})}
+                      required
                     />
                   </div>
                 </div>
@@ -420,6 +560,9 @@ export default function Home() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       rows={4}
                       placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"
+                      value={questionForm.options}
+                      onChange={(e) => setQuestionForm({...questionForm, options: e.target.value})}
+                      required
                     />
                   </div>
                   <div>
@@ -430,6 +573,9 @@ export default function Home() {
                       type="text"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter correct answer"
+                      value={questionForm.answer}
+                      onChange={(e) => setQuestionForm({...questionForm, answer: e.target.value})}
+                      required
                     />
                   </div>
                 </div>
@@ -443,6 +589,8 @@ export default function Home() {
                       type="text"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       placeholder="tag1, tag2, tag3"
+                      value={questionForm.tags}
+                      onChange={(e) => setQuestionForm({...questionForm, tags: e.target.value})}
                     />
                   </div>
                   <div>
@@ -453,6 +601,9 @@ export default function Home() {
                       type="number"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Enter time limit"
+                      value={questionForm.timeLimit}
+                      onChange={(e) => setQuestionForm({...questionForm, timeLimit: e.target.value})}
+                      required
                     />
                   </div>
                 </div>
@@ -461,7 +612,12 @@ export default function Home() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Bloom's Taxonomy
                   </label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    value={questionForm.blooms}
+                    onChange={(e) => setQuestionForm({...questionForm, blooms: e.target.value})}
+                    required
+                  >
                     <option value="">Select Level</option>
                     <option value="remember">Remember</option>
                     <option value="understand">Understand</option>
@@ -476,14 +632,27 @@ export default function Home() {
                   <button
                     type="button"
                     className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                    onClick={() => setQuestionForm({
+                      text: '',
+                      options: '',
+                      answer: '',
+                      subject: '',
+                      exam: '',
+                      difficulty: '',
+                      tags: '',
+                      marks: '',
+                      timeLimit: '',
+                      blooms: ''
+                    })}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    disabled={creatingQuestion}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Create Question
+                    {creatingQuestion ? 'Creating...' : 'Create Question'}
                   </button>
                 </div>
               </form>
@@ -511,8 +680,23 @@ export default function Home() {
                           Supported format: CSV with columns: text, options, answer, subject, exam, difficulty, tags, marks, timeLimit, blooms
                         </p>
                       </div>
+                      {selectedFile && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <p className="text-sm text-green-800">
+                            Selected file: <strong>{selectedFile.name}</strong>
+                          </p>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={handleFileSelect}
+                        ref={fileInputRef}
+                        className="hidden"
+                      />
                       <button
                         type="button"
+                        onClick={() => fileInputRef.current?.click()}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                       >
                         Choose File
@@ -533,9 +717,11 @@ export default function Home() {
                 <div className="flex justify-end">
                   <button
                     type="button"
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    onClick={handleBulkUpload}
+                    disabled={uploading}
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Upload Questions
+                    {uploading ? 'Uploading...' : 'Upload Questions'}
                   </button>
                 </div>
               </div>
