@@ -156,18 +156,27 @@ export default function Home() {
     setCreatingQuestion(true);
 
     try {
+      // Get the selected correct answer from radio buttons
+      const formData = new FormData(e.target as HTMLFormElement);
+      const correctAnswer = formData.get('correctAnswer') as string;
+      
+      // Get options from the individual option fields
       const options = questionForm.options.split('\n').filter(option => option.trim());
+      
+      // Find the correct answer text based on the selected radio button
+      const answerIndex = correctAnswer ? correctAnswer.charCodeAt(0) - 65 : 0; // A=0, B=1, C=2, D=3
+      const answerText = options[answerIndex] || options[0] || '';
       
       const questionData = {
         text: questionForm.text,
         options: options,
-        answer: questionForm.answer,
+        answer: answerText,
         subject: questionForm.subject,
-        exam: questionForm.exam,
+        exam: questionForm.exam || 'general',
         difficulty: questionForm.difficulty,
         tags: questionForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        marks: parseInt(questionForm.marks),
-        timeLimit: parseInt(questionForm.timeLimit),
+        marks: parseInt(questionForm.marks) || 1,
+        timeLimit: parseInt(questionForm.timeLimit) || 60,
         blooms: questionForm.blooms
       };
 
@@ -464,192 +473,322 @@ export default function Home() {
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-gray-900">Create New Question</h2>
             <div className="bg-white rounded-lg shadow p-6">
-              <form className="space-y-6" onSubmit={handleCreateQuestion}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Question Text
-                    </label>
+              <form onSubmit={handleCreateQuestion} className="space-y-6">
+                {/* Question Input Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Question Text *
+                  </label>
+                  <div className="border border-gray-300 rounded-lg">
+                    {/* Rich Text Toolbar */}
+                    <div className="bg-gray-50 border-b border-gray-300 p-2 flex items-center space-x-2">
+                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Bold">
+                        <strong>B</strong>
+                      </button>
+                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Underline">
+                        <u>U</u>
+                      </button>
+                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Italic">
+                        <em>I</em>
+                      </button>
+                      <div className="w-px h-6 bg-gray-300 mx-2"></div>
+                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Bullet List">
+                        •
+                      </button>
+                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Numbered List">
+                        1.
+                      </button>
+                      <div className="w-px h-6 bg-gray-300 mx-2"></div>
+                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Left Align">
+                        ⬅
+                      </button>
+                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Center">
+                        ↔
+                      </button>
+                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Right Align">
+                        ➡
+                      </button>
+                      <div className="w-px h-6 bg-gray-300 mx-2"></div>
+                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Insert Image">
+                        🖼️
+                      </button>
+                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Code">
+                        &lt;/&gt;
+                      </button>
+                      <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Math">
+                        Σ
+                      </button>
+                      <div className="ml-auto flex items-center space-x-2">
+                        <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Function">
+                          f(x)
+                        </button>
+                        <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Ruler">
+                          📏
+                        </button>
+                        <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Chemistry">
+                          🧪
+                        </button>
+                        <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Text Box">
+                          T
+                        </button>
+                        <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Code Block">
+                          &lt;&gt;
+                        </button>
+                      </div>
+                    </div>
+                    
+                    {/* Question Text Area */}
                     <textarea
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      rows={4}
-                      placeholder="Enter your question here..."
+                      className="w-full p-4 border-0 focus:ring-0 resize-none"
+                      rows={6}
+                      placeholder="Type your question here..."
                       value={questionForm.text}
                       onChange={(e) => setQuestionForm({...questionForm, text: e.target.value})}
                       required
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Subject
-                    </label>
-                    <select 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      value={questionForm.subject}
-                      onChange={(e) => setQuestionForm({...questionForm, subject: e.target.value})}
-                      required
-                    >
-                      <option value="">Select Subject</option>
-                      <option value="mathematics">Mathematics</option>
-                      <option value="physics">Physics</option>
-                      <option value="chemistry">Chemistry</option>
-                      <option value="biology">Biology</option>
-                      <option value="english">English</option>
-                    </select>
-                  </div>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Exam Type
-                    </label>
-                    <select 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      value={questionForm.exam}
-                      onChange={(e) => setQuestionForm({...questionForm, exam: e.target.value})}
-                      required
-                    >
-                      <option value="">Select Exam</option>
-                      <option value="jee">JEE</option>
-                      <option value="neet">NEET</option>
-                      <option value="gate">GATE</option>
-                      <option value="cat">CAT</option>
-                    </select>
+
+                {/* Options Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Options *
+                  </label>
+                  <div className="space-y-3">
+                    {['A', 'B', 'C', 'D'].map((option, index) => (
+                      <div key={index} className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-gray-500">⋮⋮</span>
+                          <input
+                            type="radio"
+                            name="correctAnswer"
+                            value={option}
+                            className="text-blue-600 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div className="flex-1 border border-gray-300 rounded-lg">
+                          <div className="bg-gray-50 border-b border-gray-300 p-2 flex items-center space-x-2">
+                            <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Bold">
+                              <strong>B</strong>
+                            </button>
+                            <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Italic">
+                              <em>I</em>
+                            </button>
+                            <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Insert Image">
+                              🖼️
+                            </button>
+                            <button type="button" className="p-1 hover:bg-gray-200 rounded" title="Math">
+                              Σ
+                            </button>
+                          </div>
+                          <textarea
+                            className="w-full p-3 border-0 focus:ring-0 resize-none"
+                            rows={2}
+                            placeholder={`Option ${option}`}
+                            value={questionForm.options.split('\n')[index] || ''}
+                            onChange={(e) => {
+                              const options = questionForm.options.split('\n');
+                              options[index] = e.target.value;
+                              setQuestionForm({...questionForm, options: options.join('\n')});
+                            }}
+                            required
+                          />
+                        </div>
+                        <input
+                          type="number"
+                          className="w-16 p-2 border border-gray-300 rounded text-center text-gray-500"
+                          placeholder="00"
+                          min="0"
+                        />
+                      </div>
+                    ))}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Difficulty
-                    </label>
-                    <select 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      value={questionForm.difficulty}
-                      onChange={(e) => setQuestionForm({...questionForm, difficulty: e.target.value})}
-                      required
-                    >
-                      <option value="">Select Difficulty</option>
-                      <option value="easy">Easy</option>
-                      <option value="medium">Medium</option>
-                      <option value="hard">Hard</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Marks
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter marks"
-                      value={questionForm.marks}
-                      onChange={(e) => setQuestionForm({...questionForm, marks: e.target.value})}
-                      required
-                    />
+                  <div className="mt-3">
+                    <button type="button" className="text-blue-600 hover:text-blue-700 text-sm">
+                      + Add more option
+                    </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Options (one per line)
-                    </label>
-                    <textarea
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      rows={4}
-                      placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"
-                      value={questionForm.options}
-                      onChange={(e) => setQuestionForm({...questionForm, options: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Correct Answer
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter correct answer"
-                      value={questionForm.answer}
-                      onChange={(e) => setQuestionForm({...questionForm, answer: e.target.value})}
-                      required
-                    />
+                {/* Solution Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Solution
+                  </label>
+                  <div className="border border-gray-300 rounded-lg">
+                    {/* Solution Tabs */}
+                    <div className="flex border-b border-gray-300">
+                      <button
+                        type="button"
+                        className="px-4 py-2 border-b-2 border-orange-500 text-orange-600 font-medium"
+                      >
+                        Video Solution
+                      </button>
+                      <button
+                        type="button"
+                        className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                      >
+                        Text Solution
+                      </button>
+                    </div>
+                    
+                    {/* Solution Content */}
+                    <div className="p-4">
+                      <div className="space-y-4">
+                        <div className="flex items-center space-x-4">
+                          <label className="flex items-center">
+                            <input type="radio" name="solutionType" value="map" className="mr-2" defaultChecked />
+                            Map Content
+                          </label>
+                          <label className="flex items-center">
+                            <input type="radio" name="solutionType" value="browse" className="mr-2" />
+                            Browse
+                          </label>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Attach file for English
+                          </label>
+                          <div className="flex items-center space-x-3">
+                            <input
+                              type="file"
+                              className="flex-1 p-2 border border-gray-300 rounded"
+                              accept="video/*,image/*,.pdf,.doc,.docx"
+                            />
+                            <button type="button" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                              Browse
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <button type="button" className="text-blue-600 hover:text-blue-700 text-sm">
+                          + Add More
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tags (comma separated)
-                    </label>
+                {/* Mandatory Tags Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mandatory Tags *
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        value={questionForm.subject}
+                        onChange={(e) => setQuestionForm({...questionForm, subject: e.target.value})}
+                        required
+                      >
+                        <option value="">Select Subject</option>
+                        <option value="mathematics">Mathematics</option>
+                        <option value="physics">Physics</option>
+                        <option value="chemistry">Chemistry</option>
+                        <option value="biology">Biology</option>
+                        <option value="english">English</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Select Class</option>
+                        <option value="class-10">Class 10</option>
+                        <option value="class-11">Class 11</option>
+                        <option value="class-12">Class 12</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Select Board</option>
+                        <option value="cbse">CBSE</option>
+                        <option value="icse">ICSE</option>
+                        <option value="state">State Board</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        value={questionForm.blooms}
+                        onChange={(e) => setQuestionForm({...questionForm, blooms: e.target.value})}
+                        required
+                      >
+                        <option value="">Select Bloom</option>
+                        <option value="remember">Remember</option>
+                        <option value="understand">Understand</option>
+                        <option value="apply">Apply</option>
+                        <option value="analyze">Analyze</option>
+                        <option value="evaluate">Evaluate</option>
+                        <option value="create">Create</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        value={questionForm.difficulty}
+                        onChange={(e) => setQuestionForm({...questionForm, difficulty: e.target.value})}
+                        required
+                      >
+                        <option value="">Select Difficulty level</option>
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Time to solve"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        value={questionForm.timeLimit}
+                        onChange={(e) => setQuestionForm({...questionForm, timeLimit: e.target.value})}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Add More Tags */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Add More Tags
+                  </label>
+                  <div className="relative">
                     <input
                       type="text"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="tag1, tag2, tag3"
+                      placeholder="Add Tag"
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                       value={questionForm.tags}
                       onChange={(e) => setQuestionForm({...questionForm, tags: e.target.value})}
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Time Limit (seconds)
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Enter time limit"
-                      value={questionForm.timeLimit}
-                      onChange={(e) => setQuestionForm({...questionForm, timeLimit: e.target.value})}
-                      required
-                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bloom's Taxonomy
-                  </label>
-                  <select 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    value={questionForm.blooms}
-                    onChange={(e) => setQuestionForm({...questionForm, blooms: e.target.value})}
-                    required
-                  >
-                    <option value="">Select Level</option>
-                    <option value="remember">Remember</option>
-                    <option value="understand">Understand</option>
-                    <option value="apply">Apply</option>
-                    <option value="analyze">Analyze</option>
-                    <option value="evaluate">Evaluate</option>
-                    <option value="create">Create</option>
-                  </select>
-                </div>
-
+                {/* Action Buttons */}
                 <div className="flex justify-end space-x-4">
                   <button
                     type="button"
-                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                    onClick={() => setQuestionForm({
-                      text: '',
-                      options: '',
-                      answer: '',
-                      subject: '',
-                      exam: '',
-                      difficulty: '',
-                      tags: '',
-                      marks: '',
-                      timeLimit: '',
-                      blooms: ''
-                    })}
+                    className="px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600"
                   >
-                    Cancel
+                    Save as Draft
                   </button>
                   <button
                     type="submit"
                     disabled={creatingQuestion}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {creatingQuestion ? 'Creating...' : 'Create Question'}
+                    {creatingQuestion ? 'Submitting...' : 'Submit for Review'}
                   </button>
                 </div>
               </form>
