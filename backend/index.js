@@ -270,12 +270,14 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    console.log('Processing file:', req.file.originalname);
     const results = [];
     const errors = [];
     const fileName = req.file.originalname.toLowerCase();
 
     // Handle different file types
     if (fileName.endsWith('.csv')) {
+      console.log('Processing CSV file');
       // Process CSV file
       let headers = [];
       let isFirstRow = true;
@@ -286,6 +288,7 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
           if (isFirstRow) {
             // Get headers from first row
             headers = Object.keys(data);
+            console.log('CSV headers:', headers);
             isFirstRow = false;
           }
           
@@ -293,10 +296,12 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
             const questionData = parseQuestionData(data, headers);
             results.push(questionData);
           } catch (error) {
+            console.error('Error parsing CSV row:', error);
             errors.push({ row: data, error: error.message });
           }
         })
         .on('end', async () => {
+          console.log('CSV processing complete. Results:', results.length, 'Errors:', errors.length);
           await saveQuestions(results, errors, req.file.path, res);
         })
         .on('error', (error) => {
@@ -304,25 +309,31 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
           res.status(500).json({ error: 'Failed to process CSV file' });
         });
     } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      console.log('Processing Excel file');
       // Process Excel file
       try {
         const workbook = XLSX.readFile(req.file.path);
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json(worksheet);
         
+        console.log('Excel data rows:', data.length);
+        
         if (data.length > 0) {
           const headers = Object.keys(data[0]);
+          console.log('Excel headers:', headers);
           
           for (const row of data) {
             try {
               const questionData = parseQuestionData(row, headers);
               results.push(questionData);
             } catch (error) {
+              console.error('Error parsing Excel row:', error);
               errors.push({ row: row, error: error.message });
             }
           }
         }
 
+        console.log('Excel processing complete. Results:', results.length, 'Errors:', errors.length);
         await saveQuestions(results, errors, req.file.path, res);
       } catch (error) {
         console.error('Error processing Excel file:', error);
@@ -330,9 +341,10 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
         if (fs.existsSync(req.file.path)) {
           fs.unlinkSync(req.file.path);
         }
-        res.status(500).json({ error: 'Failed to process Excel file' });
+        res.status(500).json({ error: 'Failed to process Excel file: ' + error.message });
       }
     } else {
+      console.log('Unsupported file format:', fileName);
       // Clean up uploaded file
       fs.unlinkSync(req.file.path);
       return res.status(400).json({ error: 'Unsupported file format. Please upload CSV or Excel files.' });
@@ -344,7 +356,7 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
-    res.status(500).json({ error: 'Failed to process upload' });
+    res.status(500).json({ error: 'Failed to process upload: ' + error.message });
   }
 });
 
@@ -456,53 +468,17 @@ function parseQuestionData(row, headers) {
 
     return questionData;
   } catch (error) {
+    console.error('Error parsing question data:', error);
     throw new Error(`Error parsing row: ${error.message}`);
   }
 }
 
 // Helper function to parse options from individual option columns (optionA, optionB, etc.)
 function parseOptionsFromIndividualColumns(row, headers) {
-  const optionColumns = [];
-  
-  // Look for individual option columns
-  headers.forEach(header => {
-    const headerLower = header.toLowerCase().trim();
-    if (headerLower.includes('option') || headerLower.includes('choice')) {
-      optionColumns.push(header);
-    }
-  });
-  
-  if (optionColumns.length > 0) {
-    // Sort columns to maintain order (optionA, optionB, optionC, optionD)
-    optionColumns.sort();
-    
-    const options = [];
-    optionColumns.forEach(column => {
-      if (row[column] && row[column].toString().trim()) {
-        options.push(row[column].toString().trim());
-      }
-    });
-    
-    return options;
-  }
-  
-  return null; // No individual option columns found
-}
-
-// Helper function to parse answer when it references option letters/names
-function parseAnswerFromOptions(answerText, row, headers) {
-  if (!answerText) return 'Answer not found';
-  
-  const answerStr = answerText.toString().toLowerCase().trim();
-  
-  // If answer is already the actual text, return it
-  if (answerStr.length > 10) {
-    return answerText.toString().trim();
-  }
-  
-  // If answer references option letters (A, B, C, D)
-  if (answerStr.includes('option') || answerStr.includes('choice')) {
+  try {
     const optionColumns = [];
+    
+    // Look for individual option columns
     headers.forEach(header => {
       const headerLower = header.toLowerCase().trim();
       if (headerLower.includes('option') || headerLower.includes('choice')) {
@@ -511,22 +487,69 @@ function parseAnswerFromOptions(answerText, row, headers) {
     });
     
     if (optionColumns.length > 0) {
+      // Sort columns to maintain order (optionA, optionB, optionC, optionD)
       optionColumns.sort();
       
-      // Extract the option letter/number from answer
-      let optionIndex = -1;
-      if (answerStr.includes('a') || answerStr.includes('1')) optionIndex = 0;
-      else if (answerStr.includes('b') || answerStr.includes('2')) optionIndex = 1;
-      else if (answerStr.includes('c') || answerStr.includes('3')) optionIndex = 2;
-      else if (answerStr.includes('d') || answerStr.includes('4')) optionIndex = 3;
+      const options = [];
+      optionColumns.forEach(column => {
+        if (row[column] && row[column].toString().trim()) {
+          options.push(row[column].toString().trim());
+        }
+      });
       
-      if (optionIndex >= 0 && optionIndex < optionColumns.length) {
-        return row[optionColumns[optionIndex]] || answerText.toString().trim();
+      return options;
+    }
+    
+    return null; // No individual option columns found
+  } catch (error) {
+    console.error('Error parsing individual options:', error);
+    return null;
+  }
+}
+
+// Helper function to parse answer when it references option letters/names
+function parseAnswerFromOptions(answerText, row, headers) {
+  try {
+    if (!answerText) return 'Answer not found';
+    
+    const answerStr = answerText.toString().toLowerCase().trim();
+    
+    // If answer is already the actual text, return it
+    if (answerStr.length > 10) {
+      return answerText.toString().trim();
+    }
+    
+    // If answer references option letters (A, B, C, D)
+    if (answerStr.includes('option') || answerStr.includes('choice')) {
+      const optionColumns = [];
+      headers.forEach(header => {
+        const headerLower = header.toLowerCase().trim();
+        if (headerLower.includes('option') || headerLower.includes('choice')) {
+          optionColumns.push(header);
+        }
+      });
+      
+      if (optionColumns.length > 0) {
+        optionColumns.sort();
+        
+        // Extract the option letter/number from answer
+        let optionIndex = -1;
+        if (answerStr.includes('a') || answerStr.includes('1')) optionIndex = 0;
+        else if (answerStr.includes('b') || answerStr.includes('2')) optionIndex = 1;
+        else if (answerStr.includes('c') || answerStr.includes('3')) optionIndex = 2;
+        else if (answerStr.includes('d') || answerStr.includes('4')) optionIndex = 3;
+        
+        if (optionIndex >= 0 && optionIndex < optionColumns.length) {
+          return row[optionColumns[optionIndex]] || answerText.toString().trim();
+        }
       }
     }
+    
+    return answerText.toString().trim();
+  } catch (error) {
+    console.error('Error parsing answer from options:', error);
+    return answerText ? answerText.toString().trim() : 'Answer not found';
   }
-  
-  return answerText.toString().trim();
 }
 
 // Helper function to parse options from different formats
