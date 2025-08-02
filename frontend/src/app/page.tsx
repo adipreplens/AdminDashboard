@@ -36,7 +36,7 @@ interface Question {
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'upload' | 'questions'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'upload' | 'questions' | 'exams' | 'analytics' | 'users' | 'monetization'>('dashboard');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -69,7 +69,10 @@ export default function Home() {
     tags: '',
     marks: '',
     timeLimit: '',
-    blooms: ''
+    blooms: '',
+    category: '',
+    topic: '',
+    publishStatus: 'draft'
   });
   const [creatingQuestion, setCreatingQuestion] = useState(false);
 
@@ -201,7 +204,10 @@ export default function Home() {
           tags: '',
           marks: '',
           timeLimit: '',
-          blooms: ''
+          blooms: '',
+          category: '',
+          topic: '',
+          publishStatus: 'draft'
         });
         fetchQuestions(); // Refresh the questions list
       } else {
@@ -233,12 +239,12 @@ export default function Home() {
       if (response.ok) {
         const data = await response.json();
         localStorage.setItem('authToken', data.token);
-        localStorage.setItem('userEmail', email);
-        setIsLoggedIn(true);
+      localStorage.setItem('userEmail', email);
+      setIsLoggedIn(true);
         fetchStatistics();
         fetchQuestions();
-      } else {
-        setError('Invalid credentials. Please try again.');
+    } else {
+      setError('Invalid credentials. Please try again.');
       }
     } catch (error) {
       setError('Network error. Please try again.');
@@ -370,10 +376,10 @@ export default function Home() {
       {/* Navigation */}
       <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-8">
+          <div className="flex space-x-8 overflow-x-auto">
             <button
               onClick={() => setCurrentView('dashboard')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 currentView === 'dashboard'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -383,7 +389,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setCurrentView('create')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 currentView === 'create'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -393,7 +399,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => setCurrentView('upload')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 currentView === 'upload'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -403,13 +409,53 @@ export default function Home() {
             </button>
             <button
               onClick={() => setCurrentView('questions')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
                 currentView === 'questions'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
               📝 Questions
+            </button>
+            <button
+              onClick={() => setCurrentView('exams')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                currentView === 'exams'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              🎯 Exams
+            </button>
+            <button
+              onClick={() => setCurrentView('analytics')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                currentView === 'analytics'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              📈 Analytics
+            </button>
+            <button
+              onClick={() => setCurrentView('users')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                currentView === 'users'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              👥 Users
+            </button>
+            <button
+              onClick={() => setCurrentView('monetization')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                currentView === 'monetization'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              💰 Monetization
             </button>
           </div>
         </div>
@@ -958,6 +1004,408 @@ export default function Home() {
                     </p>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Exams Management Section */}
+        {currentView === 'exams' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900">Exam Management</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* RRB Exams */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">RRB Exams</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <span className="font-medium">RRB JE</span>
+                    <span className="text-sm text-gray-600">Active</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <span className="font-medium">RRB ALP</span>
+                    <span className="text-sm text-gray-600">Active</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <span className="font-medium">RRB Technician</span>
+                    <span className="text-sm text-gray-600">Active</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <span className="font-medium">RRB NTPC</span>
+                    <span className="text-sm text-gray-600">Active</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* SSC Exams */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">SSC Exams</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <span className="font-medium">SSC CGL</span>
+                    <span className="text-sm text-gray-600">Active</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <span className="font-medium">SSC CHSL</span>
+                    <span className="text-sm text-gray-600">Active</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <span className="font-medium">SSC JE</span>
+                    <span className="text-sm text-gray-600">Active</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content Modules */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Content Modules</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                    <span className="font-medium">Practice Questions</span>
+                    <span className="text-sm text-gray-600">1,250</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                    <span className="font-medium">Section Tests</span>
+                    <span className="text-sm text-gray-600">45</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                    <span className="font-medium">Mock Tests</span>
+                    <span className="text-sm text-gray-600">12</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                    <span className="font-medium">Test Series</span>
+                    <span className="text-sm text-gray-600">8</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                    <span className="font-medium">Live Tests</span>
+                    <span className="text-sm text-gray-600">3</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Analytics Section */}
+        {currentView === 'analytics' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900">Analytics & Performance</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Key Metrics */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">User Engagement</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Daily Active Users</span>
+                    <span className="font-semibold">2,847</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Monthly Active Users</span>
+                    <span className="font-semibold">12,456</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Avg. Session Time</span>
+                    <span className="font-semibold">24 min</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Questions Attempted</span>
+                    <span className="font-semibold">45,234</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Avg. Accuracy</span>
+                    <span className="font-semibold text-green-600">68%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Avg. Time/Question</span>
+                    <span className="font-semibold">45 sec</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Completion Rate</span>
+                    <span className="font-semibold text-blue-600">72%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Retention Rate</span>
+                    <span className="font-semibold text-purple-600">85%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Popular Subjects</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Quantitative Aptitude</span>
+                    <span className="font-semibold">42%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Reasoning</span>
+                    <span className="font-semibold">28%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">English</span>
+                    <span className="font-semibold">18%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">General Knowledge</span>
+                    <span className="font-semibold">12%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Exam Preferences</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">SSC CGL</span>
+                    <span className="font-semibold">38%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">RRB JE</span>
+                    <span className="font-semibold">25%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">SSC CHSL</span>
+                    <span className="font-semibold">22%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">RRB ALP</span>
+                    <span className="font-semibold">15%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Users Section */}
+        {currentView === 'users' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* User Statistics */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">User Statistics</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Users</span>
+                    <span className="font-semibold">15,234</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Free Users</span>
+                    <span className="font-semibold text-blue-600">12,456</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">PrepLens+ Users</span>
+                    <span className="font-semibold text-orange-600">2,778</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">New This Month</span>
+                    <span className="font-semibold text-green-600">1,234</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Referral Program */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Earn While You Learn</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Referrals</span>
+                    <span className="font-semibold">3,456</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Successful Referrals</span>
+                    <span className="font-semibold text-green-600">1,234</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Earnings</span>
+                    <span className="font-semibold text-purple-600">₹36,900</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Avg. Referral Value</span>
+                    <span className="font-semibold">₹29.90</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* User Activity */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                <div className="space-y-3">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">New PrepLens+ Signup</span>
+                      <span className="text-xs text-gray-500">2 min ago</span>
+                    </div>
+                    <p className="text-xs text-gray-600">User ID: U12345</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Referral Bonus Earned</span>
+                      <span className="text-xs text-gray-500">15 min ago</span>
+                    </div>
+                    <p className="text-xs text-gray-600">₹29.90 earned</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Test Completion</span>
+                      <span className="text-xs text-gray-500">1 hour ago</span>
+                    </div>
+                    <p className="text-xs text-gray-600">SSC CGL Mock Test</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Monetization Section */}
+        {currentView === 'monetization' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900">Monetization & Revenue</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Revenue Overview */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Overview</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Revenue</span>
+                    <span className="font-semibold text-green-600">₹8,32,456</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">This Month</span>
+                    <span className="font-semibold text-blue-600">₹1,23,456</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Last Month</span>
+                    <span className="font-semibold text-purple-600">₹98,765</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Growth Rate</span>
+                    <span className="font-semibold text-green-600">+25%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* PrepLens+ Analytics */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">PrepLens+ Analytics</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Subscriptions</span>
+                    <span className="font-semibold">2,778</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Active Subscriptions</span>
+                    <span className="font-semibold text-green-600">2,456</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Conversion Rate</span>
+                    <span className="font-semibold text-blue-600">18.2%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Avg. Revenue/User</span>
+                    <span className="font-semibold">₹299</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Exam-wise Revenue */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Exam-wise Revenue</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">SSC CGL</span>
+                    <span className="font-semibold">₹3,45,678</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">RRB JE</span>
+                    <span className="font-semibold">₹2,34,567</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">SSC CHSL</span>
+                    <span className="font-semibold">₹1,56,789</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">RRB ALP</span>
+                    <span className="font-semibold">₹95,422</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Methods */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Methods</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">UPI</span>
+                    <span className="font-semibold">65%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Credit/Debit Cards</span>
+                    <span className="font-semibold">25%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Net Banking</span>
+                    <span className="font-semibold">8%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Wallets</span>
+                    <span className="font-semibold">2%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Referral Revenue */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Referral Program</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Referral Revenue</span>
+                    <span className="font-semibold text-green-600">₹36,900</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Referral Commission</span>
+                    <span className="font-semibold text-blue-600">₹29.90</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Successful Referrals</span>
+                    <span className="font-semibold">1,234</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Conversion Rate</span>
+                    <span className="font-semibold text-purple-600">35.7%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Revenue Trends */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Trends</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">January</span>
+                    <span className="font-semibold">₹89,456</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">February</span>
+                    <span className="font-semibold">₹92,345</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">March</span>
+                    <span className="font-semibold">₹1,23,456</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">April</span>
+                    <span className="font-semibold text-green-600">₹1,45,678</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
