@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  trailingSlash: false,
   experimental: {
     turbo: {
       rules: {
@@ -11,8 +12,6 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  // Ensure dynamic rendering
-  trailingSlash: false,
 };
 
 export default nextConfig;
