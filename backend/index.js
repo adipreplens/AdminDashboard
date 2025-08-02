@@ -91,11 +91,17 @@ const storage = multer.diskStorage({
 const upload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
-    // Check file type
-    if (file.mimetype.startsWith('image/')) {
+    // Check file type - allow images for image upload and CSV/Excel for bulk upload
+    if (file.mimetype.startsWith('image/') || 
+        file.mimetype === 'text/csv' || 
+        file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+        file.mimetype === 'application/vnd.ms-excel' ||
+        file.originalname.toLowerCase().endsWith('.csv') ||
+        file.originalname.toLowerCase().endsWith('.xlsx') ||
+        file.originalname.toLowerCase().endsWith('.xls')) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'), false);
+      cb(new Error('Only image, CSV, and Excel files are allowed!'), false);
     }
   },
   limits: {
@@ -271,6 +277,9 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
     }
 
     console.log('Processing file:', req.file.originalname);
+    console.log('File mimetype:', req.file.mimetype);
+    console.log('File size:', req.file.size);
+    
     const results = [];
     const errors = [];
     const fileName = req.file.originalname.toLowerCase();
@@ -306,7 +315,11 @@ app.post('/bulk-upload', upload.single('file'), async (req, res) => {
         })
         .on('error', (error) => {
           console.error('Error processing CSV:', error);
-          res.status(500).json({ error: 'Failed to process CSV file' });
+          // Clean up uploaded file
+          if (fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+          }
+          res.status(500).json({ error: 'Failed to process CSV file: ' + error.message });
         });
     } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
       console.log('Processing Excel file');
