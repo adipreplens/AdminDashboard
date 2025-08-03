@@ -69,6 +69,8 @@ const questionSchema = new mongoose.Schema({
   timeLimit: { type: Number, required: true },
   blooms: { type: String, required: true },
   imageUrl: { type: String },
+  solutionImageUrl: { type: String },
+  optionImages: { type: Map, of: String },
   publishStatus: { type: String, enum: ['draft', 'published'], default: 'draft' },
   category: { type: String },
   topic: { type: String },
