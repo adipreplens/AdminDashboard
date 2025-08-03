@@ -1891,10 +1891,6 @@ export default function Home() {
                         required
                       >
                         <option value="">Select Bloom</option>
-                        <option value="remember">Remember</option>
-                        <option value="understand">Understand</option>
-                        <option value="apply">Apply</option>
-                        <option value="analyze">Analyze</option>
                         <option value="evaluate">Evaluate</option>
                         <option value="create">Create</option>
                       </select>
