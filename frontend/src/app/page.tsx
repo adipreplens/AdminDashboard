@@ -97,6 +97,7 @@ export default function Home() {
   const [answerSelected, setAnswerSelected] = useState<string>('');
   const [showAnswerError, setShowAnswerError] = useState(false);
   const [useNewForm, setUseNewForm] = useState<'old' | 'rich' | 'simple'>('old');
+  const [imagePreviewModal, setImagePreviewModal] = useState<{show: boolean, imageUrl: string | null}>({show: false, imageUrl: null});
 
 
   // Check if user is already logged in
@@ -914,6 +915,22 @@ export default function Home() {
     }
   };
 
+  // Function to extract image URLs from HTML content
+  const extractImageUrls = (htmlContent: string): string[] => {
+    const imgRegex = /<img[^>]+src="([^"]+)"/g;
+    const urls: string[] = [];
+    let match;
+    while ((match = imgRegex.exec(htmlContent)) !== null) {
+      urls.push(match[1]);
+    }
+    return urls;
+  };
+
+  // Function to open image preview modal
+  const openImagePreview = (imageUrl: string) => {
+    setImagePreviewModal({ show: true, imageUrl });
+  };
+
   const filteredQuestions = questions.filter(question => {
     const matchesSearch = question.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          question.subject.toLowerCase().includes(searchTerm.toLowerCase());
@@ -1373,6 +1390,28 @@ export default function Home() {
                           text={questionForm.text} 
                           className="text-gray-800"
                         />
+                        
+                        {/* Clickable Image Preview */}
+                        {(() => {
+                          const imageUrls = extractImageUrls(questionForm.text);
+                          return imageUrls.length > 0 ? (
+                            <div className="mt-3">
+                              <p className="text-sm text-gray-600 mb-2">🖼️ Images in question:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {imageUrls.map((url, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => openImagePreview(url)}
+                                    className="p-2 bg-blue-100 hover:bg-blue-200 rounded-lg border border-blue-300 text-blue-700 text-sm flex items-center gap-1"
+                                  >
+                                    <span>🖼️</span>
+                                    <span>Image {index + 1}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                     )}
                     
@@ -2219,12 +2258,17 @@ export default function Home() {
                                           )}
                                           {optionImage && (
                                             <div className="mt-2">
-                                              <img 
-                                                src={optionImage} 
-                                                alt={`Option ${String.fromCharCode(65 + index)} image`}
-                                                className="max-w-full h-auto rounded border"
-                                                style={{ maxHeight: '150px' }}
-                                              />
+                                              <button
+                                                onClick={() => openImagePreview(optionImage)}
+                                                className="w-full text-left hover:opacity-80 transition-opacity"
+                                              >
+                                                <img 
+                                                  src={optionImage} 
+                                                  alt={`Option ${String.fromCharCode(65 + index)} image`}
+                                                  className="max-w-full h-auto rounded border cursor-pointer"
+                                                  style={{ maxHeight: '150px' }}
+                                                />
+                                              </button>
                                             </div>
                                           )}
                                         </div>
@@ -2273,12 +2317,17 @@ export default function Home() {
                                 )}
                                 {question.solutionImageUrl && (
                                   <div className="mt-2">
-                                    <img 
-                                      src={question.solutionImageUrl} 
-                                      alt="Solution image"
-                                      className="max-w-full h-auto rounded border"
-                                      style={{ maxHeight: '200px' }}
-                                    />
+                                    <button
+                                      onClick={() => openImagePreview(question.solutionImageUrl!)}
+                                      className="w-full text-left hover:opacity-80 transition-opacity"
+                                    >
+                                      <img 
+                                        src={question.solutionImageUrl} 
+                                        alt="Solution image"
+                                        className="max-w-full h-auto rounded border cursor-pointer"
+                                        style={{ maxHeight: '200px' }}
+                                      />
+                                    </button>
                                   </div>
                                 )}
                               </div>
@@ -2308,12 +2357,17 @@ export default function Home() {
                           {(question.imageUrl || question.questionImageUrl) && (
                             <div className="bg-gray-50 p-3 rounded-lg">
                               <h4 className="font-medium text-gray-800 mb-2">🖼️ Question Image:</h4>
-                              <img 
-                                src={question.imageUrl || question.questionImageUrl} 
-                                alt="Question" 
-                                className="max-w-full h-auto rounded border"
-                                style={{ maxHeight: '200px' }}
-                              />
+                              <button
+                                onClick={() => openImagePreview(question.imageUrl || question.questionImageUrl!)}
+                                className="w-full text-left hover:opacity-80 transition-opacity"
+                              >
+                                <img 
+                                  src={question.imageUrl || question.questionImageUrl} 
+                                  alt="Question" 
+                                  className="max-w-full h-auto rounded border cursor-pointer"
+                                  style={{ maxHeight: '200px' }}
+                                />
+                              </button>
                             </div>
                           )}
                         </div>
@@ -2831,6 +2885,36 @@ export default function Home() {
                 >
                   Delete
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Image Preview Modal */}
+        {imagePreviewModal.show && imagePreviewModal.imageUrl && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-4 max-w-4xl max-h-[90vh] overflow-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Image Preview</h3>
+                <button
+                  onClick={() => setImagePreviewModal({ show: false, imageUrl: null })}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="flex justify-center">
+                <img 
+                  src={imagePreviewModal.imageUrl} 
+                  alt="Preview" 
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                />
+              </div>
+              <div className="mt-4 text-center">
+                <p className="text-sm text-gray-600 mb-2">Image URL:</p>
+                <p className="text-xs text-gray-500 break-all bg-gray-100 p-2 rounded">
+                  {imagePreviewModal.imageUrl}
+                </p>
               </div>
             </div>
           </div>
