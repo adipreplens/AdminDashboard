@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import ImageDisplay from '../components/ImageDisplay';
 import CreateQuestionForm from '../components/CreateQuestionForm';
+import SimpleQuestionForm from '../components/SimpleQuestionForm';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admindashboard-x0hk.onrender.com';
 
@@ -92,7 +93,7 @@ export default function Home() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<{show: boolean, questionId: string | null}>({show: false, questionId: null});
   const [answerSelected, setAnswerSelected] = useState<string>('');
   const [showAnswerError, setShowAnswerError] = useState(false);
-  const [useNewForm, setUseNewForm] = useState(false);
+  const [useNewForm, setUseNewForm] = useState<'old' | 'rich' | 'simple'>('old');
 
 
   // Check if user is already logged in
@@ -1175,9 +1176,9 @@ export default function Home() {
                 <span className="text-sm text-gray-600">Form Type:</span>
                 <button
                   type="button"
-                  onClick={() => setUseNewForm(false)}
+                  onClick={() => setUseNewForm('old')}
                   className={`px-3 py-1 rounded text-sm font-medium ${
-                    !useNewForm 
+                    useNewForm === 'old'
                       ? 'bg-blue-600 text-white' 
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
@@ -1186,21 +1187,37 @@ export default function Home() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setUseNewForm(true)}
+                  onClick={() => setUseNewForm('rich')}
                   className={`px-3 py-1 rounded text-sm font-medium ${
-                    useNewForm 
+                    useNewForm === 'rich'
                       ? 'bg-blue-600 text-white' 
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                   }`}
                 >
-                  New Form (Rich Text)
+                  Rich Text Form
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUseNewForm('simple')}
+                  className={`px-3 py-1 rounded text-sm font-medium ${
+                    useNewForm === 'simple'
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Simple Form (Netlify Safe)
                 </button>
               </div>
             </div>
-            {useNewForm ? (
+            {useNewForm === 'rich' ? (
               <CreateQuestionForm onSuccess={() => {
                 fetchQuestions();
-                setUseNewForm(false);
+                setUseNewForm('old');
+              }} />
+            ) : useNewForm === 'simple' ? (
+              <SimpleQuestionForm onSuccess={() => {
+                fetchQuestions();
+                setUseNewForm('old');
               }} />
             ) : (
               <div className="bg-white rounded-lg shadow p-6">
