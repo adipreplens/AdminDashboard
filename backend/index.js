@@ -36,6 +36,9 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://shreyashchaudhary81:hfOYtcA7zywQsxJP@preplensadmin.mmrvf6s.mongodb.net/Preplensadmin?retryWrites=true&w=majority&appName=Preplensadmin';
 mongoose.connect(MONGODB_URI, {
@@ -1124,11 +1127,13 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
         fs.unlinkSync(req.file.path);
       } catch (error) {
         console.error('S3 upload failed, falling back to local storage:', error);
-        imageUrl = `/uploads/${req.file.filename}`;
+        const baseUrl = process.env.BASE_URL || 'https://admindashboard-x0hk.onrender.com';
+        imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
       }
     } else {
-      // Fallback to local storage
-      imageUrl = `/uploads/${req.file.filename}`;
+      // Fallback to local storage - return full URL
+      const baseUrl = process.env.BASE_URL || 'https://admindashboard-x0hk.onrender.com';
+      imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
     }
 
     res.json({
