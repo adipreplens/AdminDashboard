@@ -99,8 +99,20 @@ export default function MathEditor({ value, onChange, onInsertLatex, placeholder
   const renderMath = () => {
     try {
       if (!value.trim()) return null;
-      return <InlineMath math={value} />;
+      
+      // Clean up the LaTeX expression
+      let cleanValue = value.trim();
+      
+      // Handle common LaTeX patterns
+      cleanValue = cleanValue
+        .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '\\frac{$1}{$2}') // Fix fraction syntax
+        .replace(/\\sqrt\{([^}]+)\}/g, '\\sqrt{$1}') // Fix sqrt syntax
+        .replace(/\\sum_\{([^}]+)\}\^\{([^}]+)\}/g, '\\sum_{$1}^{$2}') // Fix sum syntax
+        .replace(/\\int_\{([^}]+)\}\^\{([^}]+)\}/g, '\\int_{$1}^{$2}'); // Fix integral syntax
+      
+      return <InlineMath math={cleanValue} />;
     } catch (err) {
+      console.error('LaTeX rendering error:', err);
       setError('Invalid math expression');
       return null;
     }
@@ -147,13 +159,27 @@ export default function MathEditor({ value, onChange, onInsertLatex, placeholder
             ))}
           </div>
           
-          <textarea
-            value={value}
-            onChange={(e) => handleChange(e.target.value)}
-            placeholder={placeholder}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            rows={4}
-          />
+          {/* Input and Live Preview */}
+          <div className="space-y-3">
+            <textarea
+              value={value}
+              onChange={(e) => handleChange(e.target.value)}
+              placeholder={placeholder}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={4}
+            />
+            
+            {/* Live Preview */}
+            {value.trim() && (
+              <div className="p-3 border border-gray-200 rounded-lg bg-gray-50">
+                <div className="text-xs text-gray-500 mb-2">Live Preview:</div>
+                <div className="text-lg">
+                  {renderMath() || <span className="text-red-500">Invalid LaTeX</span>}
+                </div>
+              </div>
+            )}
+          </div>
+          
           <button
             type="button"
             onClick={() => onInsertLatex && onInsertLatex(value)}
@@ -170,7 +196,7 @@ export default function MathEditor({ value, onChange, onInsertLatex, placeholder
       
       <div className="text-xs text-gray-500">
         <p>💡 <strong>Tips:</strong> Click any symbol above to insert it, or type LaTeX directly in the text area.</p>
-        <p>Examples: "x^2 + y^2 = z^2", "frac(a/b)", "sum(i=1 to n) x_i"</p>
+        <p>Examples: "x^2 + y^2 = z^2", "\\frac{a}{b}", "\\sum_{i=1}^{n} x_i"</p>
       </div>
     </div>
   );
