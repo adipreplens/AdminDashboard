@@ -87,6 +87,9 @@ const questionSchema = new mongoose.Schema({
   category: { type: String },
   topic: { type: String },
   solution: { type: String },
+  // Math formula fields
+  questionMath: { type: String },
+  solutionMath: { type: String },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -695,6 +698,27 @@ function parseQuestionData(row, headers) {
         'synthesis', 'synthesis_level', 'synthesislevel',
         'evaluation', 'evaluation_level', 'evaluationlevel',
         'creation', 'creation_level', 'creationlevel'
+      ],
+      
+      // Question Math - ANY column that might contain question math formulas
+      'questionMath': [
+        'question_math', 'questionmath', 'q_math', 'qmath', 'question_formula',
+        'questionformula', 'q_formula', 'qformula', 'question_equation',
+        'questionequation', 'q_equation', 'qequation', 'question_latex',
+        'questionlatex', 'q_latex', 'qlatex', 'math', 'formula', 'equation',
+        'latex', 'mathematics', 'mathematical', 'math_formula', 'mathformula',
+        'math_equation', 'mathequation', 'math_latex', 'mathlatex'
+      ],
+      
+      // Solution Math - ANY column that might contain solution math formulas
+      'solutionMath': [
+        'solution_math', 'solutionmath', 's_math', 'smath', 'solution_formula',
+        'solutionformula', 's_formula', 'sformula', 'solution_equation',
+        'solutionequation', 's_equation', 'sequation', 'solution_latex',
+        'solutionlatex', 's_latex', 'slatex', 'answer_math', 'answermath',
+        'a_math', 'amath', 'answer_formula', 'answerformula', 'a_formula',
+        'aformula', 'answer_equation', 'answerequation', 'a_equation',
+        'aequation', 'answer_latex', 'answerlatex', 'a_latex', 'alatex'
       ]
     };
 
@@ -725,7 +749,9 @@ function parseQuestionData(row, headers) {
       publishStatus: 'draft', // Default to draft for bulk uploads
       category: extractCategory(row, headers, foundColumns),
       topic: extractTopic(row, headers, foundColumns),
-      solution: extractSolution(row, headers, foundColumns)
+      solution: extractSolution(row, headers, foundColumns),
+      questionMath: extractQuestionMath(row, headers, foundColumns),
+      solutionMath: extractSolutionMath(row, headers, foundColumns)
     };
 
     return questionData;
@@ -984,6 +1010,53 @@ function extractSolution(row, headers, foundColumns) {
   }
   
   return '';
+}
+
+// Helper function to extract question math formula
+function extractQuestionMath(row, headers, foundColumns) {
+  try {
+    // Look for columns that might contain question math formulas
+    for (const header of headers) {
+      const headerLower = header.toLowerCase().trim();
+      if (headerLower.includes('math') || headerLower.includes('formula') || 
+          headerLower.includes('latex') || headerLower.includes('equation') ||
+          headerLower.includes('question_math') || headerLower.includes('questionmath') ||
+          headerLower.includes('q_math') || headerLower.includes('qmath')) {
+        if (row[header] && row[header].toString().trim()) {
+          return row[header].toString().trim();
+        }
+      }
+    }
+    
+    return ''; // No question math found
+  } catch (error) {
+    console.error('Error extracting question math:', error);
+    return '';
+  }
+}
+
+// Helper function to extract solution math formula
+function extractSolutionMath(row, headers, foundColumns) {
+  try {
+    // Look for columns that might contain solution math formulas
+    for (const header of headers) {
+      const headerLower = header.toLowerCase().trim();
+      if (headerLower.includes('solution_math') || headerLower.includes('solutionmath') ||
+          headerLower.includes('answer_math') || headerLower.includes('answermath') ||
+          headerLower.includes('s_math') || headerLower.includes('smath') ||
+          headerLower.includes('solution_formula') || headerLower.includes('solutionformula') ||
+          headerLower.includes('answer_formula') || headerLower.includes('answerformula')) {
+        if (row[header] && row[header].toString().trim()) {
+          return row[header].toString().trim();
+        }
+      }
+    }
+    
+    return ''; // No solution math found
+  } catch (error) {
+    console.error('Error extracting solution math:', error);
+    return '';
+  }
 }
 
 // Helper function to parse options from individual option columns (optionA, optionB, etc.)
