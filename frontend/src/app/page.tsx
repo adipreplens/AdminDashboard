@@ -2908,13 +2908,43 @@ export default function Home() {
                   src={imagePreviewModal.imageUrl} 
                   alt="Preview" 
                   className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-lg"
+                  onError={(e) => {
+                    // If image fails to load, show a fallback
+                    const target = e.currentTarget as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallbackDiv = target.nextElementSibling as HTMLElement;
+                    if (fallbackDiv) {
+                      fallbackDiv.style.display = 'block';
+                    }
+                  }}
                 />
+                <div className="hidden max-w-full max-h-[70vh] flex items-center justify-center bg-gray-100 rounded-lg p-8">
+                  <div className="text-center">
+                    <div className="text-6xl mb-4">🖼️</div>
+                    <p className="text-gray-600 mb-2">Image could not be loaded</p>
+                    <p className="text-sm text-gray-500">This might be due to CORS restrictions</p>
+                    <a 
+                      href={imagePreviewModal.imageUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline mt-2 inline-block"
+                    >
+                      Open image in new tab
+                    </a>
+                  </div>
+                </div>
               </div>
               <div className="mt-4 text-center">
                 <p className="text-sm text-gray-600 mb-2">Image URL:</p>
                 <p className="text-xs text-gray-500 break-all bg-gray-100 p-2 rounded">
                   {imagePreviewModal.imageUrl}
                 </p>
+                <button
+                  onClick={() => imagePreviewModal.imageUrl && window.open(imagePreviewModal.imageUrl, '_blank')}
+                  className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                >
+                  Open in New Tab
+                </button>
               </div>
             </div>
           </div>
