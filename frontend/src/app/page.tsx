@@ -35,7 +35,10 @@ interface Question {
   timeLimit: number;
   blooms: string;
   imageUrl?: string;
+  questionImageUrl?: string;
   solution?: string;
+  solutionImageUrl?: string;
+  optionImages?: { [key: string]: string };
   publishStatus?: string;
   category?: string;
   topic?: string;
@@ -2194,28 +2197,47 @@ export default function Home() {
                           <h4 className="font-medium text-blue-800 mb-3">📋 Answer Options:</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {question.options && question.options.length > 0 ? (
-                              question.options.map((option, index) => (
-                                <div key={index} className="flex items-center space-x-2">
-                                  <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
-                                    {String.fromCharCode(65 + index)}
-                                  </span>
-                                  <div className={`flex-1 p-2 rounded border ${
-                                    option && option.trim() === question.answer ? 'bg-green-100 border-green-300 text-green-800' : 'bg-white border-gray-200'
-                                  }`}>
-                                    {option && option.trim() ? (
-                                      <ImageDisplay 
-                                        text={option} 
-                                        className="text-sm"
-                                      />
-                                    ) : (
-                                      `Option ${String.fromCharCode(65 + index)} (empty)`
-                                    )}
-                                    {option && option.trim() === question.answer && (
-                                      <span className="ml-2 text-green-600">✓ Correct</span>
-                                    )}
+                              question.options.map((option, index) => {
+                                const optionImage = question.optionImages?.[index.toString()];
+                                const hasContent = option && option.trim() || optionImage;
+                                
+                                return (
+                                  <div key={index} className="flex items-center space-x-2">
+                                    <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
+                                      {String.fromCharCode(65 + index)}
+                                    </span>
+                                    <div className={`flex-1 p-2 rounded border ${
+                                      (option && option.trim() === question.answer) || (optionImage && question.answer && question.answer.includes(optionImage)) ? 'bg-green-100 border-green-300 text-green-800' : 'bg-white border-gray-200'
+                                    }`}>
+                                      {hasContent ? (
+                                        <div>
+                                          {option && option.trim() && (
+                                            <ImageDisplay 
+                                              text={option} 
+                                              className="text-sm mb-2"
+                                            />
+                                          )}
+                                          {optionImage && (
+                                            <div className="mt-2">
+                                              <img 
+                                                src={optionImage} 
+                                                alt={`Option ${String.fromCharCode(65 + index)} image`}
+                                                className="max-w-full h-auto rounded border"
+                                                style={{ maxHeight: '150px' }}
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        `Option ${String.fromCharCode(65 + index)} (empty)`
+                                      )}
+                                      {(option && option.trim() === question.answer) || (optionImage && question.answer && question.answer.includes(optionImage)) && (
+                                        <span className="ml-2 text-green-600">✓ Correct</span>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))
+                                );
+                              })
                             ) : (
                               <div className="col-span-2 text-center text-gray-500 py-4">
                                 No options available
@@ -2241,11 +2263,25 @@ export default function Home() {
                         <div className="bg-purple-50 p-4 rounded-lg">
                           <h4 className="font-medium text-purple-800 mb-2">💡 Solution:</h4>
                           <div className="text-purple-700">
-                            {question.solution ? (
-                              <ImageDisplay 
-                                text={question.solution} 
-                                className="text-sm"
-                              />
+                            {(question.solution && question.solution.trim()) || question.solutionImageUrl ? (
+                              <div>
+                                {question.solution && question.solution.trim() && (
+                                  <ImageDisplay 
+                                    text={question.solution} 
+                                    className="text-sm mb-2"
+                                  />
+                                )}
+                                {question.solutionImageUrl && (
+                                  <div className="mt-2">
+                                    <img 
+                                      src={question.solutionImageUrl} 
+                                      alt="Solution image"
+                                      className="max-w-full h-auto rounded border"
+                                      style={{ maxHeight: '200px' }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
                             ) : (
                               <p className="text-gray-500 italic">No solution provided</p>
                             )}
@@ -2269,11 +2305,11 @@ export default function Home() {
                           )}
 
                           {/* Image */}
-                          {question.imageUrl && (
+                          {(question.imageUrl || question.questionImageUrl) && (
                             <div className="bg-gray-50 p-3 rounded-lg">
                               <h4 className="font-medium text-gray-800 mb-2">🖼️ Question Image:</h4>
                               <img 
-                                src={question.imageUrl} 
+                                src={question.imageUrl || question.questionImageUrl} 
                                 alt="Question" 
                                 className="max-w-full h-auto rounded border"
                                 style={{ maxHeight: '200px' }}
