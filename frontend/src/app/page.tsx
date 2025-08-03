@@ -664,6 +664,7 @@ export default function Home() {
           if (response.ok) {
             const data = await response.json();
             const imageUrl = data.imageUrl;
+            console.log('Backend returned image URL:', imageUrl);
             
             // Update the specific option with the image
             setQuestionForm(prevForm => {

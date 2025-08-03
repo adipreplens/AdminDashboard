@@ -27,7 +27,15 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ text, className = '' }) => 
     // Replace each image markdown with an actual image
     images.forEach((imageUrl, index) => {
       const imageMarkdown = `![Image](${imageUrl})`;
-      const imageElement = `<img src="${imageUrl}" alt="Question Image" class="max-w-full h-auto rounded-lg shadow-md my-2" style="max-height: 300px;" />`;
+      
+      // Handle both relative and absolute URLs
+      let fullImageUrl = imageUrl;
+      if (imageUrl.startsWith('/uploads/')) {
+        // Convert relative URL to backend server URL
+        fullImageUrl = `https://admindashboard-x0hk.onrender.com${imageUrl}`;
+      }
+      
+      const imageElement = `<img src="${fullImageUrl}" alt="Question Image" class="max-w-full h-auto rounded-lg shadow-md my-2" style="max-height: 300px;" />`;
       processedText = processedText.replace(imageMarkdown, imageElement);
     });
     
