@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import ImageDisplay from '../components/ImageDisplay';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admindashboard-x0hk.onrender.com';
 
@@ -1330,6 +1331,17 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Question Preview with Images */}
+                    {questionForm.text && (
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-medium text-gray-700 mb-2">📝 Question Preview:</h4>
+                        <ImageDisplay 
+                          text={questionForm.text} 
+                          className="text-gray-800"
+                        />
+                      </div>
+                    )}
                     
                     
                      
@@ -1578,6 +1590,30 @@ export default function Home() {
                       + Add more option
                     </button>
                   </div>
+
+                  {/* Options Preview */}
+                  {questionForm.options && questionForm.options.trim() && (
+                    <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                      <h4 className="font-medium text-blue-700 mb-2">📋 Options Preview:</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {questionForm.options.split('\n').map((option, index) => (
+                          option && option.trim() && (
+                            <div key={index} className="flex items-center space-x-2">
+                              <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
+                                {String.fromCharCode(65 + index)}
+                              </span>
+                              <div className="flex-1 p-2 rounded border bg-white">
+                                <ImageDisplay 
+                                  text={option} 
+                                  className="text-sm"
+                                />
+                              </div>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Question Marks */}
@@ -1656,6 +1692,17 @@ export default function Home() {
                       style={{ color: '#171717', backgroundColor: '#ffffff' }}
                     />
                   </div>
+
+                  {/* Solution Preview */}
+                  {questionForm.solution && questionForm.solution.trim() && (
+                    <div className="mt-4 p-4 bg-purple-50 rounded-lg">
+                      <h4 className="font-medium text-purple-700 mb-2">💡 Solution Preview:</h4>
+                      <ImageDisplay 
+                        text={questionForm.solution} 
+                        className="text-purple-800"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Mandatory Tags Section */}
@@ -2024,7 +2071,12 @@ export default function Home() {
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
                             <div className="flex items-start justify-between mb-3">
-                              <h3 className="font-medium text-gray-900 text-lg leading-relaxed">{question.text}</h3>
+                              <div className="flex-1">
+                                <ImageDisplay 
+                                  text={question.text} 
+                                  className="font-medium text-gray-900 text-lg leading-relaxed"
+                                />
+                              </div>
                               <div className="flex items-center space-x-2 ml-4">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                   question.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
@@ -2100,14 +2152,21 @@ export default function Home() {
                                   <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
                                     {String.fromCharCode(65 + index)}
                                   </span>
-                                  <span className={`flex-1 p-2 rounded border ${
+                                  <div className={`flex-1 p-2 rounded border ${
                                     option && option.trim() === question.answer ? 'bg-green-100 border-green-300 text-green-800' : 'bg-white border-gray-200'
                                   }`}>
-                                    {option && option.trim() ? option : `Option ${String.fromCharCode(65 + index)} (empty)`}
+                                    {option && option.trim() ? (
+                                      <ImageDisplay 
+                                        text={option} 
+                                        className="text-sm"
+                                      />
+                                    ) : (
+                                      `Option ${String.fromCharCode(65 + index)} (empty)`
+                                    )}
                                     {option && option.trim() === question.answer && (
                                       <span className="ml-2 text-green-600">✓ Correct</span>
                                     )}
-                                  </span>
+                                  </div>
                                 </div>
                               ))
                             ) : (
@@ -2136,7 +2195,10 @@ export default function Home() {
                           <h4 className="font-medium text-purple-800 mb-2">💡 Solution:</h4>
                           <div className="text-purple-700">
                             {question.solution ? (
-                              <p>{question.solution}</p>
+                              <ImageDisplay 
+                                text={question.solution} 
+                                className="text-sm"
+                              />
                             ) : (
                               <p className="text-gray-500 italic">No solution provided</p>
                             )}
