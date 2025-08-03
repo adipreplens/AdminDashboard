@@ -1,4 +1,6 @@
 import React from 'react';
+import 'katex/dist/katex.min.css';
+import { InlineMath, BlockMath } from 'react-katex';
 
 interface ImageDisplayProps {
   text: string;
@@ -31,6 +33,25 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ text, className = '' }) => 
     return processedText;
   };
 
+  // Function to render LaTeX in text
+  const renderLatexInText = (text: string) => {
+    // Split text by LaTeX delimiters
+    const parts = text.split(/(\\[a-zA-Z]+{[^}]*}|\\[a-zA-Z]+|x\^[0-9]+|x_[0-9]+)/g);
+    
+    return parts.map((part, index) => {
+      // Check if this part is LaTeX
+      if (part.match(/^\\[a-zA-Z]+{[^}]*}$/) || part.match(/^\\[a-zA-Z]+$/) || part.match(/^x\^[0-9]+$/) || part.match(/^x_[0-9]+$/)) {
+        try {
+          return <InlineMath key={index} math={part} />;
+        } catch (error) {
+          console.error('LaTeX rendering error:', error);
+          return <span key={index} className="text-red-500">{part}</span>;
+        }
+      }
+      return part;
+    });
+  };
+
   const processedText = processText(text);
   
   // Debug: Log the processed text to see what's being rendered
@@ -46,6 +67,17 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ text, className = '' }) => 
   };
 
   const decodedText = decodeHtml(processedText);
+  
+  // Check if text contains LaTeX
+  const containsLatex = /\\[a-zA-Z]+|x\^[0-9]+|x_[0-9]+/.test(decodedText);
+  
+  if (containsLatex) {
+    return (
+      <div className={className} style={{ lineHeight: '1.6', wordBreak: 'break-word' }}>
+        {renderLatexInText(decodedText)}
+      </div>
+    );
+  }
   
   return (
     <div 
