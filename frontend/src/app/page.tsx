@@ -460,73 +460,88 @@ export default function Home() {
   };
 
   // Image handling functions
-  const handleImageUpload = async (file: File, target: 'question' | 'option' | 'solution', optionIndex?: number) => {
+  // Image handling functions
+  const handleImageUpload = async (
+    file: File,
+    target: 'question' | 'option' | 'solution',
+    optionIndex?: number
+  ) => {
     try {
       const formData = new FormData();
       formData.append('image', file);
-      
+
       const response = await fetch(`${API_BASE_URL}/upload-image`, {
         method: 'POST',
         body: formData,
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const imageUrl = data.imageUrl;
-        setQuestionImages([...questionImages, imageUrl]);
-        
-        const imageTag = `\n<img src="${imageUrl}" alt="Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0;" />\n`;
-        
-        // Debug: Log what we're inserting
-        console.log('Inserting image tag:', imageTag);
-        
-        if (target === 'question') {
-          // Insert image into question text
-          setQuestionForm({...questionForm, text: questionForm.text + imageTag});
-        } else if (target === 'option' && optionIndex !== undefined) {
-          // Insert image into specific option
-          setQuestionForm(prevForm => {
-            // Split the options string into an array
-            let optionsArray: string[] = [];
-            if (prevForm.options && prevForm.options.trim()) {
-              optionsArray = prevForm.options.split('\n');
-            }
-            
-            // Ensure we have exactly 4 options (A, B, C, D)
-            while (optionsArray.length < 4) {
-              optionsArray.push('');
-            }
-            
-            // Add image to the specific option
-            const currentOption = optionsArray[optionIndex] || '';
-            optionsArray[optionIndex] = currentOption + imageTag;
-            
-            console.log(`Adding image to option ${optionIndex} (${String.fromCharCode(65 + optionIndex)})`);
-            console.log('Current options array:', optionsArray);
-            
-            return {
-              ...prevForm,
-              options: optionsArray.join('\n')
-            };
-          });
-        } else if (target === 'solution') {
-          // Insert image into solution text
-          setQuestionForm({...questionForm, solution: questionForm.solution + imageTag});
-        }
+
+      if (!response.ok) {
+        throw new Error(`Image upload failed: ${response.statusText}`);
       }
+
+      const data = await response.json();
+      const imageUrl = data.imageUrl;
+
+      // Add to list of uploaded images
+      setQuestionImages(prev => [...prev, imageUrl]);
+
+      // HTML image tag to insert
+      const imageTag = `\n<img src="${imageUrl}" alt="Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0;" />\n`;
+
+      if (target === 'question') {
+        // Insert image into question text
+        setQuestionForm(prev => ({
+          ...prev,
+          text: (prev.text || '') + imageTag
+        }));
+
+      } else if (target === 'option' && optionIndex !== undefined) {
+        setQuestionForm(prevForm => {
+          // Always ensure exactly 4 options
+          let optionsArray = prevForm.options
+            ? prevForm.options.split('\n').slice(0, 4) // take only first 4
+            : [];
+
+          // Pad with empty strings if fewer than 4
+          while (optionsArray.length < 4) {
+            optionsArray.push('');
+          }
+
+          // Append image to the correct option index
+          optionsArray[optionIndex] =
+            (optionsArray[optionIndex] || '') + imageTag;
+
+          return {
+            ...prevForm,
+            options: optionsArray.join('\n')
+          };
+        });
+
+      } else if (target === 'solution') {
+        // Insert image into solution text
+        setQuestionForm(prev => ({
+          ...prev,
+          solution: (prev.solution || '') + imageTag
+        }));
+      }
+
     } catch (error) {
       console.error('Error uploading image:', error);
     }
   };
 
-  const handlePasteImage = (event: React.ClipboardEvent, target: 'question' | 'option' | 'solution' = 'question', optionIndex?: number) => {
+  // Handle paste event
+  const handlePasteImage = (
+    event: React.ClipboardEvent,
+    target: 'question' | 'option' | 'solution' = 'question',
+    optionIndex?: number
+  ) => {
     const items = event.clipboardData?.items;
     if (items) {
       for (let i = 0; i < items.length; i++) {
         if (items[i].type.indexOf('image') !== -1) {
           const file = items[i].getAsFile();
           if (file) {
-            console.log(`Pasting image into ${target}${optionIndex !== undefined ? `, option ${optionIndex} (${String.fromCharCode(65 + optionIndex)})` : ''}`);
             handleImageUpload(file, target, optionIndex);
             event.preventDefault();
             break;
@@ -536,7 +551,12 @@ export default function Home() {
     }
   };
 
-  const handleDropImage = (event: React.DragEvent, target: 'question' | 'option' | 'solution' = 'question', optionIndex?: number) => {
+  // Handle drag & drop
+  const handleDropImage = (
+    event: React.DragEvent,
+    target: 'question' | 'option' | 'solution' = 'question',
+    optionIndex?: number
+  ) => {
     event.preventDefault();
     const files = event.dataTransfer.files;
     if (files.length > 0) {
