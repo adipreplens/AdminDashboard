@@ -62,6 +62,7 @@ export default function Home() {
   });
   const [questions, setQuestions] = useState<Question[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [questionIdSearch, setQuestionIdSearch] = useState('');
   const [filters, setFilters] = useState({
     subject: '',
     exam: '',
@@ -979,12 +980,14 @@ export default function Home() {
     const matchesSearch = question.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          question.subject.toLowerCase().includes(searchTerm.toLowerCase());
     
+    const matchesQuestionId = !questionIdSearch || question._id.toLowerCase().includes(questionIdSearch.toLowerCase());
+    
     const matchesSubject = !filters.subject || question.subject === filters.subject;
     const matchesExam = !filters.exam || question.exam === filters.exam;
     const matchesDifficulty = !filters.difficulty || question.difficulty === filters.difficulty;
     const matchesBlooms = !filters.blooms || question.blooms === filters.blooms;
 
-    return matchesSearch && matchesSubject && matchesExam && matchesDifficulty && matchesBlooms;
+    return matchesSearch && matchesQuestionId && matchesSubject && matchesExam && matchesDifficulty && matchesBlooms;
   });
 
   if (!isLoggedIn) {
@@ -2079,7 +2082,18 @@ export default function Home() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">🔍 Search & Filter Questions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Question ID</label>
+                    <input
+                      type="text"
+                      placeholder="Enter question ID..."
+                      value={questionIdSearch}
+                      onChange={(e) => setQuestionIdSearch(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Search Questions</label>
                     <input
@@ -2090,7 +2104,7 @@ export default function Home() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
                       style={{ color: '#171717', backgroundColor: '#ffffff' }}
                     />
-            </div>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Subject</label>
                     <select 
@@ -2148,10 +2162,15 @@ export default function Home() {
                 </div>
                 
                 {/* Active Filters Display */}
-                {(searchTerm || filters.subject || filters.exam || filters.difficulty) && (
+                {(questionIdSearch || searchTerm || filters.subject || filters.exam || filters.difficulty) && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <h4 className="text-sm font-medium text-blue-800 mb-2">Active Filters:</h4>
                     <div className="flex flex-wrap gap-2">
+                      {questionIdSearch && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Question ID: "{questionIdSearch}" <button onClick={() => setQuestionIdSearch('')} className="ml-1 text-red-600 hover:text-red-800">×</button>
+                        </span>
+                      )}
                       {searchTerm && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           Search: "{searchTerm}" <button onClick={() => setSearchTerm('')} className="ml-1 text-blue-600 hover:text-blue-800">×</button>
@@ -2174,6 +2193,7 @@ export default function Home() {
                       )}
                       <button 
                         onClick={() => {
+                          setQuestionIdSearch('');
                           setSearchTerm('');
                           setFilters({subject: '', exam: '', difficulty: '', blooms: ''});
                         }}
