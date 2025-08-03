@@ -1876,6 +1876,8 @@ export default function Home() {
                         <option value="">Select Exam Category</option>
                         <option value="rrb-je">RRB JE</option>
                         <option value="rrb-ntpc">RRB NTPC</option>
+                        <option value="rrb-technician">RRB Technician</option>
+                        <option value="rrb-alp">RRB ALP</option>
                         <option value="rrb-group-d">RRB Group D</option>
                         <option value="ssc-je">SSC JE</option>
                         <option value="ssc-chsl">SSC CHSL</option>
