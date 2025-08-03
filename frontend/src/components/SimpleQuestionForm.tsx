@@ -11,6 +11,7 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
   const [solutionText, setSolutionText] = useState('');
   const [questionMath, setQuestionMath] = useState('');
   const [solutionMath, setSolutionMath] = useState('');
+  const [mathInserted, setMathInserted] = useState(false);
   const [questionImageUrl, setQuestionImageUrl] = useState<string | null>(null);
   const [solutionImageUrl, setSolutionImageUrl] = useState<string | null>(null);
   const [options, setOptions] = useState(['', '', '', '']);
@@ -156,6 +157,7 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
         setSolutionText('');
         setQuestionMath('');
         setSolutionMath('');
+        setMathInserted(false);
         setOptions(['', '', '', '']);
         setCorrectAnswer(null);
         setMarks('');
@@ -200,6 +202,12 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
             required
           />
           
+          {mathInserted && (
+            <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-green-700 text-sm">
+              ✅ Math formula inserted into question text!
+            </div>
+          )}
+          
           {/* Question Math Editor */}
           <div className="mt-4">
             <label className="block font-semibold mb-2">Question Math Formula:</label>
@@ -222,6 +230,14 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
             <MathEditor
               value={questionMath}
               onChange={setQuestionMath}
+              onInsertLatex={(latex) => {
+                // Insert the LaTeX formula into the question text
+                const latexText = `$${latex}$`;
+                setQuestionText(prev => prev + (prev ? ' ' : '') + latexText);
+                setMathInserted(true);
+                // Clear the success message after 3 seconds
+                setTimeout(() => setMathInserted(false), 3000);
+              }}
               placeholder="Enter math formula (e.g., x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a})"
               label="Question Math"
             />
@@ -449,6 +465,11 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
             <MathEditor
               value={solutionMath}
               onChange={setSolutionMath}
+              onInsertLatex={(latex) => {
+                // Insert the LaTeX formula into the solution text
+                const latexText = `$${latex}$`;
+                setSolutionText(prev => prev + (prev ? ' ' : '') + latexText);
+              }}
               placeholder="Enter math formula for solution..."
               label="Solution Math"
             />
