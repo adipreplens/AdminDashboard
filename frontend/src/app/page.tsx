@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import ImageDisplay from '../components/ImageDisplay';
+import CreateQuestionForm from '../components/CreateQuestionForm';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admindashboard-x0hk.onrender.com';
 
@@ -91,6 +92,7 @@ export default function Home() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<{show: boolean, questionId: string | null}>({show: false, questionId: null});
   const [answerSelected, setAnswerSelected] = useState<string>('');
   const [showAnswerError, setShowAnswerError] = useState(false);
+  const [useNewForm, setUseNewForm] = useState(false);
 
 
   // Check if user is already logged in
@@ -1165,11 +1167,44 @@ export default function Home() {
         
         {currentView === 'create' && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {editingQuestion ? 'Edit Question' : 'Create New Question'}
-            </h2>
-            <div className="bg-white rounded-lg shadow p-6">
-              <form onSubmit={editingQuestion ? handleUpdateQuestion : handleCreateQuestion} className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {editingQuestion ? 'Edit Question' : 'Create New Question'}
+              </h2>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Form Type:</span>
+                <button
+                  type="button"
+                  onClick={() => setUseNewForm(false)}
+                  className={`px-3 py-1 rounded text-sm font-medium ${
+                    !useNewForm 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Old Form
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUseNewForm(true)}
+                  className={`px-3 py-1 rounded text-sm font-medium ${
+                    useNewForm 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  New Form (Rich Text)
+                </button>
+              </div>
+            </div>
+            {useNewForm ? (
+              <CreateQuestionForm onSuccess={() => {
+                fetchQuestions();
+                setUseNewForm(false);
+              }} />
+            ) : (
+              <div className="bg-white rounded-lg shadow p-6">
+                <form onSubmit={editingQuestion ? handleUpdateQuestion : handleCreateQuestion} className="space-y-6">
                 {/* Question Input Section */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1838,6 +1873,7 @@ export default function Home() {
                 </div>
               </form>
             </div>
+            )}
           </div>
         )}
         
