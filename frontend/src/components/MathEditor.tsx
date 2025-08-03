@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import 'katex/dist/katex.min.css';
-import { InlineMath } from 'react-katex';
+import { InlineMath, BlockMath } from 'react-katex';
 
 interface MathEditorProps {
   value: string;
@@ -103,6 +103,8 @@ export default function MathEditor({ value, onChange, onInsertLatex, placeholder
     setError(null);
     onChange(newValue);
   };
+
+  const examples = 'Examples: "x^2 + y^2 = z^2", "\\frac{a}{b}", "\\sum_{i=1}^{n} x_i"';
 
   const renderMath = () => {
     try {
@@ -209,7 +211,7 @@ export default function MathEditor({ value, onChange, onInsertLatex, placeholder
       
       <div className="text-xs text-gray-500">
         <p>💡 <strong>Tips:</strong> Click any symbol above to insert it, or type LaTeX directly in the text area.</p>
-        <p>Examples: "x^2 + y^2 = z^2", "\\frac{a}{b}", "\\sum_{i=1}^{n} x_i"</p>
+        <p>{examples}</p>
       </div>
     </div>
   );

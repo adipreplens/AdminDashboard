@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import ImageUploader from './ImageUploader';
+import MathEditor from './MathEditor';
 
 interface SimpleQuestionFormProps {
   onSuccess?: () => void;
@@ -8,6 +9,8 @@ interface SimpleQuestionFormProps {
 const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) => {
   const [questionText, setQuestionText] = useState('');
   const [solutionText, setSolutionText] = useState('');
+  const [questionMath, setQuestionMath] = useState('');
+  const [solutionMath, setSolutionMath] = useState('');
   const [questionImageUrl, setQuestionImageUrl] = useState<string | null>(null);
   const [solutionImageUrl, setSolutionImageUrl] = useState<string | null>(null);
   const [options, setOptions] = useState(['', '', '', '']);
@@ -123,6 +126,8 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
     const questionData = {
       text: questionText,
       solution: solutionText,
+      questionMath: questionMath,
+      solutionMath: solutionMath,
       options,
       answer: options[correctAnswer], // Convert index to actual answer text
       subject: subject,
@@ -149,6 +154,8 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
         setSuccess(true);
         setQuestionText('');
         setSolutionText('');
+        setQuestionMath('');
+        setSolutionMath('');
         setOptions(['', '', '', '']);
         setCorrectAnswer(null);
         setMarks('');
@@ -192,6 +199,33 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
             rows={6}
             required
           />
+          
+          {/* Question Math Editor */}
+          <div className="mt-4">
+            <label className="block font-semibold mb-2">Question Math Formula:</label>
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={() => setQuestionMath('x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}')}
+                className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 mr-2"
+              >
+                Test Quadratic Formula
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuestionMath('E = mc^2')}
+                className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+              >
+                Test E=mc²
+              </button>
+            </div>
+            <MathEditor
+              value={questionMath}
+              onChange={setQuestionMath}
+              placeholder="Enter math formula (e.g., x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a})"
+              label="Question Math"
+            />
+          </div>
           
           {/* Question Image Upload */}
           <div className="mt-3">
@@ -392,6 +426,33 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
             className="w-full p-3 border border-gray-300 rounded-lg"
             rows={4}
           />
+          
+          {/* Solution Math Editor */}
+          <div className="mt-4">
+            <label className="block font-semibold mb-2">Solution Math Formula:</label>
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={() => setSolutionMath('x = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a} \\text{ or } x = \\frac{-b - \\sqrt{b^2 - 4ac}}{2a}')}
+                className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 mr-2"
+              >
+                Test Solution Formula
+              </button>
+              <button
+                type="button"
+                onClick={() => setSolutionMath('\\int_{0}^{\\infty} e^{-x} dx = 1')}
+                className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+              >
+                Test Integral
+              </button>
+            </div>
+            <MathEditor
+              value={solutionMath}
+              onChange={setSolutionMath}
+              placeholder="Enter math formula for solution..."
+              label="Solution Math"
+            />
+          </div>
           
           {/* Solution Image Upload */}
           <div className="mt-3">
