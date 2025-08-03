@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import ImageDisplay from '../components/ImageDisplay';
 import CreateQuestionForm from '../components/CreateQuestionForm';
 import SimpleQuestionForm from '../components/SimpleQuestionForm';
+import MathEditor from '../components/MathEditor';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admindashboard-x0hk.onrender.com';
 
@@ -217,8 +218,13 @@ export default function Home() {
         tags: questionForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
         marks: parseInt(questionForm.marks) || 1,
         timeLimit: parseInt(questionForm.timeLimit) || 60,
-        blooms: questionForm.blooms
+        blooms: questionForm.blooms,
+        solution: questionForm.solution || ''
       };
+
+      // Debug: Log the solution field
+      console.log('Solution being sent:', questionForm.solution);
+      console.log('Full questionData:', questionData);
 
       const response = await fetch(`${API_BASE_URL}/questions`, {
         method: 'POST',
@@ -430,7 +436,8 @@ export default function Home() {
         tags: questionForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
         marks: parseInt(questionForm.marks) || 1,
         timeLimit: parseInt(questionForm.timeLimit) || 60,
-        blooms: questionForm.blooms
+        blooms: questionForm.blooms,
+        solution: questionForm.solution || ''
       };
 
       const response = await fetch(`${API_BASE_URL}/questions/${editingQuestion._id}`, {
@@ -573,53 +580,34 @@ export default function Home() {
 
   // LaTeX handling functions
   const insertLatex = (latexCode: string) => {
-    // Insert simple math formula text
-    const mathText = latexCode
-      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')
-      .replace(/\\sqrt\{([^}]+)\}/g, '√$1')
-      .replace(/x\^(\d+)/g, 'x^$1')
-      .replace(/\\pi/g, 'π')
-      .replace(/\\infty/g, '∞')
-      .replace(/\\sum/g, '∑')
-      .replace(/\\int/g, '∫');
-    
     if (mathEditorTarget === 'question') {
       const textarea = document.querySelector('textarea[name="questionText"]') as HTMLTextAreaElement;
       if (textarea) {
         const cursorPos = textarea.selectionStart;
-        const newText = questionForm.text.substring(0, cursorPos) + ' ' + mathText + questionForm.text.substring(cursorPos);
+        const newText = questionForm.text.substring(0, cursorPos) + latexCode + questionForm.text.substring(cursorPos);
         setQuestionForm({...questionForm, text: newText});
-        
-        // Restore cursor position after insertion
         setTimeout(() => {
           textarea.focus();
-          textarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
+          textarea.setSelectionRange(cursorPos + latexCode.length, cursorPos + latexCode.length);
         }, 0);
       }
     } else if (mathEditorTarget === 'option') {
       const optionTextareas = document.querySelectorAll('textarea');
       const optionTextarea = optionTextareas[mathEditorOptionIndex + 1] as HTMLTextAreaElement;
-      
       if (optionTextarea) {
         const cursorPos = optionTextarea.selectionStart;
-        
-        // Use functional update to avoid race conditions
         setQuestionForm(prevForm => {
           const options = prevForm.options.split('\n');
-          // Ensure we have enough options array elements
           while (options.length <= mathEditorOptionIndex) {
             options.push('');
           }
           const currentOption = options[mathEditorOptionIndex] || '';
-          const newOption = currentOption.substring(0, cursorPos) + ' ' + mathText + currentOption.substring(cursorPos);
+          const newOption = currentOption.substring(0, cursorPos) + latexCode + currentOption.substring(cursorPos);
           options[mathEditorOptionIndex] = newOption;
-          
-          // Restore cursor position after insertion
           setTimeout(() => {
             optionTextarea.focus();
-            optionTextarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
+            optionTextarea.setSelectionRange(cursorPos + latexCode.length, cursorPos + latexCode.length);
           }, 0);
-          
           return {
             ...prevForm,
             options: options.join('\n')
@@ -631,17 +619,14 @@ export default function Home() {
       if (solutionTextarea) {
         const cursorPos = solutionTextarea.selectionStart;
         const currentSolution = questionForm.solution || '';
-        const newSolution = currentSolution.substring(0, cursorPos) + ' ' + mathText + currentSolution.substring(cursorPos);
+        const newSolution = currentSolution.substring(0, cursorPos) + latexCode + currentSolution.substring(cursorPos);
         setQuestionForm({...questionForm, solution: newSolution});
-        
-        // Restore cursor position after insertion
         setTimeout(() => {
           solutionTextarea.focus();
-          solutionTextarea.setSelectionRange(cursorPos + mathText.length + 1, cursorPos + mathText.length + 1);
+          solutionTextarea.setSelectionRange(cursorPos + latexCode.length, cursorPos + latexCode.length);
         }, 0);
       }
     }
-    
     setLatexPreview(latexCode);
   };
 
@@ -918,12 +903,12 @@ export default function Home() {
                 '⊘', '⊙', '⊚', '⊛', '⊜', '⊝', '⊞', '⊟', '⊠', '⊡',
                 '⊢', '⊣', '⊤', '⊥', '⊦', '⊧', '⊨', '⊩', '⊪', '⊫'];
       case 'Formula':
-        return ['\\frac{a}{b}', '\\sqrt{x}', 'x^2', 'x^3', '\\sum_{i=1}^{n}', '\\int_{a}^{b}',
-                '\\lim_{x \\to a}', '\\frac{d}{dx}', '\\frac{\\partial}{\\partial x}', '\\nabla',
-                '\\Delta', '\\delta', '\\epsilon', '\\varepsilon', '\\zeta', '\\eta',
-                '\\theta', '\\vartheta', '\\iota', '\\kappa', '\\lambda', '\\mu',
-                '\\nu', '\\xi', '\\omicron', '\\rho', '\\varrho', '\\sigma', '\\varsigma',
-                '\\tau', '\\upsilon', '\\phi', '\\varphi', '\\chi', '\\psi', '\\omega'];
+        return ['frac(a/b)', 'sqrt(x)', 'x^2', 'x^3', 'sum(i=1 to n)', 'int(a to b)',
+                'lim(x to a)', 'frac(d/dx)', 'frac(partial/partial x)', 'nabla',
+                'Delta', 'delta', 'epsilon', 'varepsilon', 'zeta', 'eta',
+                'theta', 'vartheta', 'iota', 'kappa', 'lambda', 'mu',
+                'nu', 'xi', 'omicron', 'rho', 'varrho', 'sigma', 'varsigma',
+                'tau', 'upsilon', 'phi', 'varphi', 'chi', 'psi', 'omega'];
       case 'Arrow':
         return ['→', '←', '↑', '↓', '↔', '↕', '↖', '↗', '↘', '↙',
                 '⇒', '⇐', '⇔', '⇑', '⇓', '⇕', '⇖', '⇗', '⇘', '⇙',
@@ -1452,7 +1437,7 @@ export default function Home() {
                      {/* Enhanced Math Editor Modal */}
                      {showLatexEditor && (
                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                         <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+                         <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-auto">
                            <div className="flex items-center justify-between mb-4">
                              <div>
                                <h3 className="text-xl font-semibold text-orange-600">Math Editor</h3>
@@ -1467,72 +1452,17 @@ export default function Home() {
                              </button>
                            </div>
                            
-                           {/* Math Input Area */}
-                           <div className="mb-4">
-                             <textarea
-                               className="w-full p-4 border border-gray-300 rounded-lg text-gray-900"
-                               rows={4}
-                               placeholder="Type your math formula here..."
-                               value={latexPreview}
-                               onChange={(e) => setLatexPreview(e.target.value)}
-                               style={{ color: '#171717', backgroundColor: '#ffffff' }}
-                             />
-                           </div>
-                           
-                           {/* Math Categories */}
-                           <div className="flex border-b border-gray-300 mb-4">
-                             {['Basic', 'Maths', 'Matrix', 'Formula', 'Arrow', 'Alphabet', 'Sym'].map((category) => (
-                               <button
-                                 key={category}
-                                 type="button"
-                                 onClick={() => setCurrentCategory(category)}
-                                 className={`px-4 py-2 text-sm font-medium border-b-2 ${
-                                   currentCategory === category 
-                                     ? 'border-orange-500 text-orange-600' 
-                                     : 'border-transparent text-gray-600 hover:text-orange-600'
-                                 }`}
-                               >
-                                 {category}
-                               </button>
-                             ))}
-                             <span className="px-2 py-2 text-gray-400">...</span>
-                           </div>
-                           
-                           {/* Math Symbols Grid */}
-                           <div className="grid grid-cols-10 gap-1 mb-4">
-                             {getSymbolsForCategory(currentCategory).map((symbol, index) => (
-                               <button
-                                 key={index}
-                                 type="button"
-                                 onClick={() => setLatexPreview(latexPreview + symbol)}
-                                 className="p-2 bg-gray-100 hover:bg-gray-200 rounded text-sm font-mono"
-                               >
-                                 {symbol}
-                               </button>
-                             ))}
-                           </div>
-                           
-                           {/* Action Buttons */}
-                           <div className="flex justify-between items-center">
-                             <button
-                               type="button"
-                               onClick={() => setLatexPreview(latexPreview + '\\frac{a}{b}')}
-                               className="px-3 py-2 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 text-sm"
-                             >
-                               Add latex
-                             </button>
-                             <button
-                               type="button"
-                               onClick={() => {
-                                 insertLatex(latexPreview);
-                                 setShowLatexEditor(false);
-                                 setLatexPreview('');
-                               }}
-                               className="px-6 py-3 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-medium"
-                             >
-                               Add to Editor
-                             </button>
-                           </div>
+                           <MathEditor
+                             value={latexPreview}
+                             onChange={setLatexPreview}
+                             onInsertLatex={(latex) => {
+                               insertLatex(latex);
+                               setShowLatexEditor(false);
+                               setLatexPreview('');
+                             }}
+                             placeholder="Type your math formula here..."
+                             label="Math Expression"
+                           />
                          </div>
                        </div>
                      )}
@@ -2424,6 +2354,13 @@ export default function Home() {
                           Question ID: {question._id}
                         </div>
                       </div>
+                      {/* Solution Display */}
+                      {question.solution && (
+                        <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded">
+                          <div className="font-semibold text-green-700 mb-1">Solution:</div>
+                          <ImageDisplay text={question.solution} className="text-green-900 text-base" />
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (

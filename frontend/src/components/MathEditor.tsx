@@ -2,86 +2,93 @@
 
 import { useState } from 'react';
 import 'katex/dist/katex.min.css';
-import { InlineMath, BlockMath } from 'react-katex';
+import { InlineMath } from 'react-katex';
 
 interface MathEditorProps {
   value: string;
   onChange: (value: string) => void;
+  onInsertLatex?: (latex: string) => void;
   placeholder?: string;
   label?: string;
 }
 
-export default function MathEditor({ value, onChange, placeholder = "Enter math expression...", label = "Math Expression" }: MathEditorProps) {
+export default function MathEditor({ value, onChange, onInsertLatex, placeholder = "Enter math expression...", label = "Math Expression" }: MathEditorProps) {
   const [isPreview, setIsPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Simple math functions that users can understand
-  const insertFraction = () => {
-    onChange(value + ' (numerator/denominator) ');
-  };
+  // Math symbols with their LaTeX representations
+  const mathSymbols = [
+    // Basic Operations
+    { symbol: '+', latex: '+', label: 'Plus' },
+    { symbol: '-', latex: '-', label: 'Minus' },
+    { symbol: '×', latex: '\\times', label: 'Multiply' },
+    { symbol: '÷', latex: '\\div', label: 'Divide' },
+    { symbol: '=', latex: '=', label: 'Equals' },
+    
+    // Fractions and Powers
+    { symbol: '\\frac{a}{b}', latex: '\\frac{a}{b}', label: 'Fraction' },
+    { symbol: 'x^2', latex: 'x^2', label: 'Square' },
+    { symbol: 'x^n', latex: 'x^n', label: 'Power' },
+    { symbol: 'x_n', latex: 'x_n', label: 'Subscript' },
+    { symbol: 'x^y_z', latex: 'x^y_z', label: 'Power & Sub' },
+    
+    // Roots and Special Symbols
+    { symbol: '\\sqrt{x}', latex: '\\sqrt{x}', label: 'Square Root' },
+    { symbol: '\\sqrt[n]{x}', latex: '\\sqrt[n]{x}', label: 'nth Root' },
+    { symbol: '\\pi', latex: '\\pi', label: 'Pi' },
+    { symbol: '\\infty', latex: '\\infty', label: 'Infinity' },
+    { symbol: '\\sum', latex: '\\sum', label: 'Sum' },
+    { symbol: '\\int', latex: '\\int', label: 'Integral' },
+    { symbol: '\\prod', latex: '\\prod', label: 'Product' },
+    
+    // Greek Letters
+    { symbol: '\\alpha', latex: '\\alpha', label: 'Alpha' },
+    { symbol: '\\beta', latex: '\\beta', label: 'Beta' },
+    { symbol: '\\gamma', latex: '\\gamma', label: 'Gamma' },
+    { symbol: '\\delta', latex: '\\delta', label: 'Delta' },
+    { symbol: '\\theta', latex: '\\theta', label: 'Theta' },
+    { symbol: '\\lambda', latex: '\\lambda', label: 'Lambda' },
+    { symbol: '\\mu', latex: '\\mu', label: 'Mu' },
+    { symbol: '\\sigma', latex: '\\sigma', label: 'Sigma' },
+    { symbol: '\\phi', latex: '\\phi', label: 'Phi' },
+    { symbol: '\\omega', latex: '\\omega', label: 'Omega' },
+    
+    // Advanced Math
+    { symbol: '\\lim_{x \\to a}', latex: '\\lim_{x \\to a}', label: 'Limit' },
+    { symbol: '\\frac{d}{dx}', latex: '\\frac{d}{dx}', label: 'Derivative' },
+    { symbol: '\\frac{\\partial}{\\partial x}', latex: '\\frac{\\partial}{\\partial x}', label: 'Partial' },
+    { symbol: '\\vec{v}', latex: '\\vec{v}', label: 'Vector' },
+    { symbol: '\\overline{x}', latex: '\\overline{x}', label: 'Overline' },
+    { symbol: '\\underline{x}', latex: '\\underline{x}', label: 'Underline' },
+    
+    // Set Operations
+    { symbol: '\\cap', latex: '\\cap', label: 'Intersection' },
+    { symbol: '\\cup', latex: '\\cup', label: 'Union' },
+    { symbol: '\\subset', latex: '\\subset', label: 'Subset' },
+    { symbol: '\\supset', latex: '\\supset', label: 'Superset' },
+    { symbol: '\\in', latex: '\\in', label: 'Element' },
+    { symbol: '\\notin', latex: '\\notin', label: 'Not Element' },
+    
+    // Logic
+    { symbol: '\\land', latex: '\\land', label: 'And' },
+    { symbol: '\\lor', latex: '\\lor', label: 'Or' },
+    { symbol: '\\neg', latex: '\\neg', label: 'Not' },
+    { symbol: '\\implies', latex: '\\implies', label: 'Implies' },
+    { symbol: '\\iff', latex: '\\iff', label: 'Iff' },
+    { symbol: '\\forall', latex: '\\forall', label: 'For All' },
+    { symbol: '\\exists', latex: '\\exists', label: 'Exists' },
+    
+    // Grouping
+    { symbol: '(', latex: '(', label: 'Left Paren' },
+    { symbol: ')', latex: ')', label: 'Right Paren' },
+    { symbol: '[', latex: '[', label: 'Left Bracket' },
+    { symbol: ']', latex: ']', label: 'Right Bracket' },
+    { symbol: '\\{', latex: '\\{', label: 'Left Brace' },
+    { symbol: '\\}', latex: '\\}', label: 'Right Brace' },
+  ];
 
-  const insertSquare = () => {
-    onChange(value + ' x² ');
-  };
-
-  const insertSquareRoot = () => {
-    onChange(value + ' √x ');
-  };
-
-  const insertPi = () => {
-    onChange(value + ' π ');
-  };
-
-  const insertInfinity = () => {
-    onChange(value + ' ∞ ');
-  };
-
-  const insertSum = () => {
-    onChange(value + ' Σ ');
-  };
-
-  const insertIntegral = () => {
-    onChange(value + ' ∫ ');
-  };
-
-  const insertPlus = () => {
-    onChange(value + ' + ');
-  };
-
-  const insertMinus = () => {
-    onChange(value + ' - ');
-  };
-
-  const insertMultiply = () => {
-    onChange(value + ' × ');
-  };
-
-  const insertDivide = () => {
-    onChange(value + ' ÷ ');
-  };
-
-  const insertEquals = () => {
-    onChange(value + ' = ');
-  };
-
-  const insertParentheses = () => {
-    onChange(value + ' ( ) ');
-  };
-
-  const insertBrackets = () => {
-    onChange(value + ' [ ] ');
-  };
-
-  const insertExponent = () => {
-    onChange(value + ' x^n ');
-  };
-
-  const insertSubscript = () => {
-    onChange(value + ' x_n ');
-  };
-
-  const insertGreekLetter = (letter: string) => {
-    onChange(value + ` ${letter} `);
+  const insertSymbol = (latex: string) => {
+    onChange(value + ' ' + latex + ' ');
   };
 
   const handleChange = (newValue: string) => {
@@ -92,32 +99,7 @@ export default function MathEditor({ value, onChange, placeholder = "Enter math 
   const renderMath = () => {
     try {
       if (!value.trim()) return null;
-      
-      // Convert human-readable symbols to LaTeX
-      let latexValue = value
-        .replace(/\(numerator\/denominator\)/g, '\\frac{numerator}{denominator}')
-        .replace(/x²/g, 'x^2')
-        .replace(/√x/g, '\\sqrt{x}')
-        .replace(/π/g, '\\pi')
-        .replace(/∞/g, '\\infty')
-        .replace(/Σ/g, '\\sum')
-        .replace(/∫/g, '\\int')
-        .replace(/×/g, '\\times')
-        .replace(/÷/g, '\\div')
-        .replace(/x\^n/g, 'x^n')
-        .replace(/x_n/g, 'x_n')
-        .replace(/α/g, '\\alpha')
-        .replace(/β/g, '\\beta')
-        .replace(/γ/g, '\\gamma')
-        .replace(/δ/g, '\\delta')
-        .replace(/θ/g, '\\theta')
-        .replace(/λ/g, '\\lambda')
-        .replace(/μ/g, '\\mu')
-        .replace(/σ/g, '\\sigma')
-        .replace(/φ/g, '\\phi')
-        .replace(/ω/g, '\\omega');
-      
-      return <InlineMath math={latexValue} />;
+      return <InlineMath math={value} />;
     } catch (err) {
       setError('Invalid math expression');
       return null;
@@ -145,178 +127,24 @@ export default function MathEditor({ value, onChange, placeholder = "Enter math 
         </div>
       ) : (
         <div className="space-y-4">
-          {/* Basic Math Operations */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Basic Operations:</h4>
-            <div className="flex flex-wrap gap-2">
+          {/* Math Symbol Grid */}
+          <div className="grid grid-cols-5 gap-2 p-4 bg-gray-50 rounded-lg">
+            {mathSymbols.map((item, index) => (
               <button
+                key={index}
                 type="button"
-                onClick={insertPlus}
-                className="px-3 py-2 text-sm bg-green-500 text-white rounded hover:bg-green-600"
-                title="Plus"
+                onClick={() => insertSymbol(item.latex)}
+                className="p-3 bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors flex flex-col items-center justify-center min-h-[60px]"
+                title={item.label}
               >
-                +
+                <div className="text-lg mb-1">
+                  <InlineMath math={item.symbol} />
+                </div>
+                <div className="text-xs text-gray-500 text-center">
+                  {item.label}
+                </div>
               </button>
-              <button
-                type="button"
-                onClick={insertMinus}
-                className="px-3 py-2 text-sm bg-red-500 text-white rounded hover:bg-red-600"
-                title="Minus"
-              >
-                -
-              </button>
-              <button
-                type="button"
-                onClick={insertMultiply}
-                className="px-3 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                title="Multiply"
-              >
-                ×
-              </button>
-              <button
-                type="button"
-                onClick={insertDivide}
-                className="px-3 py-2 text-sm bg-purple-500 text-white rounded hover:bg-purple-600"
-                title="Divide"
-              >
-                ÷
-              </button>
-              <button
-                type="button"
-                onClick={insertEquals}
-                className="px-3 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
-                title="Equals"
-              >
-                =
-              </button>
-            </div>
-          </div>
-
-          {/* Fractions and Powers */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Fractions & Powers:</h4>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={insertFraction}
-                className="px-3 py-2 text-sm bg-orange-500 text-white rounded hover:bg-orange-600"
-                title="Fraction"
-              >
-                Fraction
-              </button>
-              <button
-                type="button"
-                onClick={insertSquare}
-                className="px-3 py-2 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                title="Square"
-              >
-                x²
-              </button>
-              <button
-                type="button"
-                onClick={insertExponent}
-                className="px-3 py-2 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                title="Exponent"
-              >
-                x^n
-              </button>
-              <button
-                type="button"
-                onClick={insertSubscript}
-                className="px-3 py-2 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                title="Subscript"
-              >
-                x_n
-              </button>
-            </div>
-          </div>
-
-          {/* Special Symbols */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Special Symbols:</h4>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={insertSquareRoot}
-                className="px-3 py-2 text-sm bg-indigo-500 text-white rounded hover:bg-indigo-600"
-                title="Square Root"
-              >
-                √x
-              </button>
-              <button
-                type="button"
-                onClick={insertPi}
-                className="px-3 py-2 text-sm bg-pink-500 text-white rounded hover:bg-pink-600"
-                title="Pi"
-              >
-                π
-              </button>
-              <button
-                type="button"
-                onClick={insertInfinity}
-                className="px-3 py-2 text-sm bg-pink-500 text-white rounded hover:bg-pink-600"
-                title="Infinity"
-              >
-                ∞
-              </button>
-              <button
-                type="button"
-                onClick={insertSum}
-                className="px-3 py-2 text-sm bg-pink-500 text-white rounded hover:bg-pink-600"
-                title="Sum"
-              >
-                Σ
-              </button>
-              <button
-                type="button"
-                onClick={insertIntegral}
-                className="px-3 py-2 text-sm bg-pink-500 text-white rounded hover:bg-pink-600"
-                title="Integral"
-              >
-                ∫
-              </button>
-            </div>
-          </div>
-
-          {/* Greek Letters */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Greek Letters:</h4>
-            <div className="flex flex-wrap gap-2">
-              {['α', 'β', 'γ', 'δ', 'θ', 'λ', 'μ', 'σ', 'φ', 'ω'].map((letter) => (
-                <button
-                  key={letter}
-                  type="button"
-                  onClick={() => insertGreekLetter(letter)}
-                  className="px-3 py-2 text-sm bg-teal-500 text-white rounded hover:bg-teal-600"
-                  title={letter}
-                >
-                  {letter}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Parentheses and Brackets */}
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700">Grouping:</h4>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={insertParentheses}
-                className="px-3 py-2 text-sm bg-gray-400 text-white rounded hover:bg-gray-500"
-                title="Parentheses"
-              >
-                ( )
-              </button>
-              <button
-                type="button"
-                onClick={insertBrackets}
-                className="px-3 py-2 text-sm bg-gray-400 text-white rounded hover:bg-gray-500"
-                title="Brackets"
-              >
-                [ ]
-              </button>
-            </div>
+            ))}
           </div>
           
           <textarea
@@ -326,6 +154,13 @@ export default function MathEditor({ value, onChange, placeholder = "Enter math 
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={4}
           />
+          <button
+            type="button"
+            onClick={() => onInsertLatex && onInsertLatex(value)}
+            className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 mt-2"
+          >
+            Add to LaTeX
+          </button>
         </div>
       )}
       
@@ -334,8 +169,8 @@ export default function MathEditor({ value, onChange, placeholder = "Enter math 
       )}
       
       <div className="text-xs text-gray-500">
-        <p>💡 <strong>Tips:</strong> Click the buttons above to insert math symbols, or type directly in the text area.</p>
-        <p>Examples: "x² + y² = z²", "π × r²", "(numerator/denominator)"</p>
+        <p>💡 <strong>Tips:</strong> Click any symbol above to insert it, or type LaTeX directly in the text area.</p>
+        <p>Examples: "x^2 + y^2 = z^2", "frac(a/b)", "sum(i=1 to n) x_i"</p>
       </div>
     </div>
   );
