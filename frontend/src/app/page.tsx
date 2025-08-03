@@ -460,7 +460,7 @@ export default function Home() {
   };
 
   // Image handling functions
-  // Image handling functions
+  // Image handling functions - FIXED VERSION
   const handleImageUpload = async (
     file: File,
     target: 'question' | 'option' | 'solution',
@@ -496,20 +496,27 @@ export default function Home() {
         }));
 
       } else if (target === 'option' && optionIndex !== undefined) {
+        // FIXED: Use the exact optionIndex without any filtering
         setQuestionForm(prevForm => {
-          // Always ensure exactly 4 options
-          let optionsArray = prevForm.options
-            ? prevForm.options.split('\n').slice(0, 4) // take only first 4
-            : [];
-
-          // Pad with empty strings if fewer than 4
+          // Split options and ensure exactly 4 elements
+          let optionsArray = prevForm.options ? prevForm.options.split('\n') : [];
+          
+          // Ensure we have exactly 4 options (A, B, C, D)
           while (optionsArray.length < 4) {
             optionsArray.push('');
           }
+          
+          // Truncate if more than 4
+          if (optionsArray.length > 4) {
+            optionsArray = optionsArray.slice(0, 4);
+          }
 
-          // Append image to the correct option index
-          optionsArray[optionIndex] =
-            (optionsArray[optionIndex] || '') + imageTag;
+          // Add image to the EXACT option index
+          const currentOption = optionsArray[optionIndex] || '';
+          optionsArray[optionIndex] = currentOption + imageTag;
+
+          console.log(`Adding image to option ${optionIndex} (${String.fromCharCode(65 + optionIndex)})`);
+          console.log('Options array:', optionsArray);
 
           return {
             ...prevForm,
@@ -1654,9 +1661,13 @@ export default function Home() {
                             className="w-full p-3 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
                             rows={2}
                             placeholder={`Option ${option}`}
-                            value={questionForm.options.split('\n')[index] || ''}
+                            value={(() => {
+                              const optionsArray = questionForm.options ? questionForm.options.split('\n') : [];
+                              return optionsArray[index] || '';
+                            })()}
                             data-option-index={index}
                             onChange={(e) => {
+                              const currentIndex = index; // Capture the index
                               setQuestionForm(prevForm => {
                                 // Split the options string into an array
                                 let optionsArray: string[] = [];
@@ -1672,8 +1683,13 @@ export default function Home() {
                                   newOptionsArray.push('');
                                 }
                                 
-                                // Update the specific option
-                                newOptionsArray[index] = e.target.value;
+                                // Truncate if more than 4
+                                if (newOptionsArray.length > 4) {
+                                  newOptionsArray.splice(4);
+                                }
+                                
+                                // Update the specific option using the captured index
+                                newOptionsArray[currentIndex] = e.target.value;
                                 
                                 // Join back to string and update state
                                 const newOptionsString = newOptionsArray.join('\n');
@@ -1686,10 +1702,12 @@ export default function Home() {
                             }}
                             onPaste={(e) => {
                               const stableIndex = index;
+                              console.log(`Pasting into option ${stableIndex} (${String.fromCharCode(65 + stableIndex)})`);
                               handlePasteImage(e, 'option', stableIndex);
                             }}
                             onDrop={(e) => {
                               const stableIndex = index;
+                              console.log(`Dropping into option ${stableIndex} (${String.fromCharCode(65 + stableIndex)})`);
                               handleDropImage(e, 'option', stableIndex);
                             }}
                             onDragOver={(e) => e.preventDefault()}
