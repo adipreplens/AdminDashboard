@@ -1,0 +1,18 @@
+name: Keep Server Alive
+
+on:
+  schedule:
+    # Runs every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  ping-server:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Ping Render Server
+      run: |
+        echo "🔄 Pinging server at $(date)"
+        curl -f https://admindashboard-x0hk.onrender.com/health || echo "❌ Server not responding"
+        echo "✅ Ping completed" 

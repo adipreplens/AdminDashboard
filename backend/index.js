@@ -1177,6 +1177,17 @@ app.delete('/upload-image/:filename', async (req, res) => {
   }
 });
 
+// Health check endpoint for Render
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    mongoStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
 // Authentication endpoints (hardcoded for demo)
 app.post('/auth/login', (req, res) => {
   const { email, password } = req.body;
