@@ -38,7 +38,6 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
   const [showMathEditor, setShowMathEditor] = useState(false);
   const [mathEditorTarget, setMathEditorTarget] = useState<'question' | 'solution' | 'option'>('question');
   const [mathEditorOptionIndex, setMathEditorOptionIndex] = useState<number>(0);
-  const [editorError, setEditorError] = useState(false);
 
   // Memoize modules to prevent re-renders
   const modules = useMemo(() => ({
@@ -127,29 +126,15 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
         <div>
           <div className="mb-4">
             <label className="block font-semibold mb-2">Question Text (with image support):</label>
-            {editorError ? (
-              <div className="border border-gray-300 rounded-lg p-4">
-                <p className="text-red-600 mb-2">Rich text editor failed to load. Using fallback textarea.</p>
-                <textarea
-                  value={questionText}
-                  onChange={(e) => handleQuestionTextChange(e.target.value)}
-                  placeholder="Type your question here..."
-                  className="w-full p-3 border border-gray-300 rounded-lg"
-                  rows={6}
-                />
-              </div>
-            ) : (
-              <ReactQuill
-                value={questionText}
-                onChange={handleQuestionTextChange}
-                modules={modules}
-                formats={formats}
-                theme="snow"
-                placeholder="Type your question here..."
-                style={{ minHeight: 150, marginBottom: 24 }}
-                onError={() => setEditorError(true)}
-              />
-            )}
+            <ReactQuill
+              value={questionText}
+              onChange={handleQuestionTextChange}
+              modules={modules}
+              formats={formats}
+              theme="snow"
+              placeholder="Type your question here..."
+              style={{ minHeight: 150, marginBottom: 24 }}
+            />
           </div>
           
           <div className="mt-4">
@@ -183,29 +168,15 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
           
           <div className="mt-4">
             <label className="block font-semibold mb-2">Solution:</label>
-            {editorError ? (
-              <div className="border border-gray-300 rounded-lg p-4">
-                <p className="text-red-600 mb-2">Rich text editor failed to load. Using fallback textarea.</p>
-                <textarea
-                  value={solutionText}
-                  onChange={(e) => handleSolutionTextChange(e.target.value)}
-                  placeholder="Type your solution here..."
-                  className="w-full p-3 border border-gray-300 rounded-lg"
-                  rows={4}
-                />
-              </div>
-            ) : (
-              <ReactQuill
-                value={solutionText}
-                onChange={handleSolutionTextChange}
-                modules={modules}
-                formats={formats}
-                theme="snow"
-                placeholder="Type your solution here..."
-                style={{ minHeight: 100, marginBottom: 24 }}
-                onError={() => setEditorError(true)}
-              />
-            )}
+            <ReactQuill
+              value={solutionText}
+              onChange={handleSolutionTextChange}
+              modules={modules}
+              formats={formats}
+              theme="snow"
+              placeholder="Type your solution here..."
+              style={{ minHeight: 100, marginBottom: 24 }}
+            />
           </div>
           
           <button 
