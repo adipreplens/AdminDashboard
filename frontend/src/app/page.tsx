@@ -1658,10 +1658,10 @@ export default function Home() {
                             data-option-index={index}
                             onChange={(e) => {
                               setQuestionForm(prevForm => {
-                                // Split the options string into an array and filter empty strings
+                                // Split the options string into an array
                                 let optionsArray: string[] = [];
                                 if (prevForm.options && prevForm.options.trim()) {
-                                  optionsArray = prevForm.options.split('\n').filter(opt => opt !== '');
+                                  optionsArray = prevForm.options.split('\n');
                                 }
                                 
                                 // Create a new array to avoid mutation issues
@@ -1684,8 +1684,14 @@ export default function Home() {
                                 };
                               });
                             }}
-                            onPaste={(e) => handlePasteImage(e, 'option', index)}
-                            onDrop={(e) => handleDropImage(e, 'option', index)}
+                            onPaste={(e) => {
+                              const stableIndex = index;
+                              handlePasteImage(e, 'option', stableIndex);
+                            }}
+                            onDrop={(e) => {
+                              const stableIndex = index;
+                              handleDropImage(e, 'option', stableIndex);
+                            }}
                             onDragOver={(e) => e.preventDefault()}
                             required
                             style={{ color: '#171717', backgroundColor: '#ffffff' }}
