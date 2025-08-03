@@ -88,12 +88,32 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
     setOptions(prev => prev.map((opt, i) => (i === idx ? value : opt)));
   };
 
+  // Check if an option is valid (has text or image)
+  const isOptionValid = (idx: number) => {
+    const hasText = options[idx] && options[idx].trim() !== '';
+    const hasImage = optionImages[idx];
+    return hasText || hasImage;
+  };
+
   // Submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!questionText.trim() || !correctAnswer || !marks || !timer || !subject || !exam || !difficulty || !blooms) {
       alert('Please fill in all required fields (Question, Options, Marks, Timer, Subject, Exam, Difficulty, Blooms)');
+      return;
+    }
+
+    // Check if all options have either text or image
+    const invalidOptions = [];
+    for (let i = 0; i < 4; i++) {
+      if (!isOptionValid(i)) {
+        invalidOptions.push(i + 1);
+      }
+    }
+
+    if (invalidOptions.length > 0) {
+      alert(`Please fill in or add images for options: ${invalidOptions.join(', ')}`);
       return;
     }
     
@@ -188,8 +208,11 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
           <div className="text-sm text-gray-600 mb-3">
             💡 <strong>Image support:</strong> You can paste images directly (Ctrl+V) or upload images for each option.
           </div>
-          {[0, 1, 2, 3].map(idx => (
-            <div key={idx} className={`flex items-center gap-2 mb-3 p-3 rounded-lg border ${correctAnswer === idx ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                      {[0, 1, 2, 3].map(idx => (
+              <div key={idx} className={`flex items-center gap-2 mb-3 p-3 rounded-lg border ${
+                correctAnswer === idx ? 'bg-green-50 border-green-200' : 
+                isOptionValid(idx) ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'
+              }`}>
               <input
                 type="radio"
                 name="correctAnswer"
