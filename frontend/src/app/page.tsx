@@ -231,6 +231,8 @@ export default function Home() {
       console.log('Form submission - questionForm.solution:', questionForm.solution);
       console.log('Form submission - questionForm.solution type:', typeof questionForm.solution);
       console.log('Form submission - questionForm.solution === empty string:', questionForm.solution === '');
+      console.log('Form submission - questionForm.solution === null:', questionForm.solution === null);
+      console.log('Form submission - questionForm.solution === undefined:', questionForm.solution === undefined);
 
       const response = await fetch(`${API_BASE_URL}/questions`, {
         method: 'POST',
@@ -1757,7 +1759,11 @@ export default function Home() {
                       rows={6}
                       placeholder="Enter your solution explanation here... You can add images, math formulas, and formatting."
                       value={questionForm.solution || ''}
-                      onChange={(e) => setQuestionForm({...questionForm, solution: e.target.value})}
+                      onChange={(e) => {
+                        console.log('Solution textarea onChange - value:', e.target.value);
+                        console.log('Solution textarea onChange - length:', e.target.value.length);
+                        setQuestionForm({...questionForm, solution: e.target.value});
+                      }}
                       onPaste={(e) => handlePasteImage(e, 'solution')}
                       onDrop={(e) => handleDropImage(e, 'solution')}
                       onDragOver={(e) => e.preventDefault()}
