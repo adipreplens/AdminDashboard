@@ -17,6 +17,10 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
   const [marks, setMarks] = useState('');
   const [timer, setTimer] = useState('');
   const [tags, setTags] = useState('');
+  const [subject, setSubject] = useState('');
+  const [exam, setExam] = useState('');
+  const [difficulty, setDifficulty] = useState('');
+  const [blooms, setBlooms] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -88,8 +92,8 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!questionText.trim() || !correctAnswer || !marks || !timer) {
-      alert('Please fill in all required fields');
+    if (!questionText.trim() || !correctAnswer || !marks || !timer || !subject || !exam || !difficulty || !blooms) {
+      alert('Please fill in all required fields (Question, Options, Marks, Timer, Subject, Exam, Difficulty, Blooms)');
       return;
     }
     
@@ -100,9 +104,13 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
       text: questionText,
       solution: solutionText,
       options,
-      correctAnswer,
+      answer: options[correctAnswer], // Convert index to actual answer text
+      subject: subject,
+      exam: exam,
+      difficulty: difficulty,
       marks: parseInt(marks),
       timeLimit: parseInt(timer),
+      blooms: blooms,
       tags: tags.split(',').map(t => t.trim()).filter(Boolean),
       imageUrl: questionImageUrl,
       solutionImageUrl: solutionImageUrl,
@@ -129,6 +137,10 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
         setQuestionImageUrl(null);
         setSolutionImageUrl(null);
         setOptionImages({});
+        setSubject('');
+        setExam('');
+        setDifficulty('');
+        setBlooms('');
         if (onSuccess) onSuccess();
       } else {
         const errorData = await res.json();
@@ -249,6 +261,65 @@ const SimpleQuestionForm: React.FC<SimpleQuestionFormProps> = ({ onSuccess }) =>
               )}
             </div>
           ))}
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block font-semibold mb-2">Subject: <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded"
+              placeholder="e.g. Mathematics"
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block font-semibold mb-2">Exam: <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              className="w-full p-2 border border-gray-300 rounded"
+              placeholder="e.g. JEE, SSC"
+              value={exam}
+              onChange={e => setExam(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block font-semibold mb-2">Difficulty: <span className="text-red-500">*</span></label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded"
+              value={difficulty}
+              onChange={e => setDifficulty(e.target.value)}
+              required
+            >
+              <option value="">Select Difficulty</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+          <div>
+            <label className="block font-semibold mb-2">Blooms Level: <span className="text-red-500">*</span></label>
+            <select
+              className="w-full p-2 border border-gray-300 rounded"
+              value={blooms}
+              onChange={e => setBlooms(e.target.value)}
+              required
+            >
+              <option value="">Select Blooms Level</option>
+              <option value="remember">Remember</option>
+              <option value="understand">Understand</option>
+              <option value="apply">Apply</option>
+              <option value="analyze">Analyze</option>
+              <option value="evaluate">Evaluate</option>
+              <option value="create">Create</option>
+            </select>
+          </div>
         </div>
         
         <div className="flex gap-4">
