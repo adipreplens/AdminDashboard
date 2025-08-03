@@ -224,7 +224,13 @@ export default function Home() {
 
       // Debug: Log the solution field
       console.log('Solution being sent:', questionForm.solution);
+      console.log('Solution length:', questionForm.solution?.length);
       console.log('Full questionData:', questionData);
+      
+      // Additional debugging
+      console.log('Form submission - questionForm.solution:', questionForm.solution);
+      console.log('Form submission - questionForm.solution type:', typeof questionForm.solution);
+      console.log('Form submission - questionForm.solution === empty string:', questionForm.solution === '');
 
       const response = await fetch(`${API_BASE_URL}/questions`, {
         method: 'POST',
@@ -1746,6 +1752,7 @@ export default function Home() {
                       </button>
                     </div>
                     <textarea
+                      name="solution"
                       className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
                       rows={6}
                       placeholder="Enter your solution explanation here... You can add images, math formulas, and formatting."
