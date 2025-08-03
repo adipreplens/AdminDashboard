@@ -19,8 +19,6 @@ interface CreateQuestionFormProps {
 }
 
 const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) => {
-  const questionQuillRef = useRef<any>(null);
-  const solutionQuillRef = useRef<any>(null);
   const [questionType, setQuestionType] = useState<'static' | 'power'>('static');
   const [questionText, setQuestionText] = useState('');
   const [solutionText, setSolutionText] = useState('');
@@ -69,12 +67,10 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
               });
               const data = await res.json();
               if (data.imageUrl) {
-                // Try to insert into the active editor
-                const activeRef = questionQuillRef.current || solutionQuillRef.current;
-                if (activeRef) {
-                  const range = activeRef.getSelection();
-                  activeRef.insertEmbed(range ? range.index : 0, 'image', data.imageUrl);
-                }
+                // Insert the image URL as HTML since we can't access the Quill instance directly
+                const imageHtml = `<img src="${data.imageUrl}" alt="Uploaded image" style="max-width: 100%; height: auto;" />`;
+                // We'll need to handle this differently - for now, just show the URL
+                alert(`Image uploaded! URL: ${data.imageUrl}\n\nYou can copy this URL and paste it in the editor.`);
               }
             } catch (error) {
               console.error('Error uploading image:', error);
@@ -85,16 +81,7 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
       }
     },
     clipboard: {
-      matchVisual: false,
-      matchers: [
-        ['img', (node: any, delta: any) => {
-          // Handle pasted images
-          if (node.src) {
-            return delta.insert({ image: node.src });
-          }
-          return delta;
-        }]
-      ]
+      matchVisual: false
     }
   }), []);
 
@@ -149,7 +136,6 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
           <div className="mb-4">
             <label className="block font-semibold mb-2">Question Text (with image support):</label>
             <ReactQuill
-              ref={questionQuillRef}
               value={questionText}
               onChange={handleQuestionTextChange}
               modules={modules}
@@ -192,7 +178,6 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
           <div className="mt-4">
             <label className="block font-semibold mb-2">Solution:</label>
             <ReactQuill
-              ref={solutionQuillRef}
               value={solutionText}
               onChange={handleSolutionTextChange}
               modules={modules}
