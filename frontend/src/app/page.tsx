@@ -2317,6 +2317,41 @@ export default function Home() {
                                   text={question.text} 
                                   className="font-medium text-gray-900 text-lg leading-relaxed"
                                 />
+                                
+                                {/* Question Images Preview */}
+                                {(question.imageUrl || question.questionImageUrl) && (
+                                  <div className="mt-3">
+                                    <h5 className="text-sm font-medium text-gray-700 mb-2">📷 Question Images:</h5>
+                                    <div className="flex flex-wrap gap-2">
+                                      {question.imageUrl && (
+                                        <div className="relative group">
+                                          <img 
+                                            src={question.imageUrl} 
+                                            alt="Question" 
+                                            className="w-20 h-20 object-cover rounded-lg border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors"
+                                            onClick={() => openImagePreview(question.imageUrl!)}
+                                          />
+                                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                                            <span className="text-white opacity-0 group-hover:opacity-100 text-xs">Click to view</span>
+                                          </div>
+                                        </div>
+                                      )}
+                                      {question.questionImageUrl && (
+                                        <div className="relative group">
+                                          <img 
+                                            src={question.questionImageUrl} 
+                                            alt="Question" 
+                                            className="w-20 h-20 object-cover rounded-lg border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors"
+                                            onClick={() => openImagePreview(question.questionImageUrl!)}
+                                          />
+                                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                                            <span className="text-white opacity-0 group-hover:opacity-100 text-xs">Click to view</span>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-center space-x-2 ml-4">
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -2382,6 +2417,73 @@ export default function Home() {
                             <span className="font-medium text-gray-700">{question.blooms}</span>
                           </div>
                         </div>
+
+                        {/* Images Summary */}
+                        {(question.imageUrl || question.questionImageUrl || question.solutionImageUrl || question.optionImages) && (
+                          <div className="bg-yellow-50 p-4 rounded-lg">
+                            <h4 className="font-medium text-yellow-800 mb-3">🖼️ Images Summary:</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                              {question.imageUrl && (
+                                <div className="text-center">
+                                  <div className="relative group mb-2">
+                                    <img 
+                                      src={question.imageUrl} 
+                                      alt="Question" 
+                                      className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:border-yellow-300 transition-colors mx-auto"
+                                      onClick={() => openImagePreview(question.imageUrl!)}
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                                      <span className="text-white opacity-0 group-hover:opacity-100 text-xs">View</span>
+                                    </div>
+                                  </div>
+                                  <span className="text-xs text-yellow-700 font-medium">Question</span>
+                                </div>
+                              )}
+                              {question.questionImageUrl && (
+                                <div className="text-center">
+                                  <div className="relative group mb-2">
+                                    <img 
+                                      src={question.questionImageUrl} 
+                                      alt="Question" 
+                                      className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:border-yellow-300 transition-colors mx-auto"
+                                      onClick={() => openImagePreview(question.questionImageUrl!)}
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                                      <span className="text-white opacity-0 group-hover:opacity-100 text-xs">View</span>
+                                    </div>
+                                  </div>
+                                  <span className="text-xs text-yellow-700 font-medium">Question</span>
+                                </div>
+                              )}
+                              {question.solutionImageUrl && (
+                                <div className="text-center">
+                                  <div className="relative group mb-2">
+                                    <img 
+                                      src={question.solutionImageUrl} 
+                                      alt="Solution" 
+                                      className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:border-yellow-300 transition-colors mx-auto"
+                                      onClick={() => openImagePreview(question.solutionImageUrl!)}
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all rounded-lg flex items-center justify-center">
+                                      <span className="text-white opacity-0 group-hover:opacity-100 text-xs">View</span>
+                                    </div>
+                                  </div>
+                                  <span className="text-xs text-yellow-700 font-medium">Solution</span>
+                                </div>
+                              )}
+                              {question.optionImages && Object.keys(question.optionImages).length > 0 && (
+                                <div className="text-center">
+                                  <div className="relative group mb-2">
+                                    <div className="w-16 h-16 bg-yellow-100 border-2 border-yellow-300 rounded-lg flex items-center justify-center mx-auto">
+                                      <span className="text-yellow-600 font-bold text-lg">{Object.keys(question.optionImages).length}</span>
+                                    </div>
+                                  </div>
+                                  <span className="text-xs text-yellow-700 font-medium">Option Images</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Options Section */}
                         <div className="bg-blue-50 p-4 rounded-lg">
