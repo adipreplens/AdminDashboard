@@ -190,8 +190,8 @@ export default function Home() {
       const formData = new FormData(e.target as HTMLFormElement);
       const correctAnswer = formData.get('correctAnswer') as string;
       
-      // Get options from the individual option fields
-      const options = questionForm.options.split('\n').filter(option => option.trim());
+      // Get options from the individual option fields - FIXED: No filtering to prevent index shift
+      const options = questionForm.options.split('\n').slice(0, 4);
       
       // Find the correct answer text based on the selected radio button
       const answerIndex = correctAnswer ? correctAnswer.charCodeAt(0) - 65 : 0; // A=0, B=1, C=2, D=3
@@ -403,8 +403,8 @@ export default function Home() {
       const formData = new FormData(e.target as HTMLFormElement);
       const correctAnswer = formData.get('correctAnswer') as string;
       
-      // Get options from the individual option fields
-      const options = questionForm.options.split('\n').filter(option => option.trim());
+      // Get options from the individual option fields - FIXED: No filtering to prevent index shift
+      const options = questionForm.options.split('\n').slice(0, 4);
       
       // Find the correct answer text based on the selected radio button
       const answerIndex = correctAnswer ? correctAnswer.charCodeAt(0) - 65 : 0; // A=0, B=1, C=2, D=3
@@ -826,7 +826,7 @@ export default function Home() {
   const hasImageInOption = (optionIndex: number) => {
     let options: string[] = [];
     if (questionForm.options && questionForm.options.trim()) {
-      options = questionForm.options.split('\n').filter(opt => opt !== '');
+              options = questionForm.options.split('\n').slice(0, 4);
     }
     if (options.length <= optionIndex) return false;
     const option = options[optionIndex] || '';
@@ -1730,20 +1730,18 @@ export default function Home() {
                     <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                       <h4 className="font-medium text-blue-700 mb-2">📋 Options Preview:</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {questionForm.options.split('\n').map((option, index) => (
-                          option && option.trim() && (
-                            <div key={index} className="flex items-center space-x-2">
-                              <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
-                                {String.fromCharCode(65 + index)}
-                              </span>
-                              <div className="flex-1 p-2 rounded border bg-white">
-                                <ImageDisplay 
-                                  text={option} 
-                                  className="text-sm"
-                                />
-                              </div>
+                        {questionForm.options.split('\n').slice(0, 4).map((option, index) => (
+                          <div key={index} className="flex items-center space-x-2">
+                            <span className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
+                              {String.fromCharCode(65 + index)}
+                            </span>
+                            <div className="flex-1 p-2 rounded border bg-white">
+                              <ImageDisplay 
+                                text={option || ''} 
+                                className="text-sm"
+                              />
                             </div>
-                          )
+                          </div>
                         ))}
                       </div>
                     </div>
