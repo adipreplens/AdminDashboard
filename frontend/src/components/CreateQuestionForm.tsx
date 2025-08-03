@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
 import MathEditor from './MathEditor';
@@ -31,9 +31,8 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
   const [mathEditorTarget, setMathEditorTarget] = useState<'question' | 'solution' | 'option'>('question');
   const [mathEditorOptionIndex, setMathEditorOptionIndex] = useState<number>(0);
 
-  // Refs for Quill editors
-  const questionQuillRef = useRef<any>(null);
-  const solutionQuillRef = useRef<any>(null);
+  // State to track which editor is active
+  const [activeEditor, setActiveEditor] = useState<'question' | 'solution' | null>(null);
 
   // Image upload function
   const uploadImage = async (file: File): Promise<string> => {
@@ -54,7 +53,7 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
   };
 
   // Enhanced clipboard handler for Quill editors
-  const handleQuillPaste = useCallback(async (quillRef: any, event: ClipboardEvent) => {
+  const handleQuillPaste = useCallback(async (editorType: 'question' | 'solution', event: ClipboardEvent) => {
     const items = event.clipboardData?.items;
     if (!items) return;
 
@@ -62,15 +61,19 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
       if (items[i].type.indexOf('image') !== -1) {
         event.preventDefault();
         const file = items[i].getAsFile();
-        if (file && quillRef) {
+        if (file) {
           try {
             setUploading(true);
             const imageUrl = await uploadImage(file);
             
-            // Insert image into Quill editor
-            const range = quillRef.getSelection();
-            quillRef.insertEmbed(range.index, 'image', imageUrl);
-            quillRef.setSelection(range.index + 1);
+            // Insert image into the active Quill editor
+            const activeEditor = document.querySelector('.ql-editor:focus')?.closest('.quill');
+            if (activeEditor) {
+              const quill = (activeEditor as any).__quill;
+              const range = quill.getSelection();
+              quill.insertEmbed(range.index, 'image', imageUrl);
+              quill.setSelection(range.index + 1);
+            }
             
             console.log('Image pasted and uploaded:', imageUrl);
           } catch (error) {
@@ -83,6 +86,50 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
         break;
       }
     }
+  }, []);
+
+  // Add paste event listeners to Quill editors
+  useEffect(() => {
+    const handleGlobalPaste = async (event: ClipboardEvent) => {
+      const items = event.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const target = event.target as HTMLElement;
+          if (target.closest('.ql-editor')) {
+            event.preventDefault();
+            const file = items[i].getAsFile();
+            if (file) {
+              try {
+                setUploading(true);
+                const imageUrl = await uploadImage(file);
+                
+                // Insert image into the active Quill editor
+                const activeEditor = target.closest('.quill');
+                if (activeEditor) {
+                  const quill = (activeEditor as any).__quill;
+                  const range = quill.getSelection();
+                  quill.insertEmbed(range.index, 'image', imageUrl);
+                  quill.setSelection(range.index + 1);
+                }
+                
+                console.log('Image pasted and uploaded:', imageUrl);
+              } catch (error) {
+                console.error('Error uploading pasted image:', error);
+                alert('Failed to upload pasted image. Please try again.');
+              } finally {
+                setUploading(false);
+              }
+            }
+            break;
+          }
+        }
+      }
+    };
+
+    document.addEventListener('paste', handleGlobalPaste);
+    return () => document.removeEventListener('paste', handleGlobalPaste);
   }, []);
 
   // Memoize modules to prevent re-renders
@@ -365,7 +412,6 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
             💡 <strong>Image Paste:</strong> You can paste images directly (Ctrl+V) into the question text area!
           </div>
           <ReactQuill
-            ref={questionQuillRef}
             value={questionText}
             onChange={handleQuestionTextChange}
             modules={modules}
@@ -373,7 +419,7 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
             theme="snow"
             placeholder="Type your question here... You can paste images directly (Ctrl+V)!"
             style={{ minHeight: 150, marginBottom: 24 }}
-            onPaste={(e) => handleQuillPaste(questionQuillRef.current, e)}
+            onFocus={() => setActiveEditor('question')}
           />
           {errors.questionText && (
             <div className="text-red-600 text-sm mt-1">{errors.questionText}</div>
@@ -540,7 +586,6 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
               💡 <strong>Image Paste:</strong> You can paste images directly (Ctrl+V) into the solution area too!
             </div>
             <ReactQuill
-              ref={solutionQuillRef}
               value={solutionText}
               onChange={handleSolutionTextChange}
               modules={modules}
@@ -548,7 +593,7 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
               theme="snow"
               placeholder="Type your solution here... You can paste images directly (Ctrl+V)!"
               style={{ minHeight: 100, marginBottom: 24 }}
-              onPaste={(e) => handleQuillPaste(solutionQuillRef.current, e)}
+              onFocus={() => setActiveEditor('solution')}
             />
           </div>
           <button type="submit" className="btn-primary mt-6" disabled={submitting || uploading}>
@@ -580,14 +625,56 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
         <div className="text-gray-500 text-lg text-center py-12">Power Question creation coming soon!</div>
       )}
 
-      {/* Math Editor Modal */}
-      <MathEditor
-        isOpen={showMathEditor}
-        onClose={() => setShowMathEditor(false)}
-        onInsert={handleMathInsert}
-        target={mathEditorTarget}
-        optionIndex={mathEditorOptionIndex}
-      />
+      {/* Math Editor - Simple inline version */}
+      {showMathEditor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold">Math Editor</h3>
+              <button
+                onClick={() => setShowMathEditor(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleMathInsert('\\frac{a}{b}')}
+                  className="px-3 py-2 bg-blue-500 text-white rounded text-sm"
+                >
+                  Fraction
+                </button>
+                <button
+                  onClick={() => handleMathInsert('x^2')}
+                  className="px-3 py-2 bg-gray-500 text-white rounded text-sm"
+                >
+                  x²
+                </button>
+                <button
+                  onClick={() => handleMathInsert('\\sqrt{x}')}
+                  className="px-3 py-2 bg-gray-500 text-white rounded text-sm"
+                >
+                  √x
+                </button>
+                <button
+                  onClick={() => handleMathInsert('\\pi')}
+                  className="px-3 py-2 bg-gray-500 text-white rounded text-sm"
+                >
+                  π
+                </button>
+              </div>
+              <button
+                onClick={() => setShowMathEditor(false)}
+                className="w-full px-4 py-2 bg-gray-500 text-white rounded"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
