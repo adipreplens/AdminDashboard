@@ -35,12 +35,13 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ text, className = '' }) => 
 
   // Function to render LaTeX in text
   const renderLatexInText = (text: string) => {
-    // Split text by LaTeX delimiters
-    const parts = text.split(/(\\[a-zA-Z]+{[^}]*}|\\[a-zA-Z]+|x\^[0-9]+|x_[0-9]+)/g);
+    // More comprehensive LaTeX pattern matching
+    const latexPattern = /(\\[a-zA-Z]+(?:\{[^}]*\})*(?:\^[^{]*)?(?:\{[^}]*\})*|\\[a-zA-Z]+|x\^[0-9]+|x_[0-9]+|[a-zA-Z]+\^[0-9]+|[a-zA-Z]+_[0-9]+)/g;
+    const parts = text.split(latexPattern);
     
     return parts.map((part, index) => {
-      // Check if this part is LaTeX
-      if (part.match(/^\\[a-zA-Z]+{[^}]*}$/) || part.match(/^\\[a-zA-Z]+$/) || part.match(/^x\^[0-9]+$/) || part.match(/^x_[0-9]+$/)) {
+      // Check if this part looks like LaTeX
+      if (part.match(/^\\[a-zA-Z]/) || part.match(/^[a-zA-Z]+\^[0-9]+$/) || part.match(/^[a-zA-Z]+_[0-9]+$/)) {
         try {
           return <InlineMath key={index} math={part} />;
         } catch (error) {

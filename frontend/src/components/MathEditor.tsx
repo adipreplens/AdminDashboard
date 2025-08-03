@@ -54,9 +54,17 @@ export default function MathEditor({ value, onChange, onInsertLatex, placeholder
     { symbol: '\\omega', latex: '\\omega', label: 'Omega' },
     
     // Advanced Math
+    { symbol: '\\pm', latex: '\\pm', label: 'Plus Minus' },
+    { symbol: '\\mp', latex: '\\mp', label: 'Minus Plus' },
     { symbol: '\\lim_{x \\to a}', latex: '\\lim_{x \\to a}', label: 'Limit' },
     { symbol: '\\frac{d}{dx}', latex: '\\frac{d}{dx}', label: 'Derivative' },
     { symbol: '\\frac{\\partial}{\\partial x}', latex: '\\frac{\\partial}{\\partial x}', label: 'Partial' },
+    { symbol: '\\pm', latex: '\\pm', label: 'Plus Minus' },
+    { symbol: '\\mp', latex: '\\mp', label: 'Minus Plus' },
+    { symbol: '\\approx', latex: '\\approx', label: 'Approximately' },
+    { symbol: '\\neq', latex: '\\neq', label: 'Not Equal' },
+    { symbol: '\\leq', latex: '\\leq', label: 'Less Equal' },
+    { symbol: '\\geq', latex: '\\geq', label: 'Greater Equal' },
     { symbol: '\\vec{v}', latex: '\\vec{v}', label: 'Vector' },
     { symbol: '\\overline{x}', latex: '\\overline{x}', label: 'Overline' },
     { symbol: '\\underline{x}', latex: '\\underline{x}', label: 'Underline' },
@@ -100,17 +108,22 @@ export default function MathEditor({ value, onChange, onInsertLatex, placeholder
     try {
       if (!value.trim()) return null;
       
-      // Clean up the LaTeX expression
-      let cleanValue = value.trim();
+      // Use the raw LaTeX value without cleaning - let KaTeX handle it
+      const latexValue = value.trim();
       
-      // Handle common LaTeX patterns
-      cleanValue = cleanValue
-        .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '\\frac{$1}{$2}') // Fix fraction syntax
-        .replace(/\\sqrt\{([^}]+)\}/g, '\\sqrt{$1}') // Fix sqrt syntax
-        .replace(/\\sum_\{([^}]+)\}\^\{([^}]+)\}/g, '\\sum_{$1}^{$2}') // Fix sum syntax
-        .replace(/\\int_\{([^}]+)\}\^\{([^}]+)\}/g, '\\int_{$1}^{$2}'); // Fix integral syntax
-      
-      return <InlineMath math={cleanValue} />;
+      // Try to render with InlineMath first
+      try {
+        return <InlineMath math={latexValue} />;
+      } catch (inlineError) {
+        // If InlineMath fails, try with BlockMath for display math
+        try {
+          return <BlockMath math={latexValue} />;
+        } catch (blockError) {
+          console.error('LaTeX rendering error:', inlineError);
+          setError('Invalid math expression');
+          return null;
+        }
+      }
     } catch (err) {
       console.error('LaTeX rendering error:', err);
       setError('Invalid math expression');
