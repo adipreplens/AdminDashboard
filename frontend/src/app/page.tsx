@@ -1874,10 +1874,20 @@ export default function Home() {
                     <div>
                       <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white" style={{ color: '#171717', backgroundColor: '#ffffff' }}>
                         <option value="">Select Exam Category</option>
-                        <option value="rrb">RRB (Railway)</option>
-                        <option value="ssc">SSC</option>
-                        <option value="bank">Banking</option>
-                        <option value="upsc">UPSC</option>
+                        <option value="rrb-je">RRB JE</option>
+                        <option value="rrb-ntpc">RRB NTPC</option>
+                        <option value="rrb-group-d">RRB Group D</option>
+                        <option value="ssc-je">SSC JE</option>
+                        <option value="ssc-chsl">SSC CHSL</option>
+                        <option value="ssc-cgl">SSC CGL</option>
+                        <option value="ssc-cpo">SSC CPO</option>
+                        <option value="ssc-mts">SSC MTS</option>
+                        <option value="bank-po">Bank PO</option>
+                        <option value="bank-clerk">Bank Clerk</option>
+                        <option value="bank-so">Bank SO</option>
+                        <option value="upsc-cse">UPSC CSE</option>
+                        <option value="upsc-ies">UPSC IES</option>
+                        <option value="upsc-cds">UPSC CDS</option>
                         <option value="state-pcs">State PCS</option>
                         <option value="other">Other</option>
                       </select>
