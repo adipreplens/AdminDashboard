@@ -486,9 +486,10 @@ export default function Home() {
         } else if (target === 'option' && optionIndex !== undefined) {
           // Insert image into specific option
           setQuestionForm(prevForm => {
+            // Split the options string into an array
             let optionsArray: string[] = [];
             if (prevForm.options && prevForm.options.trim()) {
-              optionsArray = prevForm.options.split('\n').filter(opt => opt !== '');
+              optionsArray = prevForm.options.split('\n');
             }
             
             // Ensure we have exactly 4 options (A, B, C, D)
@@ -499,6 +500,9 @@ export default function Home() {
             // Add image to the specific option
             const currentOption = optionsArray[optionIndex] || '';
             optionsArray[optionIndex] = currentOption + imageTag;
+            
+            console.log(`Adding image to option ${optionIndex} (${String.fromCharCode(65 + optionIndex)})`);
+            console.log('Current options array:', optionsArray);
             
             return {
               ...prevForm,
@@ -522,6 +526,7 @@ export default function Home() {
         if (items[i].type.indexOf('image') !== -1) {
           const file = items[i].getAsFile();
           if (file) {
+            console.log(`Pasting image into ${target}${optionIndex !== undefined ? `, option ${optionIndex} (${String.fromCharCode(65 + optionIndex)})` : ''}`);
             handleImageUpload(file, target, optionIndex);
             event.preventDefault();
             break;
