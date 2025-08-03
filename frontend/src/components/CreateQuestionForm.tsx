@@ -19,6 +19,8 @@ interface CreateQuestionFormProps {
 }
 
 const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) => {
+  const questionQuillRef = useRef<any>(null);
+  const solutionQuillRef = useRef<any>(null);
   const [questionType, setQuestionType] = useState<'static' | 'power'>('static');
   const [questionText, setQuestionText] = useState('');
   const [solutionText, setSolutionText] = useState('');
@@ -60,19 +62,39 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
             const file = input.files[0];
             const formData = new FormData();
             formData.append('image', file);
-            const res = await fetch('https://admindashboard-x0hk.onrender.com/upload-image', {
-              method: 'POST',
-              body: formData,
-            });
-            const data = await res.json();
-            console.log('Image uploaded:', data.imageUrl);
-            alert('Image uploaded successfully! You can copy the URL and paste it in the editor.');
+            try {
+              const res = await fetch('https://admindashboard-x0hk.onrender.com/upload-image', {
+                method: 'POST',
+                body: formData,
+              });
+              const data = await res.json();
+              if (data.imageUrl) {
+                // Try to insert into the active editor
+                const activeRef = questionQuillRef.current || solutionQuillRef.current;
+                if (activeRef) {
+                  const range = activeRef.getSelection();
+                  activeRef.insertEmbed(range ? range.index : 0, 'image', data.imageUrl);
+                }
+              }
+            } catch (error) {
+              console.error('Error uploading image:', error);
+              alert('Failed to upload image');
+            }
           };
         }
       }
     },
     clipboard: {
-      matchVisual: false
+      matchVisual: false,
+      matchers: [
+        ['img', (node: any, delta: any) => {
+          // Handle pasted images
+          if (node.src) {
+            return delta.insert({ image: node.src });
+          }
+          return delta;
+        }]
+      ]
     }
   }), []);
 
@@ -127,6 +149,7 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
           <div className="mb-4">
             <label className="block font-semibold mb-2">Question Text (with image support):</label>
             <ReactQuill
+              ref={questionQuillRef}
               value={questionText}
               onChange={handleQuestionTextChange}
               modules={modules}
@@ -169,6 +192,7 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
           <div className="mt-4">
             <label className="block font-semibold mb-2">Solution:</label>
             <ReactQuill
+              ref={solutionQuillRef}
               value={solutionText}
               onChange={handleSolutionTextChange}
               modules={modules}
