@@ -99,6 +99,7 @@ export default function Home() {
   const [showAnswerError, setShowAnswerError] = useState(false);
   const [useNewForm, setUseNewForm] = useState<'old' | 'rich' | 'simple'>('old');
   const [imagePreviewModal, setImagePreviewModal] = useState<{show: boolean, imageUrl: string | null}>({show: false, imageUrl: null});
+  const [civilSubSubject, setCivilSubSubject] = useState<string>('');
 
 
   // Check if user is already logged in
@@ -208,6 +209,14 @@ export default function Home() {
       // Clear any previous error
       setShowAnswerError(false);
       
+      // Prepare tags array
+      let tags = questionForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      
+      // Add civil engineering sub-subject to tags if selected
+      if (questionForm.subject === 'civil-engineering' && civilSubSubject) {
+        tags.push(civilSubSubject);
+      }
+      
       const questionData = {
         text: questionForm.text,
         options: options,
@@ -215,7 +224,7 @@ export default function Home() {
         subject: questionForm.subject,
         exam: questionForm.exam || 'general',
         difficulty: questionForm.difficulty,
-        tags: questionForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        tags: tags,
         marks: parseInt(questionForm.marks) || 1,
         timeLimit: parseInt(questionForm.timeLimit) || 60,
         blooms: questionForm.blooms,
@@ -263,6 +272,7 @@ export default function Home() {
         });
         setAnswerSelected('');
         setShowAnswerError(false);
+        setCivilSubSubject(''); // Reset civil sub-subject
         fetchQuestions(); // Refresh the questions list
       } else {
         const error = await response.json();
@@ -434,6 +444,14 @@ export default function Home() {
       // Clear any previous error
       setShowAnswerError(false);
       
+      // Prepare tags array
+      let tags = questionForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      
+      // Add civil engineering sub-subject to tags if selected
+      if (questionForm.subject === 'civil-engineering' && civilSubSubject) {
+        tags.push(civilSubSubject);
+      }
+      
       const questionData = {
         text: questionForm.text,
         options: options,
@@ -441,7 +459,7 @@ export default function Home() {
         subject: questionForm.subject,
         exam: questionForm.exam || 'general',
         difficulty: questionForm.difficulty,
-        tags: questionForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        tags: tags,
         marks: parseInt(questionForm.marks) || 1,
         timeLimit: parseInt(questionForm.timeLimit) || 60,
         blooms: questionForm.blooms,
@@ -1809,8 +1827,40 @@ export default function Home() {
                         <option value="economics">Economics</option>
                         <option value="science">Science</option>
                         <option value="computer-awareness">Computer Awareness</option>
+                        <option value="civil-engineering">Civil Engineering</option>
                       </select>
                     </div>
+                    
+                    {/* Civil Engineering Sub-Subject Dropdown */}
+                    {questionForm.subject === 'civil-engineering' && (
+                      <div>
+                        <select
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+                          value={civilSubSubject}
+                          onChange={(e) => setCivilSubSubject(e.target.value)}
+                          required
+                          style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                        >
+                          <option value="">Select Civil Engineering Sub-Subject</option>
+                          <option value="building-materials">Building Materials</option>
+                          <option value="solid-mechanics">Solid Mechanics</option>
+                          <option value="structural-analysis">Structural Analysis</option>
+                          <option value="design-steel-structures">Design of Steel Structures</option>
+                          <option value="design-concrete-masonry">Design of Concrete and Masonry Structures</option>
+                          <option value="construction-practice">Construction Practice, Planning, and Management</option>
+                          <option value="fluid-mechanics">Fluid Mechanics</option>
+                          <option value="open-channel-flow">Open Channel Flow</option>
+                          <option value="pipe-flow">Pipe Flow</option>
+                          <option value="hydraulic-machines">Hydraulic Machines and Hydropower</option>
+                          <option value="hydrology">Hydrology</option>
+                          <option value="irrigation-engineering">Irrigation Engineering</option>
+                          <option value="environmental-engineering">Environmental Engineering (Water Supply, Wastewater, Air, Noise, Solid Waste)</option>
+                          <option value="geo-technical-engineering">Geo-technical Engineering (Soil Mechanics and Foundation)</option>
+                          <option value="transportation-engineering">Transportation Engineering (Highways, Railways, Airports, Tunnels)</option>
+                          <option value="surveying-geology">Surveying and Geology</option>
+                        </select>
+                      </div>
+                    )}
                     
                     <div>
                       <input
