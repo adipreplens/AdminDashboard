@@ -12,10 +12,13 @@ const renderLatexToHtml = (latex: string) => {
   try {
     // Import KaTeX dynamically to avoid SSR issues
     const katex = require('katex');
-    return katex.renderToString(latex, {
+    const rendered = katex.renderToString(latex, {
       throwOnError: false,
-      displayMode: false
+      displayMode: false,
+      strict: false
     });
+    console.log('LaTeX rendered successfully:', latex, '->', rendered);
+    return rendered;
   } catch (error) {
     console.error('LaTeX rendering error:', error);
     return `<span class="latex-error">${latex}</span>`;
@@ -198,13 +201,17 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
           return delta;
         }]
       ]
+    },
+    // Allow HTML content
+    html: {
+      allowedTags: ['span', 'div', 'p', 'br', 'strong', 'em', 'u', 's', 'blockquote', 'ul', 'ol', 'li', 'a', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']
     }
   }), []);
 
   // Memoize formats to prevent re-renders
   const formats = useMemo(() => [
     'header', 'bold', 'italic', 'underline', 'strike', 'blockquote',
-    'list', 'bullet', 'link', 'image'
+    'list', 'bullet', 'link', 'image', 'span'
   ], []);
 
   // Stable change handlers
@@ -294,21 +301,36 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
     const currentTarget = target || mathEditorTarget;
     const currentOptionIndex = optionIndex !== undefined ? optionIndex : mathEditorOptionIndex;
     
-    // Render LaTeX to HTML
-    const renderedHtml = renderLatexToHtml(latex);
-    const mathHtml = `<span class="math-formula">${renderedHtml}</span>`;
+    console.log('Inserting LaTeX:', latex, 'into target:', currentTarget);
+    
+    // For ReactQuill, we'll insert the LaTeX as a special format
+    // that can be rendered later when displayed
+    const latexExpression = `$${latex}$`;
     
     switch (currentTarget) {
       case 'question':
-        setQuestionText(prev => prev + (prev ? ' ' : '') + mathHtml);
+        setQuestionText(prev => {
+          const newText = prev + (prev ? ' ' : '') + latexExpression;
+          console.log('New question text:', newText);
+          return newText;
+        });
         break;
       case 'solution':
-        setSolutionText(prev => prev + (prev ? ' ' : '') + mathHtml);
+        setSolutionText(prev => {
+          const newText = prev + (prev ? ' ' : '') + latexExpression;
+          console.log('New solution text:', newText);
+          return newText;
+        });
         break;
       case 'option':
-        setOptions(prev => prev.map((opt, i) => 
-          i === currentOptionIndex ? opt + (opt ? ' ' : '') + mathHtml : opt
-        ));
+        setOptions(prev => prev.map((opt, i) => {
+          if (i === currentOptionIndex) {
+            const newOpt = opt + (opt ? ' ' : '') + latexExpression;
+            console.log(`New option ${i} text:`, newOpt);
+            return newOpt;
+          }
+          return opt;
+        }));
         break;
     }
     
