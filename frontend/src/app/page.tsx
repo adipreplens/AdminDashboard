@@ -1925,14 +1925,28 @@ export default function Home() {
                     </div>
                     
                     <div>
-                      <input
-                        type="text"
-                        placeholder="Time to solve"
+                      <select
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                         value={questionForm.timeLimit}
                         onChange={(e) => setQuestionForm({...questionForm, timeLimit: e.target.value})}
                         required
-                      />
+                      >
+                        <option value="">Select Time to Solve</option>
+                        <option value="30">30 seconds</option>
+                        <option value="45">45 seconds</option>
+                        <option value="60">1 minute</option>
+                        <option value="90">1.5 minutes</option>
+                        <option value="120">2 minutes</option>
+                        <option value="150">2.5 minutes</option>
+                        <option value="180">3 minutes</option>
+                        <option value="240">4 minutes</option>
+                        <option value="300">5 minutes</option>
+                        <option value="360">6 minutes</option>
+                        <option value="420">7 minutes</option>
+                        <option value="480">8 minutes</option>
+                        <option value="540">9 minutes</option>
+                        <option value="600">10 minutes</option>
+                      </select>
                     </div>
                   </div>
                 </div>
