@@ -90,6 +90,20 @@ const questionSchema = new mongoose.Schema({
   // Math formula fields
   questionMath: { type: String },
   solutionMath: { type: String },
+  // PrepLens specific fields
+  moduleType: { 
+    type: String, 
+    enum: ['practice', 'section_test', 'mock_test', 'test_series', 'live_test', 'pyq'],
+    default: 'practice'
+  },
+  testSeriesId: { type: String }, // For grouping questions in test series
+  testSeriesName: { type: String },
+  testNumber: { type: Number }, // Test number in series
+  isPremium: { type: Boolean, default: false }, // PrepLens+ content
+  language: { type: String, enum: ['english', 'hindi'], default: 'english' },
+  explanation: { type: String }, // Detailed step-by-step explanation
+  hints: [{ type: String }], // Multiple hints for the question
+  relatedQuestions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Question' }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -244,7 +258,7 @@ app.get('/questions', async (req, res) => {
 // Get all questions without pagination (for admin dashboard)
 app.get('/questions/all', async (req, res) => {
   try {
-    const { subject, exam, difficulty, blooms, search } = req.query;
+    const { subject, exam, difficulty, blooms, search, moduleType, isPremium, language } = req.query;
     
     let query = {};
     
@@ -252,10 +266,14 @@ app.get('/questions/all', async (req, res) => {
     if (exam) query.exam = exam;
     if (difficulty) query.difficulty = difficulty;
     if (blooms) query.blooms = blooms;
+    if (moduleType) query.moduleType = moduleType;
+    if (isPremium !== undefined) query.isPremium = isPremium === 'true';
+    if (language) query.language = language;
     if (search) {
       query.$or = [
         { text: { $regex: search, $options: 'i' } },
-        { subject: { $regex: search, $options: 'i' } }
+        { subject: { $regex: search, $options: 'i' } },
+        { topic: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -269,6 +287,156 @@ app.get('/questions/all', async (req, res) => {
   } catch (error) {
     console.error('Error fetching all questions:', error);
     res.status(500).json({ error: 'Failed to fetch questions' });
+  }
+});
+
+// Get PrepLens exam types
+app.get('/exams', async (req, res) => {
+  try {
+    const exams = [
+      'RRB JE',
+      'RRB ALP', 
+      'RRB Technician',
+      'RRB NTPC',
+      'SSC CGL',
+      'SSC CHSL',
+      'SSC JE'
+    ];
+    
+    res.json({ exams });
+  } catch (error) {
+    console.error('Error fetching exams:', error);
+    res.status(500).json({ error: 'Failed to fetch exams' });
+  }
+});
+
+// Get PrepLens subjects
+app.get('/subjects', async (req, res) => {
+  try {
+    const subjects = [
+      'Quantitative Aptitude',
+      'Reasoning',
+      'English',
+      'General Knowledge',
+      'General Science',
+      'Computer Knowledge',
+      'Current Affairs'
+    ];
+    
+    res.json({ subjects });
+  } catch (error) {
+    console.error('Error fetching subjects:', error);
+    res.status(500).json({ error: 'Failed to fetch subjects' });
+  }
+});
+
+// Get PrepLens topics by subject
+app.get('/topics/:subject', async (req, res) => {
+  try {
+    const { subject } = req.params;
+    
+    const topicMap = {
+      'Quantitative Aptitude': [
+        'Number System', 'Percentage', 'Profit & Loss', 'Time & Work',
+        'Time & Distance', 'Simple Interest', 'Compound Interest',
+        'Ratio & Proportion', 'Average', 'Partnership', 'Pipes & Cisterns',
+        'Boats & Streams', 'Trains', 'Mensuration', 'Geometry',
+        'Algebra', 'Trigonometry', 'Data Interpretation'
+      ],
+      'Reasoning': [
+        'Verbal Reasoning', 'Non-Verbal Reasoning', 'Logical Reasoning',
+        'Analytical Reasoning', 'Blood Relations', 'Direction Sense',
+        'Coding-Decoding', 'Series', 'Analogy', 'Classification',
+        'Syllogism', 'Statement & Arguments', 'Statement & Assumptions',
+        'Statement & Conclusions', 'Course of Action', 'Cause & Effect'
+      ],
+      'English': [
+        'Grammar', 'Vocabulary', 'Reading Comprehension', 'Verbal Ability',
+        'Synonyms & Antonyms', 'Idioms & Phrases', 'One Word Substitution',
+        'Sentence Correction', 'Fill in the Blanks', 'Cloze Test',
+        'Para Jumbles', 'Sentence Completion', 'Error Detection'
+      ],
+      'General Knowledge': [
+        'History', 'Geography', 'Polity', 'Economics', 'Science',
+        'Sports', 'Awards & Honours', 'Books & Authors', 'Important Days',
+        'National & International Organizations', 'Indian Constitution'
+      ],
+      'General Science': [
+        'Physics', 'Chemistry', 'Biology', 'Computer Science',
+        'Environmental Science', 'Scientific Instruments', 'Discoveries & Inventions'
+      ],
+      'Computer Knowledge': [
+        'Computer Fundamentals', 'Operating System', 'MS Office',
+        'Internet & Email', 'Computer Networks', 'Database Management',
+        'Programming Languages', 'Computer Security'
+      ],
+      'Current Affairs': [
+        'National News', 'International News', 'Sports News',
+        'Business & Economy', 'Science & Technology', 'Environment',
+        'Awards & Honours', 'Appointments & Resignations'
+      ]
+    };
+    
+    const topics = topicMap[subject] || [];
+    res.json({ topics });
+  } catch (error) {
+    console.error('Error fetching topics:', error);
+    res.status(500).json({ error: 'Failed to fetch topics' });
+  }
+});
+
+// Get questions by module type (for PrepLens app)
+app.get('/questions/module/:moduleType', async (req, res) => {
+  try {
+    const { moduleType } = req.params;
+    const { exam, subject, difficulty, isPremium } = req.query;
+    
+    let query = { moduleType };
+    
+    if (exam) query.exam = exam;
+    if (subject) query.subject = subject;
+    if (difficulty) query.difficulty = difficulty;
+    if (isPremium !== undefined) query.isPremium = isPremium === 'true';
+    
+    const questions = await Question.find(query)
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.json({
+      questions,
+      total: questions.length,
+      moduleType
+    });
+  } catch (error) {
+    console.error('Error fetching questions by module:', error);
+    res.status(500).json({ error: 'Failed to fetch questions' });
+  }
+});
+
+// Get test series questions
+app.get('/test-series/:seriesId', async (req, res) => {
+  try {
+    const { seriesId } = req.params;
+    const { testNumber } = req.query;
+    
+    let query = { 
+      moduleType: 'test_series',
+      testSeriesId: seriesId
+    };
+    
+    if (testNumber) query.testNumber = parseInt(testNumber);
+    
+    const questions = await Question.find(query)
+      .sort({ testNumber: 1, createdAt: -1 });
+
+    res.json({
+      questions,
+      total: questions.length,
+      seriesId
+    });
+  } catch (error) {
+    console.error('Error fetching test series:', error);
+    res.status(500).json({ error: 'Failed to fetch test series' });
   }
 });
 

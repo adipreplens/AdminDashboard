@@ -38,12 +38,26 @@ interface Question {
   blooms: string;
   imageUrl?: string;
   questionImageUrl?: string;
-  solution?: string;
   solutionImageUrl?: string;
   optionImages?: { [key: string]: string };
-  publishStatus?: string;
+  publishStatus: 'draft' | 'published';
   category?: string;
   topic?: string;
+  solution?: string;
+  questionMath?: string;
+  solutionMath?: string;
+  // PrepLens specific fields
+  moduleType?: 'practice' | 'section_test' | 'mock_test' | 'test_series' | 'live_test' | 'pyq';
+  testSeriesId?: string;
+  testSeriesName?: string;
+  testNumber?: number;
+  isPremium?: boolean;
+  language?: 'english' | 'hindi';
+  explanation?: string;
+  hints?: string[];
+  relatedQuestions?: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function Home() {
@@ -102,6 +116,9 @@ export default function Home() {
   const [useNewForm, setUseNewForm] = useState<'old' | 'rich' | 'simple'>('old');
   const [imagePreviewModal, setImagePreviewModal] = useState<{show: boolean, imageUrl: string | null}>({show: false, imageUrl: null});
   const [civilSubSubject, setCivilSubSubject] = useState<string>('');
+  const [moduleTypeFilter, setModuleTypeFilter] = useState('');
+  const [premiumFilter, setPremiumFilter] = useState('');
+  const [languageFilter, setLanguageFilter] = useState('');
 
 
   // Check if user is already logged in
@@ -986,8 +1003,16 @@ export default function Home() {
     const matchesExam = !filters.exam || question.exam === filters.exam;
     const matchesDifficulty = !filters.difficulty || question.difficulty === filters.difficulty;
     const matchesBlooms = !filters.blooms || question.blooms === filters.blooms;
+    
+    // PrepLens specific filters
+    const matchesModuleType = !moduleTypeFilter || question.moduleType === moduleTypeFilter;
+    const matchesPremium = !premiumFilter || 
+      (premiumFilter === 'premium' && question.isPremium === true) ||
+      (premiumFilter === 'free' && (question.isPremium === false || !question.isPremium));
+    const matchesLanguage = !languageFilter || question.language === languageFilter;
 
-    return matchesSearch && matchesQuestionId && matchesSubject && matchesExam && matchesDifficulty && matchesBlooms;
+    return matchesSearch && matchesQuestionId && matchesSubject && matchesExam && 
+           matchesDifficulty && matchesBlooms && matchesModuleType && matchesPremium && matchesLanguage;
   });
 
   if (!isLoggedIn) {
@@ -2082,7 +2107,7 @@ export default function Home() {
             <div className="bg-white rounded-lg shadow p-6">
               <div className="bg-gray-50 rounded-lg p-4 mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">🔍 Search & Filter Questions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-8 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Question ID</label>
                     <input
@@ -2114,14 +2139,13 @@ export default function Home() {
                       style={{ color: '#171717', backgroundColor: '#ffffff' }}
                     >
                       <option value="">All Subjects</option>
-                      <option value="mathematics">Mathematics</option>
-                      <option value="physics">Physics</option>
-                      <option value="chemistry">Chemistry</option>
-                      <option value="biology">Biology</option>
-                      <option value="english">English</option>
-                      <option value="general-knowledge">General Knowledge</option>
-                      <option value="reasoning">Reasoning</option>
-                      <option value="computer-science">Computer Science</option>
+                      <option value="Quantitative Aptitude">Quantitative Aptitude</option>
+                      <option value="Reasoning">Reasoning</option>
+                      <option value="English">English</option>
+                      <option value="General Knowledge">General Knowledge</option>
+                      <option value="General Science">General Science</option>
+                      <option value="Computer Knowledge">Computer Knowledge</option>
+                      <option value="Current Affairs">Current Affairs</option>
                     </select>
                   </div>
                   <div>
@@ -2133,16 +2157,13 @@ export default function Home() {
                       style={{ color: '#171717', backgroundColor: '#ffffff' }}
                     >
                       <option value="">All Exams</option>
-                      <option value="rrb-alp">RRB ALP</option>
-                      <option value="rrb-je">RRB JE</option>
-                      <option value="rrb-technician">RRB Technician</option>
-                      <option value="rrb-ntpc">RRB NTPC</option>
-                      <option value="ssc-cgl">SSC CGL</option>
-                      <option value="ssc-chsl">SSC CHSL</option>
-                      <option value="bank-po">Bank PO</option>
-                      <option value="bank-clerk">Bank Clerk</option>
-                      <option value="upsc">UPSC</option>
-                      <option value="general">General</option>
+                      <option value="RRB JE">RRB JE</option>
+                      <option value="RRB ALP">RRB ALP</option>
+                      <option value="RRB Technician">RRB Technician</option>
+                      <option value="RRB NTPC">RRB NTPC</option>
+                      <option value="SSC CGL">SSC CGL</option>
+                      <option value="SSC CHSL">SSC CHSL</option>
+                      <option value="SSC JE">SSC JE</option>
                     </select>
                   </div>
                   <div>
@@ -2154,15 +2175,59 @@ export default function Home() {
                       style={{ color: '#171717', backgroundColor: '#ffffff' }}
                     >
                       <option value="">All Difficulties</option>
-                      <option value="easy">Easy</option>
-                      <option value="medium">Medium</option>
-                      <option value="hard">Hard</option>
+                      <option value="Basic">Basic</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                      <option value="Expert">Expert</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Module Type</label>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      value={moduleTypeFilter}
+                      onChange={(e) => setModuleTypeFilter(e.target.value)}
+                      style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                    >
+                      <option value="">All Modules</option>
+                      <option value="practice">Practice</option>
+                      <option value="section_test">Section Test</option>
+                      <option value="mock_test">Mock Test</option>
+                      <option value="test_series">Test Series</option>
+                      <option value="live_test">Live Test</option>
+                      <option value="pyq">Previous Year Questions</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Content Type</label>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      value={premiumFilter}
+                      onChange={(e) => setPremiumFilter(e.target.value)}
+                      style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                    >
+                      <option value="">All Content</option>
+                      <option value="free">Free</option>
+                      <option value="premium">PrepLens+</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      value={languageFilter}
+                      onChange={(e) => setLanguageFilter(e.target.value)}
+                      style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                    >
+                      <option value="">All Languages</option>
+                      <option value="english">English</option>
+                      <option value="hindi">Hindi</option>
                     </select>
                   </div>
                 </div>
                 
                 {/* Active Filters Display */}
-                {(questionIdSearch || searchTerm || filters.subject || filters.exam || filters.difficulty) && (
+                {(questionIdSearch || searchTerm || filters.subject || filters.exam || filters.difficulty || moduleTypeFilter || premiumFilter || languageFilter) && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <h4 className="text-sm font-medium text-blue-800 mb-2">Active Filters:</h4>
                     <div className="flex flex-wrap gap-2">
@@ -2191,11 +2256,29 @@ export default function Home() {
                           Difficulty: {filters.difficulty} <button onClick={() => setFilters({...filters, difficulty: ''})} className="ml-1 text-orange-600 hover:text-orange-800">×</button>
                         </span>
                       )}
+                      {moduleTypeFilter && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                          Module: {moduleTypeFilter} <button onClick={() => setModuleTypeFilter('')} className="ml-1 text-indigo-600 hover:text-indigo-800">×</button>
+                        </span>
+                      )}
+                      {premiumFilter && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Content: {premiumFilter} <button onClick={() => setPremiumFilter('')} className="ml-1 text-yellow-600 hover:text-yellow-800">×</button>
+                        </span>
+                      )}
+                      {languageFilter && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                          Language: {languageFilter} <button onClick={() => setLanguageFilter('')} className="ml-1 text-teal-600 hover:text-teal-800">×</button>
+                        </span>
+                      )}
                       <button 
                         onClick={() => {
                           setQuestionIdSearch('');
                           setSearchTerm('');
                           setFilters({subject: '', exam: '', difficulty: '', blooms: ''});
+                          setModuleTypeFilter('');
+                          setPremiumFilter('');
+                          setLanguageFilter('');
                         }}
                         className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200"
                       >
