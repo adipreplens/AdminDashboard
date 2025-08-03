@@ -1,10 +1,26 @@
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
+import 'katex/dist/katex.min.css';
 import MathEditor from './MathEditor';
 import ImageUploader from './ImageUploader';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
+
+// Function to render LaTeX to HTML
+const renderLatexToHtml = (latex: string) => {
+  try {
+    // Import KaTeX dynamically to avoid SSR issues
+    const katex = require('katex');
+    return katex.renderToString(latex, {
+      throwOnError: false,
+      displayMode: false
+    });
+  } catch (error) {
+    console.error('LaTeX rendering error:', error);
+    return `<span class="latex-error">${latex}</span>`;
+  }
+};
 
 interface CreateQuestionFormProps {
   onSuccess?: () => void;
@@ -275,20 +291,23 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
   };
 
   const handleMathInsert = (latex: string, target?: 'question' | 'solution' | 'option', optionIndex?: number) => {
-    const latexExpression = `$${latex}$`; // Add dollar signs for proper LaTeX formatting
     const currentTarget = target || mathEditorTarget;
     const currentOptionIndex = optionIndex !== undefined ? optionIndex : mathEditorOptionIndex;
     
+    // Render LaTeX to HTML
+    const renderedHtml = renderLatexToHtml(latex);
+    const mathHtml = `<span class="math-formula">${renderedHtml}</span>`;
+    
     switch (currentTarget) {
       case 'question':
-        setQuestionText(prev => prev + (prev ? ' ' : '') + latexExpression);
+        setQuestionText(prev => prev + (prev ? ' ' : '') + mathHtml);
         break;
       case 'solution':
-        setSolutionText(prev => prev + (prev ? ' ' : '') + latexExpression);
+        setSolutionText(prev => prev + (prev ? ' ' : '') + mathHtml);
         break;
       case 'option':
         setOptions(prev => prev.map((opt, i) => 
-          i === currentOptionIndex ? opt + (opt ? ' ' : '') + latexExpression : opt
+          i === currentOptionIndex ? opt + (opt ? ' ' : '') + mathHtml : opt
         ));
         break;
     }

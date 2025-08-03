@@ -49,12 +49,23 @@ button {
 
 /* Math formula styling */
 .math-formula {
-  font-family: 'Times New Roman', serif;
-  font-style: italic;
-  background-color: #f8f9fa;
+  display: inline-block;
+  margin: 0 2px;
+  vertical-align: middle;
+}
+
+.math-formula .katex {
+  font-size: 1em;
+}
+
+/* Error styling for invalid LaTeX */
+.latex-error {
+  color: #dc2626;
+  background-color: #fef2f2;
   padding: 2px 4px;
   border-radius: 3px;
-  border: 1px solid #e9ecef;
+  border: 1px solid #fecaca;
+  font-family: monospace;
 }
 
 /* Content editable styling */
