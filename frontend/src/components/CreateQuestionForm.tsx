@@ -30,6 +30,7 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
   const [showMathEditor, setShowMathEditor] = useState(false);
   const [mathEditorTarget, setMathEditorTarget] = useState<'question' | 'solution' | 'option'>('question');
   const [mathEditorOptionIndex, setMathEditorOptionIndex] = useState<number>(0);
+  const [mathInserted, setMathInserted] = useState(false);
 
   // State to track which editor is active
   const [activeEditor, setActiveEditor] = useState<'question' | 'solution' | null>(null);
@@ -274,23 +275,27 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
   };
 
   const handleMathInsert = (latex: string, target?: 'question' | 'solution' | 'option', optionIndex?: number) => {
-    const latexExpression = latex; // Remove dollar signs, just use the LaTeX content directly
+    const latexExpression = `$${latex}$`; // Add dollar signs for proper LaTeX formatting
     const currentTarget = target || mathEditorTarget;
     const currentOptionIndex = optionIndex !== undefined ? optionIndex : mathEditorOptionIndex;
     
     switch (currentTarget) {
       case 'question':
-        setQuestionText(prev => prev + latexExpression);
+        setQuestionText(prev => prev + (prev ? ' ' : '') + latexExpression);
         break;
       case 'solution':
-        setSolutionText(prev => prev + latexExpression);
+        setSolutionText(prev => prev + (prev ? ' ' : '') + latexExpression);
         break;
       case 'option':
         setOptions(prev => prev.map((opt, i) => 
-          i === currentOptionIndex ? opt + latexExpression : opt
+          i === currentOptionIndex ? opt + (opt ? ' ' : '') + latexExpression : opt
         ));
         break;
     }
+    
+    // Show success message
+    setMathInserted(true);
+    setTimeout(() => setMathInserted(false), 3000);
   };
 
   // Validation function
@@ -371,7 +376,8 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
         setTags('');
         setImageUrl(null);
         setDiagramFile(null);
-        setErrors({}); // Clear errors on success
+        setErrors({});
+        setMathInserted(false); // Clear errors on success
         if (onSuccess) onSuccess();
       }
     } finally {
@@ -423,6 +429,11 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
           />
           {errors.questionText && (
             <div className="text-red-600 text-sm mt-1">{errors.questionText}</div>
+          )}
+          {mathInserted && (
+            <div className="mt-2 p-2 bg-green-100 border border-green-300 rounded text-green-700 text-sm">
+              ✅ Math formula inserted into question text!
+            </div>
           )}
           <div className="mt-4">
             <ImageUploader
@@ -625,53 +636,35 @@ const CreateQuestionForm: React.FC<CreateQuestionFormProps> = ({ onSuccess }) =>
         <div className="text-gray-500 text-lg text-center py-12">Power Question creation coming soon!</div>
       )}
 
-      {/* Math Editor - Simple inline version */}
+      {/* Math Editor Modal */}
       {showMathEditor && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold">Math Editor</h3>
+              <h3 className="text-xl font-semibold">
+                Math Editor - {mathEditorTarget === 'question' ? 'Question' : 
+                               mathEditorTarget === 'solution' ? 'Solution' : 
+                               `Option ${mathEditorOptionIndex + 1}`}
+              </h3>
               <button
                 onClick={() => setShowMathEditor(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 text-2xl"
               >
                 ✕
               </button>
             </div>
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => handleMathInsert('\\frac{a}{b}')}
-                  className="px-3 py-2 bg-blue-500 text-white rounded text-sm"
-                >
-                  Fraction
-                </button>
-                <button
-                  onClick={() => handleMathInsert('x^2')}
-                  className="px-3 py-2 bg-gray-500 text-white rounded text-sm"
-                >
-                  x²
-                </button>
-                <button
-                  onClick={() => handleMathInsert('\\sqrt{x}')}
-                  className="px-3 py-2 bg-gray-500 text-white rounded text-sm"
-                >
-                  √x
-                </button>
-                <button
-                  onClick={() => handleMathInsert('\\pi')}
-                  className="px-3 py-2 bg-gray-500 text-white rounded text-sm"
-                >
-                  π
-                </button>
-              </div>
-              <button
-                onClick={() => setShowMathEditor(false)}
-                className="w-full px-4 py-2 bg-gray-500 text-white rounded"
-              >
-                Close
-              </button>
-            </div>
+            <MathEditor
+              value=""
+              onChange={() => {}}
+              onInsertLatex={(latex) => {
+                handleMathInsert(latex);
+                setShowMathEditor(false);
+              }}
+              placeholder="Enter your math formula here..."
+              label={`Insert Math into ${mathEditorTarget === 'question' ? 'Question' : 
+                      mathEditorTarget === 'solution' ? 'Solution' : 
+                      `Option ${mathEditorOptionIndex + 1}`}`}
+            />
           </div>
         </div>
       )}
