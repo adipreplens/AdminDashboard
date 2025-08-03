@@ -89,6 +89,8 @@ export default function Home() {
   const [mathEditorOptionIndex, setMathEditorOptionIndex] = useState(0);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<{show: boolean, questionId: string | null}>({show: false, questionId: null});
+  const [answerSelected, setAnswerSelected] = useState<string>('');
+  const [showAnswerError, setShowAnswerError] = useState(false);
 
 
   // Check if user is already logged in
@@ -189,10 +191,14 @@ export default function Home() {
       const answerText = options[answerIndex] || options[0] || '';
       
       // Validate that we have a valid answer
-      if (!answerText || answerText.trim() === '') {
-        alert('Please select a valid correct answer.');
+      if (!correctAnswer || !answerText || answerText.trim() === '') {
+        setShowAnswerError(true);
+        alert('Please select a correct answer from the radio buttons (A, B, C, or D).');
         return;
       }
+      
+      // Clear any previous error
+      setShowAnswerError(false);
       
       const questionData = {
         text: questionForm.text,
@@ -234,6 +240,8 @@ export default function Home() {
           publishStatus: 'draft',
           solution: ''
         });
+        setAnswerSelected('');
+        setShowAnswerError(false);
         fetchQuestions(); // Refresh the questions list
       } else {
         const error = await response.json();
@@ -340,6 +348,15 @@ export default function Home() {
       publishStatus: question.publishStatus || 'draft',
       solution: question.solution || ''
     });
+    
+    // Set the correct answer selection based on the existing answer
+    if (question.answer && Array.isArray(question.options)) {
+      const answerIndex = question.options.findIndex(option => option.trim() === question.answer.trim());
+      if (answerIndex !== -1) {
+        setAnswerSelected(String.fromCharCode(65 + answerIndex)); // Convert 0,1,2,3 to A,B,C,D
+      }
+    }
+    setShowAnswerError(false);
   };
 
   // Publish/Unpublish question function
@@ -387,10 +404,14 @@ export default function Home() {
       const answerText = options[answerIndex] || options[0] || '';
       
       // Validate that we have a valid answer
-      if (!answerText || answerText.trim() === '') {
-        alert('Please select a valid correct answer.');
+      if (!correctAnswer || !answerText || answerText.trim() === '') {
+        setShowAnswerError(true);
+        alert('Please select a correct answer from the radio buttons (A, B, C, or D).');
         return;
       }
+      
+      // Clear any previous error
+      setShowAnswerError(false);
       
       const questionData = {
         text: questionForm.text,
@@ -1464,11 +1485,18 @@ export default function Home() {
                 {/* Options Section */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Answer Options *
+                    Answer Options * <span className="text-red-500">(Select correct answer)</span>
                   </label>
                   <p className="text-sm text-gray-600 mb-3">
                     📝 Enter all 4 options below. Click the radio button next to the correct answer.
                   </p>
+                  {showAnswerError && (
+                    <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-800 font-medium">
+                        ⚠️ Please select a correct answer from the radio buttons (A, B, C, or D).
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-3">
                     {['A', 'B', 'C', 'D'].map((option, index) => (
                       <div key={`option-container-${index}-${option}`} className="flex items-center space-x-3">
@@ -1479,6 +1507,12 @@ export default function Home() {
                             name="correctAnswer"
                             value={option}
                             className="text-blue-600 focus:ring-blue-500"
+                            required
+                            checked={answerSelected === option}
+                            onChange={(e) => {
+                              setAnswerSelected(e.target.value);
+                              setShowAnswerError(false);
+                            }}
                           />
                         </div>
                         <div className="flex-1 border border-gray-300 rounded-lg">
