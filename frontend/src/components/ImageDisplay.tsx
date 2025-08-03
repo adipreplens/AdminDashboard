@@ -44,6 +44,8 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ text, className = '' }) => 
   console.log('ImageDisplay - Original text:', text);
   console.log('ImageDisplay - Processed text:', processedText);
   console.log('ImageDisplay - Image URLs found:', imageUrls);
+  console.log('ImageDisplay - Contains HTML img tags:', /<img[^>]+>/.test(text));
+  console.log('ImageDisplay - Contains markdown image:', /!\[Image\]\(/.test(text));
   
   // If we found image URLs, render them as actual images
   if (imageUrls.length > 0) {

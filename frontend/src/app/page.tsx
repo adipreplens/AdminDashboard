@@ -470,6 +470,9 @@ export default function Home() {
         
         const imageTag = `\n<img src="${imageUrl}" alt="Image" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0;" />\n`;
         
+        // Debug: Log what we're inserting
+        console.log('Inserting image tag:', imageTag);
+        
         if (target === 'question') {
           // Insert image into question text
           setQuestionForm({...questionForm, text: questionForm.text + imageTag});
