@@ -8,7 +8,6 @@ interface ImageUploaderProps {
   currentImageUrl?: string;
   label?: string;
 }
-
 export default function ImageUploader({ 
   onImageUpload, 
   onImageDelete, 

@@ -15,6 +15,15 @@ export default function MathEditor({ value, onChange, placeholder = "Enter LaTeX
   const [isPreview, setIsPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const insertFraction = () => {
+    const fractionTemplate = '\\frac{numerator}{denominator}';
+    onChange(value + fractionTemplate);
+  };
+
+  const insertSymbol = (symbol: string) => {
+    onChange(value + symbol);
+  };
+
   const handleChange = (newValue: string) => {
     setError(null);
     onChange(newValue);
@@ -58,13 +67,75 @@ export default function MathEditor({ value, onChange, placeholder = "Enter LaTeX
           {renderMath() || <span className="text-gray-500">No math expression</span>}
         </div>
       ) : (
-        <textarea
-          value={value}
-          onChange={(e) => handleChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          rows={3}
-        />
+        <div className="space-y-2">
+          {/* Math Symbol Buttons */}
+          <div className="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg">
+            <button
+              type="button"
+              onClick={insertFraction}
+              className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+              title="Insert Fraction"
+            >
+              Fraction
+            </button>
+            <button
+              type="button"
+              onClick={() => insertSymbol('x^2')}
+              className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+              title="x²"
+            >
+              x²
+            </button>
+            <button
+              type="button"
+              onClick={() => insertSymbol('\\sqrt{x}')}
+              className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+              title="√x"
+            >
+              √x
+            </button>
+            <button
+              type="button"
+              onClick={() => insertSymbol('\\pi')}
+              className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+              title="π"
+            >
+              π
+            </button>
+            <button
+              type="button"
+              onClick={() => insertSymbol('\\infty')}
+              className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+              title="∞"
+            >
+              ∞
+            </button>
+            <button
+              type="button"
+              onClick={() => insertSymbol('\\sum')}
+              className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+              title="∑"
+            >
+              ∑
+            </button>
+            <button
+              type="button"
+              onClick={() => insertSymbol('\\int')}
+              className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+              title="∫"
+            >
+              ∫
+            </button>
+          </div>
+          
+          <textarea
+            value={value}
+            onChange={(e) => handleChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            rows={3}
+          />
+        </div>
       )}
       
       {error && (
