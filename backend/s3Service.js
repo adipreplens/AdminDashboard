@@ -5,6 +5,9 @@ const path = require('path'); // Added missing import
 // Configure AWS with fallback handling
 const configureAWS = () => {
   try {
+    // Ensure dotenv is loaded
+    require('dotenv').config();
+    
     const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
     const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
     const region = process.env.AWS_REGION || 'us-east-1';
@@ -44,12 +47,22 @@ class S3Service {
     }
 
     try {
+      // Handle different file formats (buffer or path)
+      let fileBody;
+      if (file.buffer) {
+        fileBody = file.buffer;
+      } else if (file.path) {
+        fileBody = fs.readFileSync(file.path);
+      } else {
+        throw new Error('No file data available');
+      }
+
       const params = {
         Bucket: this.bucketName,
         Key: filename,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-        ACL: 'public-read'
+        Body: fileBody,
+        ContentType: file.mimetype
+        // Removed ACL: 'public-read' as the bucket doesn't support ACLs
       };
 
       const result = await this.s3.upload(params).promise();
@@ -99,7 +112,15 @@ class S3Service {
       }
 
       const filePath = path.join(uploadsDir, filename);
-      fs.writeFileSync(filePath, file.buffer);
+      
+      // Handle different file formats (buffer or path)
+      if (file.buffer) {
+        fs.writeFileSync(filePath, file.buffer);
+      } else if (file.path) {
+        fs.copyFileSync(file.path, filePath);
+      } else {
+        throw new Error('No file data available');
+      }
       
       // Use the correct base URL for production
       const baseUrl = process.env.NODE_ENV === 'production' 
