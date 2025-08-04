@@ -14,6 +14,27 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// Global error handler
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Don't exit in production, just log
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Continuing in production despite uncaught exception');
+  } else {
+    process.exit(1);
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit in production, just log
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Continuing in production despite unhandled rejection');
+  } else {
+    process.exit(1);
+  }
+});
+
 // Middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
@@ -59,14 +80,40 @@ app.use('/uploads', (req, res, next) => {
   next();
 });
 
-// MongoDB Connection
+// MongoDB Connection with retry logic
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://shreyashchaudhary81:hfOYtcA7zywQsxJP@preplensadmin.mmrvf6s.mongodb.net/Preplensadmin?retryWrites=true&w=majority&appName=Preplensadmin';
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('Connected to MongoDB'))
-.catch(err => console.error('MongoDB connection error:', err));
+
+const connectWithRetry = () => {
+  mongoose.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+    socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+  })
+  .then(() => {
+    console.log('Connected to MongoDB');
+  })
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    console.log('Retrying MongoDB connection in 5 seconds...');
+    setTimeout(connectWithRetry, 5000);
+  });
+};
+
+connectWithRetry();
+
+// Handle MongoDB disconnection
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected. Attempting to reconnect...');
+  setTimeout(connectWithRetry, 5000);
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err);
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Continuing in production despite MongoDB error');
+  }
+});
 
 // Models
 const questionSchema = new mongoose.Schema({
@@ -1372,6 +1419,9 @@ function parseTags(tagsData) {
   return tagsStr.trim() ? [tagsStr.trim()] : [];
 }
 
+// Initialize S3Service
+const s3Service = new S3Service();
+
 // Image upload endpoint
 app.post('/upload-image', upload.single('image'), async (req, res) => {
   try {
@@ -1381,22 +1431,18 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
 
     let imageUrl;
 
-    // Try to upload to S3 if configured
-    if (process.env.AWS_ACCESS_KEY_ID) {
-      try {
-        const s3Url = await S3Service.uploadFile(req.file.path, req.file.filename);
-        imageUrl = s3Url;
-        // Clean up local file after S3 upload
+    try {
+      // Use the new S3Service with fallback
+      imageUrl = await s3Service.uploadFile(req.file, req.file.filename);
+      
+      // Clean up local file if it was created
+      if (fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
-      } catch (error) {
-        console.error('S3 upload failed, falling back to local storage:', error);
-        const baseUrl = process.env.BASE_URL || 'https://admindashboard-x0hk.onrender.com';
-        imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
       }
-    } else {
-      // Fallback to local storage - return full URL
-      const baseUrl = process.env.BASE_URL || 'https://admindashboard-x0hk.onrender.com';
-      imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
+    } catch (error) {
+      console.error('❌ Image upload failed:', error);
+      res.status(500).json({ error: 'Failed to upload image' });
+      return;
     }
 
     res.json({
@@ -1415,24 +1461,20 @@ app.delete('/upload-image/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
     
-    // Try to delete from S3 first
-    if (process.env.AWS_ACCESS_KEY_ID) {
-      try {
-        await S3Service.deleteFile(filename);
-        res.json({ message: 'Image deleted successfully from S3' });
-        return;
-      } catch (error) {
-        console.error('S3 deletion failed, trying local file:', error);
-      }
-    }
-
-    // Fallback to local file deletion
-    const imagePath = path.join(__dirname, 'uploads', filename);
-    if (fs.existsSync(imagePath)) {
-      fs.unlinkSync(imagePath);
-      res.json({ message: 'Image deleted successfully from local storage' });
+    // Use the new S3Service with fallback
+    const deleted = await s3Service.deleteFile(filename);
+    
+    if (deleted) {
+      res.json({ message: 'Image deleted successfully' });
     } else {
-      res.status(404).json({ error: 'Image not found' });
+      // Try local file deletion as fallback
+      const imagePath = path.join(__dirname, 'uploads', filename);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+        res.json({ message: 'Image deleted successfully from local storage' });
+      } else {
+        res.status(404).json({ error: 'Image not found' });
+      }
     }
   } catch (error) {
     console.error('Error deleting image:', error);
@@ -1441,14 +1483,28 @@ app.delete('/upload-image/:filename', async (req, res) => {
 });
 
 // Health check endpoint for Render
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    mongoStatus: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-  });
+app.get('/health', async (req, res) => {
+  try {
+    const s3Health = await s3Service.healthCheck();
+    
+    res.status(200).json({ 
+      status: 'OK',
+      message: 'PrepLens Admin API is running',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+      s3: s3Health.status === 'healthy' ? 'configured' : 'not configured',
+      environment: process.env.NODE_ENV || 'development'
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({ 
+      status: 'ERROR',
+      message: 'Health check failed',
+      error: error.message
+    });
+  }
 });
 
 // Authentication endpoints (hardcoded for demo)
@@ -1516,9 +1572,46 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });
 
-app.listen(PORT, () => {
+// Start server with error handling
+const server = app.listen(PORT, () => {
   console.log(`PrepLens Admin Backend running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(`MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
   console.log(`S3: ${process.env.AWS_ACCESS_KEY_ID ? 'Configured' : 'Not configured'}`);
-}); 
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+    process.exit(0);
+  });
+});
+
+// Server error handling
+server.on('error', (error) => {
+  console.error('Server error:', error);
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Attempting to restart server in 5 seconds...');
+    setTimeout(() => {
+      server.close();
+      process.exit(1); // Let PM2 or Render restart the process
+    }, 5000);
+  }
+});
+
+// Keep alive for Render
+setInterval(() => {
+  if (process.env.NODE_ENV === 'production') {
+    console.log('🔄 Keep-alive ping');
+  }
+}, 300000); // Every 5 minutes 
