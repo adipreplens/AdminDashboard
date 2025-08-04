@@ -101,7 +101,10 @@ class S3Service {
       const filePath = path.join(uploadsDir, filename);
       fs.writeFileSync(filePath, file.buffer);
       
-      const baseUrl = process.env.BASE_URL || 'http://localhost:5001';
+      // Use the correct base URL for production
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://admindashboard-x0hk.onrender.com'
+        : (process.env.BASE_URL || 'http://localhost:5001');
       const fileUrl = `${baseUrl}/uploads/${filename}`;
       
       console.log('✅ File saved locally:', fileUrl);
