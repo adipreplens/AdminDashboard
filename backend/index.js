@@ -1558,6 +1558,146 @@ app.post('/auth/register', async (req, res) => {
   }
 });
 
+// Public API endpoint for website (www.preplens.in)
+app.get('/api/public/questions', async (req, res) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 20, 
+      subject, 
+      exam, 
+      difficulty, 
+      moduleType,
+      isPremium,
+      language,
+      search 
+    } = req.query;
+    
+    let query = { publishStatus: 'published' }; // Only published questions
+    
+    // Add filters
+    if (subject) query.subject = subject;
+    if (exam) query.exam = exam;
+    if (difficulty) query.difficulty = difficulty;
+    if (moduleType) query.moduleType = moduleType;
+    if (isPremium !== undefined) query.isPremium = isPremium === 'true';
+    if (language) query.language = language;
+    if (search) {
+      query.$or = [
+        { text: { $regex: search, $options: 'i' } },
+        { subject: { $regex: search, $options: 'i' } },
+        { topic: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const questions = await Question.find(query)
+      .select('text options answer subject exam difficulty moduleType isPremium language topic solution questionMath solutionMath imageUrl solutionImageUrl optionImages')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await Question.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: {
+        questions,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages: Math.ceil(total / limit),
+          totalQuestions: total,
+          hasNextPage: page * limit < total,
+          hasPrevPage: page > 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching public questions:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch questions' 
+    });
+  }
+});
+
+// Public API endpoint for question details
+app.get('/api/public/questions/:id', async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id)
+      .select('text options answer subject exam difficulty moduleType isPremium language topic solution questionMath solutionMath imageUrl solutionImageUrl optionImages explanation hints relatedQuestions');
+
+    if (!question) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Question not found' 
+      });
+    }
+
+    res.json({
+      success: true,
+      data: question
+    });
+  } catch (error) {
+    console.error('Error fetching question details:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch question details' 
+    });
+  }
+});
+
+// Public API endpoint for available filters
+app.get('/api/public/filters', async (req, res) => {
+  try {
+    const subjects = await Question.distinct('subject');
+    const exams = await Question.distinct('exam');
+    const difficulties = await Question.distinct('difficulty');
+    const moduleTypes = await Question.distinct('moduleType');
+    const languages = await Question.distinct('language');
+
+    res.json({
+      success: true,
+      data: {
+        subjects: subjects.filter(s => s),
+        exams: exams.filter(e => e),
+        difficulties: difficulties.filter(d => d),
+        moduleTypes: moduleTypes.filter(m => m),
+        languages: languages.filter(l => l)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching filters:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch filters' 
+    });
+  }
+});
+
+// Public API endpoint for statistics
+app.get('/api/public/statistics', async (req, res) => {
+  try {
+    const totalQuestions = await Question.countDocuments({ publishStatus: 'published' });
+    const totalExams = await Question.distinct('exam').then(exams => exams.filter(e => e).length);
+    const totalSubjects = await Question.distinct('subject').then(subjects => subjects.filter(s => s).length);
+
+    res.json({
+      success: true,
+      data: {
+        totalQuestions,
+        totalExams,
+        totalSubjects
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching statistics:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch statistics' 
+    });
+  }
+});
+
 // Serve uploaded files (fallback for local files)
 app.use('/uploads', express.static('uploads'));
 
