@@ -11,6 +11,9 @@ const XLSX = require('xlsx');
 const S3Service = require('./s3Service');
 require('dotenv').config();
 
+// Initialize S3Service early
+const s3Service = new S3Service();
+
 const app = express();
 const PORT = process.env.PORT || 5001;
 
@@ -1419,8 +1422,7 @@ function parseTags(tagsData) {
   return tagsStr.trim() ? [tagsStr.trim()] : [];
 }
 
-// Initialize S3Service
-const s3Service = new S3Service();
+
 
 // Image upload endpoint
 app.post('/upload-image', upload.single('image'), async (req, res) => {
