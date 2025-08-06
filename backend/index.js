@@ -937,6 +937,20 @@ function parseQuestionData(row, headers) {
         'a_math', 'amath', 'answer_formula', 'answerformula', 'a_formula',
         'aformula', 'answer_equation', 'answerequation', 'a_equation',
         'aequation', 'answer_latex', 'answerlatex', 'a_latex', 'alatex'
+      ],
+      
+      // Solution/Explanation - ANY column that might contain detailed solution
+      'solution': [
+        'solution', 'explanation', 'explain', 'reasoning', 'rationale', 'justification',
+        'detailed answer', 'detailed_answer', 'detailedanswer', 'detail', 'details',
+        'answer explanation', 'answer_explanation', 'answerexplanation',
+        'elaborate', 'elaboration', 'description', 'working', 'workings',
+        'step by step', 'step_by_step', 'stepbystep', 'steps', 'method',
+        'approach', 'process', 'procedure', 'breakdown', 'analysis',
+        'solution_text', 'solutiontext', 'explanation_text', 'explanationtext',
+        'solve', 'solving', 'answer_detail', 'answerdetail', 'full_answer',
+        'fullanswer', 'complete_answer', 'completeanswer', 'detailed_solution',
+        'detailedsolution', 'solution_detail', 'solutiondetail'
       ]
     };
 
@@ -1217,11 +1231,25 @@ function extractTopic(row, headers, foundColumns) {
 }
 
 function extractSolution(row, headers, foundColumns) {
+  // First try to use the foundColumns mapping
+  if (foundColumns.solution && row[foundColumns.solution]) {
+    return row[foundColumns.solution].toString().trim();
+  }
+  
+  // Then try to find solution-related columns manually
   for (const header of headers) {
-    const headerLower = header.toLowerCase();
+    const headerLower = header.toLowerCase().trim();
     if (headerLower.includes('solution') || headerLower.includes('explanation') ||
-        headerLower.includes('explain') || headerLower.includes('reasoning')) {
-      if (row[header]) {
+        headerLower.includes('explain') || headerLower.includes('reasoning') ||
+        headerLower.includes('detailed answer') || headerLower.includes('detailed_answer') ||
+        headerLower.includes('detailedanswer') || headerLower.includes('detail') ||
+        headerLower.includes('answer explanation') || headerLower.includes('answer_explanation') ||
+        headerLower.includes('answerexplanation') || headerLower.includes('elaborate') ||
+        headerLower.includes('description') || headerLower.includes('rationale') ||
+        headerLower.includes('justification') || headerLower.includes('working') ||
+        headerLower.includes('step by step') || headerLower.includes('step_by_step') ||
+        headerLower.includes('stepbystep') || headerLower.includes('steps')) {
+      if (row[header] && row[header].toString().trim()) {
         return row[header].toString().trim();
       }
     }
@@ -1318,12 +1346,36 @@ function parseAnswerFromOptions(answerText, row, headers) {
     
     const answerStr = answerText.toString().toLowerCase().trim();
     
-    // If answer is already the actual text, return it
-    if (answerStr.length > 10) {
-      return answerText.toString().trim();
+    // First, try to match the answer with the actual options
+    const options = extractOptions(row, headers, {});
+    if (options && options.length > 0) {
+      // Check if the answer matches one of the options exactly
+      const exactMatch = options.find(option => 
+        option.toLowerCase().trim() === answerStr ||
+        option.toLowerCase().trim().includes(answerStr) ||
+        answerStr.includes(option.toLowerCase().trim())
+      );
+      if (exactMatch) {
+        return exactMatch;
+      }
+      
+      // Check if answer is a single letter (A, B, C, D) or number (1, 2, 3, 4)
+      if (answerStr.length === 1) {
+        if (answerStr >= 'a' && answerStr <= 'd') {
+          const index = answerStr.charCodeAt(0) - 97; // 'a' = 97
+          if (index < options.length) {
+            return options[index];
+          }
+        } else if (answerStr >= '1' && answerStr <= '4') {
+          const index = parseInt(answerStr) - 1;
+          if (index < options.length) {
+            return options[index];
+          }
+        }
+      }
     }
     
-    // If answer references option letters (A, B, C, D)
+    // If answer references option letters (A, B, C, D) or numbers
     if (answerStr.includes('option') || answerStr.includes('choice')) {
       const optionColumns = [];
       headers.forEach(header => {
@@ -1347,6 +1399,13 @@ function parseAnswerFromOptions(answerText, row, headers) {
           return row[optionColumns[optionIndex]] || answerText.toString().trim();
         }
       }
+    }
+    
+    // If answer is very long (likely a detailed explanation), 
+    // check if this should be moved to solution field instead
+    if (answerStr.length > 50) {
+      console.warn(`⚠️ Answer seems too long (${answerStr.length} chars), might belong in solution field:`, answerStr.substring(0, 100) + '...');
+      // Still return it as answer, but log the warning
     }
     
     return answerText.toString().trim();

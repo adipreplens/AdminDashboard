@@ -1,0 +1,4 @@
+text,options,answer,subject,exam,difficulty,tags,marks,timeLimit,blooms,solution
+"What is the capital of France?","Paris, London, Berlin, Madrid",Paris,Geography,SSC,Basic,"capital, europe, geography",1,60,Remember,"Paris is the capital and most populous city of France, located in the north-central part of the country on the river Seine."
+"What is 2 + 2?","3, 4, 5, 6",4,Math,SSC,Basic,"addition, basic math",1,30,Understand,"To solve 2 + 2: Start with 2, add another 2. 2 + 2 = 4. This is basic addition."
+"What is the chemical symbol for gold?","Au, Ag, Fe, Cu",Au,Science,SSC,Basic,"chemistry, elements",1,45,Remember,"Gold's chemical symbol is Au, derived from the Latin word 'aurum' meaning gold. This is a standard chemical notation."
