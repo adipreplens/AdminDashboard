@@ -33,6 +33,31 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ text, className = '' }) => 
     return processedText;
   };
 
+  // Function to process markdown formatting
+  const processMarkdown = (text: string) => {
+    let processedText = text;
+    
+    // Bold: **text** -> <strong>text</strong>
+    processedText = processedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Italic: *text* -> <em>text</em>
+    processedText = processedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    
+    // Underline: __text__ -> <u>text</u>
+    processedText = processedText.replace(/__(.*?)__/g, '<u>$1</u>');
+    
+    // Bullet lists: • item -> <li>item</li>
+    processedText = processedText.replace(/^•\s+(.*?)$/gm, '<li>$1</li>');
+    
+    // Numbered lists: 1. item -> <li>item</li>
+    processedText = processedText.replace(/^\d+\.\s+(.*?)$/gm, '<li>$1</li>');
+    
+    // Wrap lists in <ul> or <ol> tags
+    processedText = processedText.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>');
+    
+    return processedText;
+  };
+
   // Function to render LaTeX in text
   const renderLatexInText = (text: string) => {
     // More comprehensive LaTeX pattern matching
@@ -69,13 +94,16 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ text, className = '' }) => 
 
   const decodedText = decodeHtml(processedText);
   
+  // Process markdown formatting
+  const markdownProcessedText = processMarkdown(decodedText);
+  
   // Check if text contains LaTeX
-  const containsLatex = /\\[a-zA-Z]+|x\^[0-9]+|x_[0-9]+/.test(decodedText);
+  const containsLatex = /\\[a-zA-Z]+|x\^[0-9]+|x_[0-9]+/.test(markdownProcessedText);
   
   if (containsLatex) {
     return (
       <div className={className} style={{ lineHeight: '1.6', wordBreak: 'break-word' }}>
-        {renderLatexInText(decodedText)}
+        {renderLatexInText(markdownProcessedText)}
       </div>
     );
   }
@@ -83,7 +111,7 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ text, className = '' }) => 
   return (
     <div 
       className={className}
-      dangerouslySetInnerHTML={{ __html: decodedText }}
+      dangerouslySetInnerHTML={{ __html: markdownProcessedText }}
       style={{
         lineHeight: '1.6',
         wordBreak: 'break-word'
