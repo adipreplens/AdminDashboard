@@ -119,6 +119,7 @@ export default function Home() {
   const [moduleTypeFilter, setModuleTypeFilter] = useState('');
   const [premiumFilter, setPremiumFilter] = useState('');
   const [languageFilter, setLanguageFilter] = useState('');
+  const [questionEditMode, setQuestionEditMode] = useState<'edit' | 'preview'>('edit');
 
 
   // Check if user is already logged in
@@ -709,6 +710,15 @@ export default function Home() {
       
       const newText = questionForm.text.substring(0, start) + formattedText + questionForm.text.substring(end);
       setQuestionForm({...questionForm, text: newText});
+      
+      // Show visual feedback
+      const button = document.querySelector(`button[title="${format === 'bold' ? 'Bold' : format === 'italic' ? 'Italic' : format === 'underline' ? 'Underline' : format === 'bullet' ? 'Bullet List' : 'Numbered List'}"]`);
+      if (button) {
+        button.classList.add('bg-green-200', 'text-green-800');
+        setTimeout(() => {
+          button.classList.remove('bg-green-200', 'text-green-800');
+        }, 300);
+      }
       
       // Restore cursor position after formatting
       setTimeout(() => {
@@ -1427,21 +1437,68 @@ export default function Home() {
                     
                     {/* Enhanced Question Text Area with Image Support */}
                     <div className="relative">
-                      <div className="relative">
-                        <textarea
-                          name="questionText"
-                          className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
-                          rows={8}
-                          placeholder="Type your question here... You can paste images directly or use the toolbar above to insert them."
-                          value={questionForm.text}
-                          onChange={(e) => setQuestionForm({...questionForm, text: e.target.value})}
-                          onPaste={handlePasteImage}
-                          onDrop={handleDropImage}
-                          onDragOver={(e) => e.preventDefault()}
-                          required
-                          style={{ color: '#171717', backgroundColor: '#ffffff' }}
-                        />
+                      {/* Toggle between Edit and Preview Mode */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => setQuestionEditMode('edit')}
+                            className={`px-3 py-1 rounded text-sm font-medium ${
+                              questionEditMode === 'edit' 
+                                ? 'bg-blue-100 text-blue-700 border border-blue-300' 
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            ✏️ Edit Mode
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setQuestionEditMode('preview')}
+                            className={`px-3 py-1 rounded text-sm font-medium ${
+                              questionEditMode === 'preview' 
+                                ? 'bg-green-100 text-green-700 border border-green-300' 
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            👁️ Preview Mode
+                          </button>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {questionEditMode === 'edit' ? 'Raw markdown with formatting' : 'Formatted preview'}
+                        </div>
+                        {questionEditMode === 'edit' && (
+                          <div className="text-xs text-blue-600 mt-1">
+                            💡 Tip: Select text and use toolbar buttons for formatting. **bold**, *italic*, __underline__
+                          </div>
+                        )}
                       </div>
+                      
+                      {questionEditMode === 'edit' ? (
+                        <div className="relative">
+                          <textarea
+                            name="questionText"
+                            className="w-full p-4 border-0 focus:ring-0 resize-none text-gray-900 bg-white"
+                            rows={8}
+                            placeholder="Type your question here... Use the toolbar above for formatting. **bold**, *italic*, __underline__"
+                            value={questionForm.text}
+                            onChange={(e) => setQuestionForm({...questionForm, text: e.target.value})}
+                            onPaste={handlePasteImage}
+                            onDrop={handleDropImage}
+                            onDragOver={(e) => e.preventDefault()}
+                            required
+                            style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-full p-4 border border-gray-300 rounded-lg bg-white min-h-[200px]">
+                          <div className="prose prose-sm max-w-none">
+                            <ImageDisplay 
+                              text={questionForm.text || 'No text to preview'} 
+                              className="text-gray-800"
+                            />
+                          </div>
+                        </div>
+                      )}
                       
                       {/* Image Upload Zone */}
                       <div className="absolute inset-0 pointer-events-none">

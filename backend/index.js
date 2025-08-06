@@ -87,18 +87,27 @@ app.use('/uploads', (req, res, next) => {
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://shreyashchaudhary81:hfOYtcA7zywQsxJP@preplensadmin.mmrvf6s.mongodb.net/Preplensadmin?retryWrites=true&w=majority&appName=Preplensadmin';
 
 const connectWithRetry = () => {
+  console.log('🔄 Attempting MongoDB connection...');
+  console.log('📡 Connection URI:', MONGODB_URI.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')); // Hide credentials
+  
   mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
     socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+    maxPoolSize: 10, // Maximum number of connections in the pool
+    minPoolSize: 2,  // Minimum number of connections in the pool
+    maxIdleTimeMS: 30000, // Close connections after 30s of inactivity
+    connectTimeoutMS: 10000, // Give up initial connection after 10s
   })
   .then(() => {
-    console.log('Connected to MongoDB');
+    console.log('✅ Connected to MongoDB successfully!');
+    console.log('📊 Database:', mongoose.connection.db.databaseName);
+    console.log('🔗 Connection state:', mongoose.connection.readyState);
   })
   .catch(err => {
-    console.error('MongoDB connection error:', err);
-    console.log('Retrying MongoDB connection in 5 seconds...');
+    console.error('❌ MongoDB connection error:', err);
+    console.log('🔄 Retrying MongoDB connection in 5 seconds...');
     setTimeout(connectWithRetry, 5000);
   });
 };
@@ -107,15 +116,27 @@ connectWithRetry();
 
 // Handle MongoDB disconnection
 mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected. Attempting to reconnect...');
+  console.log('🔌 MongoDB disconnected. Attempting to reconnect...');
   setTimeout(connectWithRetry, 5000);
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
+  console.error('❌ MongoDB connection error:', err);
   if (process.env.NODE_ENV === 'production') {
-    console.log('Continuing in production despite MongoDB error');
+    console.log('⚠️ Continuing in production despite MongoDB error');
   }
+});
+
+mongoose.connection.on('connected', () => {
+  console.log('🔗 MongoDB connected successfully');
+});
+
+mongoose.connection.on('reconnected', () => {
+  console.log('🔄 MongoDB reconnected successfully');
+});
+
+mongoose.connection.on('close', () => {
+  console.log('🔒 MongoDB connection closed');
 });
 
 // Models
