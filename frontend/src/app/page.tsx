@@ -1600,6 +1600,7 @@ export default function Home() {
                     <option value="rrb-ntpc">RRB NTPC</option>
                     <option value="ssc-cgl">SSC CGL</option>
                     <option value="ssc-chsl">SSC CHSL</option>
+                    <option value="ssc-je">SSC JE</option>
                     <option value="bank-po">Bank PO</option>
                     <option value="bank-clerk">Bank Clerk</option>
                     <option value="upsc">UPSC</option>
@@ -2738,7 +2739,7 @@ export default function Home() {
               <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">SSC Exams</h3>
                 <div className="space-y-3">
-                  {['ssc-cgl', 'ssc-chsl'].map((exam) => {
+                  {['ssc-cgl', 'ssc-chsl', 'ssc-je'].map((exam) => {
                     const examQuestions = questions.filter(q => q.exam === exam);
                     return (
                       <div key={exam} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
