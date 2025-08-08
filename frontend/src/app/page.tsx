@@ -6,6 +6,7 @@ import CreateQuestionForm from '../components/CreateQuestionForm';
 import SimpleQuestionForm from '../components/SimpleQuestionForm';
 import MathEditor from '../components/MathEditor';
 import TimePicker from '../components/TimePicker';
+import ModuleCreator from '../components/ModuleCreator';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admindashboard-x0hk.onrender.com';
 
@@ -62,7 +63,7 @@ interface Question {
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'upload' | 'questions' | 'exams' | 'analytics' | 'users' | 'monetization'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'upload' | 'questions' | 'modules' | 'exams' | 'analytics' | 'users' | 'monetization'>('dashboard');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -120,6 +121,7 @@ export default function Home() {
   const [premiumFilter, setPremiumFilter] = useState('');
   const [languageFilter, setLanguageFilter] = useState('');
   const [questionEditMode, setQuestionEditMode] = useState<'edit' | 'preview'>('edit');
+  const [showModuleCreator, setShowModuleCreator] = useState(false);
 
 
   // Check if user is already logged in
@@ -1169,6 +1171,16 @@ export default function Home() {
               }`}
             >
               📝 Questions
+            </button>
+            <button
+              onClick={() => setCurrentView('modules')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                currentView === 'modules'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              📚 Modules
             </button>
             <button
               onClick={() => setCurrentView('exams')}
@@ -2711,6 +2723,50 @@ export default function Home() {
           </div>
         )}
         
+        {/* Modules Management Section */}
+        {currentView === 'modules' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">Module Creator</h2>
+              <button
+                onClick={() => setShowModuleCreator(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+              >
+                <span>➕</span>
+                <span>Create New Module</span>
+              </button>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">📚</div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Module Creator</h3>
+                <p className="text-gray-600 mb-6">
+                  Create exam papers and practice modules from existing questions. 
+                  Select questions, set metadata, and publish ready-to-use modules.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl mb-2">🔍</div>
+                    <h4 className="font-semibold mb-1">Search & Filter</h4>
+                    <p>Find questions by subject, exam, difficulty, and tags</p>
+                  </div>
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl mb-2">📋</div>
+                    <h4 className="font-semibold mb-1">Bulk Selection</h4>
+                    <p>Select multiple questions to create comprehensive modules</p>
+                  </div>
+                  <div className="p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl mb-2">🚀</div>
+                    <h4 className="font-semibold mb-1">Publish & Share</h4>
+                    <p>Save as draft or publish modules for instant use</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Exams Management Section */}
         {currentView === 'exams' && (
           <div className="space-y-6">
@@ -3267,6 +3323,11 @@ export default function Home() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Module Creator Modal */}
+        {showModuleCreator && (
+          <ModuleCreator onClose={() => setShowModuleCreator(false)} />
         )}
       </main>
     </div>

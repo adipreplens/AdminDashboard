@@ -189,6 +189,34 @@ const userSchema = new mongoose.Schema({
 const Question = mongoose.model('Question', questionSchema);
 const User = mongoose.model('User', userSchema);
 
+// Module Schema for Exam Paper / Module Creator
+const moduleSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  description: { type: String },
+  exam: { type: String, required: true },
+  subject: { type: String, required: true },
+  difficulty: { type: String, required: true },
+  tags: [{ type: String }],
+  questions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Question', required: true }],
+  totalMarks: { type: Number, default: 0 },
+  totalTime: { type: Number, default: 0 }, // in minutes
+  publishStatus: { type: String, enum: ['draft', 'published'], default: 'draft' },
+  category: { type: String },
+  topic: { type: String },
+  moduleType: { 
+    type: String, 
+    enum: ['practice', 'section_test', 'mock_test', 'test_series', 'live_test', 'pyq'],
+    default: 'practice'
+  },
+  isPremium: { type: Boolean, default: false },
+  language: { type: String, enum: ['english', 'hindi'], default: 'english' },
+  instructions: { type: String }, // Instructions for students
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+const Module = mongoose.model('Module', moduleSchema);
+
 // File upload configuration with cleanup
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -1777,6 +1805,221 @@ app.get('/api/public/statistics', async (req, res) => {
       success: false, 
       error: 'Failed to fetch statistics' 
     });
+  }
+});
+
+// ===== MODULE CREATOR API ENDPOINTS =====
+
+// Get all modules
+app.get('/modules', async (req, res) => {
+  try {
+    const { page = 1, limit = 50, search, exam, subject, difficulty, publishStatus } = req.query;
+    
+    let query = {};
+    
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+    if (exam) query.exam = exam;
+    if (subject) query.subject = subject;
+    if (difficulty) query.difficulty = difficulty;
+    if (publishStatus) query.publishStatus = publishStatus;
+
+    const modules = await Module.find(query)
+      .populate('questions', 'text subject exam difficulty marks timeLimit')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await Module.countDocuments(query);
+
+    res.json({
+      modules,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
+    });
+  } catch (error) {
+    console.error('Error fetching modules:', error);
+    res.status(500).json({ error: 'Failed to fetch modules' });
+  }
+});
+
+// Get single module by ID
+app.get('/modules/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const module = await Module.findById(id)
+      .populate('questions', 'text options answer subject exam difficulty marks timeLimit blooms tags solution imageUrl');
+
+    if (!module) {
+      return res.status(404).json({ error: 'Module not found' });
+    }
+
+    res.json({ module });
+  } catch (error) {
+    console.error('Error fetching module:', error);
+    res.status(500).json({ error: 'Failed to fetch module' });
+  }
+});
+
+// Create new module
+app.post('/modules', async (req, res) => {
+  try {
+    const moduleData = req.body;
+    
+    // Validate required fields
+    const requiredFields = ['name', 'exam', 'subject', 'difficulty', 'questions'];
+    for (const field of requiredFields) {
+      if (!moduleData[field]) {
+        return res.status(400).json({ error: `${field} is required` });
+      }
+    }
+
+    // Calculate total marks and time
+    const questions = await Question.find({ _id: { $in: moduleData.questions } });
+    const totalMarks = questions.reduce((sum, q) => sum + (q.marks || 1), 0);
+    const totalTime = questions.reduce((sum, q) => sum + (q.timeLimit || 60), 0);
+
+    // Create module
+    const module = new Module({
+      ...moduleData,
+      totalMarks,
+      totalTime: Math.ceil(totalTime / 60), // Convert to minutes
+      publishStatus: moduleData.publishStatus || 'draft',
+      tags: moduleData.tags || []
+    });
+    
+    await module.save();
+
+    // Populate questions for response
+    await module.populate('questions', 'text subject exam difficulty marks timeLimit');
+
+    res.status(201).json({ 
+      message: 'Module created successfully',
+      module 
+    });
+  } catch (error) {
+    console.error('Error creating module:', error);
+    res.status(500).json({ error: 'Failed to create module' });
+  }
+});
+
+// Update module
+app.put('/modules/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    
+    // Validate required fields
+    const requiredFields = ['name', 'exam', 'subject', 'difficulty', 'questions'];
+    for (const field of requiredFields) {
+      if (!updateData[field]) {
+        return res.status(400).json({ error: `${field} is required` });
+      }
+    }
+
+    // Calculate total marks and time
+    const questions = await Question.find({ _id: { $in: updateData.questions } });
+    const totalMarks = questions.reduce((sum, q) => sum + (q.marks || 1), 0);
+    const totalTime = questions.reduce((sum, q) => sum + (q.timeLimit || 60), 0);
+
+    // Update module
+    const updatedModule = await Module.findByIdAndUpdate(
+      id,
+      { 
+        ...updateData,
+        totalMarks,
+        totalTime: Math.ceil(totalTime / 60), // Convert to minutes
+        updatedAt: new Date()
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedModule) {
+      return res.status(404).json({ error: 'Module not found' });
+    }
+
+    // Populate questions for response
+    await updatedModule.populate('questions', 'text subject exam difficulty marks timeLimit');
+
+    res.json({ 
+      message: 'Module updated successfully',
+      module: updatedModule 
+    });
+  } catch (error) {
+    console.error('Error updating module:', error);
+    res.status(500).json({ error: 'Failed to update module' });
+  }
+});
+
+// Publish/Unpublish module
+app.patch('/modules/:id/publish', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { publishStatus } = req.body;
+    
+    if (!publishStatus || !['published', 'draft'].includes(publishStatus)) {
+      return res.status(400).json({ error: 'Invalid publish status. Must be "published" or "draft"' });
+    }
+
+    const updatedModule = await Module.findByIdAndUpdate(
+      id,
+      { 
+        publishStatus,
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!updatedModule) {
+      return res.status(404).json({ error: 'Module not found' });
+    }
+
+    res.json({ 
+      message: `Module ${publishStatus === 'published' ? 'published' : 'unpublished'} successfully`,
+      module: updatedModule 
+    });
+  } catch (error) {
+    console.error('Error updating module publish status:', error);
+    res.status(500).json({ error: 'Failed to update publish status' });
+  }
+});
+
+// Delete module
+app.delete('/modules/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const module = await Module.findById(id);
+    
+    if (!module) {
+      return res.status(404).json({ error: 'Module not found' });
+    }
+
+    await Module.findByIdAndDelete(id);
+
+    res.json({ message: 'Module deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting module:', error);
+    res.status(500).json({ error: 'Failed to delete module' });
+  }
+});
+
+// Get distinct tags for module creation
+app.get('/tags', async (req, res) => {
+  try {
+    const tags = await Question.distinct('tags');
+    const flattenedTags = tags.flat().filter(tag => tag && tag.trim());
+    const uniqueTags = [...new Set(flattenedTags)].sort();
+    
+    res.json({ tags: uniqueTags });
+  } catch (error) {
+    console.error('Error fetching tags:', error);
+    res.status(500).json({ error: 'Failed to fetch tags' });
   }
 });
 
