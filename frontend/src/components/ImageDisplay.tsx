@@ -60,15 +60,23 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ text, className = '' }) => 
 
   // Function to render LaTeX in text
   const renderLatexInText = (text: string) => {
-    // More comprehensive LaTeX pattern matching
-    const latexPattern = /(\\[a-zA-Z]+(?:\{[^}]*\})*(?:\^[^{]*)?(?:\{[^}]*\})*|\\[a-zA-Z]+|x\^[0-9]+|x_[0-9]+|[a-zA-Z]+\^[0-9]+|[a-zA-Z]+_[0-9]+)/g;
+    // Pattern to match LaTeX expressions wrapped in $ or $$ or standalone LaTeX
+    const latexPattern = /(\$[^$]+\$|\$\$[^$]+\$\$|\\[a-zA-Z]+(?:\{[^}]*\})*(?:\^[^{]*)?(?:\{[^}]*\})*|\\[a-zA-Z]+|x\^[0-9]+|x_[0-9]+|[a-zA-Z]+\^[0-9]+|[a-zA-Z]+_[0-9]+)/g;
     const parts = text.split(latexPattern);
     
     return parts.map((part, index) => {
       // Check if this part looks like LaTeX
-      if (part.match(/^\\[a-zA-Z]/) || part.match(/^[a-zA-Z]+\^[0-9]+$/) || part.match(/^[a-zA-Z]+_[0-9]+$/)) {
+      if (part.match(/^\$[^$]+\$$/) || part.match(/^\$\$[^$]+\$\$$/) || part.match(/^\\[a-zA-Z]/) || part.match(/^[a-zA-Z]+\^[0-9]+$/) || part.match(/^[a-zA-Z]+_[0-9]+$/)) {
         try {
-          return <InlineMath key={index} math={part} />;
+          // Remove $ or $$ delimiters for KaTeX
+          let mathContent = part;
+          if (part.startsWith('$') && part.endsWith('$')) {
+            mathContent = part.slice(1, -1); // Remove $ delimiters
+          } else if (part.startsWith('$$') && part.endsWith('$$')) {
+            mathContent = part.slice(2, -2); // Remove $$ delimiters
+          }
+          
+          return <InlineMath key={index} math={mathContent} />;
         } catch (error) {
           console.error('LaTeX rendering error:', error);
           return <span key={index} className="text-red-500">{part}</span>;
@@ -98,7 +106,7 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ text, className = '' }) => 
   const markdownProcessedText = processMarkdown(decodedText);
   
   // Check if text contains LaTeX
-  const containsLatex = /\\[a-zA-Z]+|x\^[0-9]+|x_[0-9]+/.test(markdownProcessedText);
+  const containsLatex = /\$[^$]+\$|\$\$[^$]+\$\$|\\[a-zA-Z]+|x\^[0-9]+|x_[0-9]+/.test(markdownProcessedText);
   
   if (containsLatex) {
     return (
