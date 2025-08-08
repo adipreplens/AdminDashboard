@@ -247,10 +247,10 @@ const ModuleCreator: React.FC<ModuleCreatorProps> = ({ onClose }) => {
   const totalTime = selectedQuestionsData.reduce((sum, q) => sum + (q.timeLimit || 60), 0);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl flex flex-col max-h-[95vh]">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Module Creator</h2>
             <p className="text-sm text-gray-600">Create exam papers from existing questions</p>
@@ -264,7 +264,7 @@ const ModuleCreator: React.FC<ModuleCreatorProps> = ({ onClose }) => {
         </div>
 
         {/* Progress Steps */}
-        <div className="flex items-center justify-center p-4 bg-gray-50">
+        <div className="flex items-center justify-center p-4 bg-gray-50 flex-shrink-0">
           <div className="flex items-center space-x-4">
             <div className={`flex items-center ${step === 'form' ? 'text-blue-600' : 'text-gray-400'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'form' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
@@ -290,7 +290,7 @@ const ModuleCreator: React.FC<ModuleCreatorProps> = ({ onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+        <div className="p-6 overflow-y-auto flex-1 min-h-0">
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
               <p className="text-sm text-red-800">{error}</p>
@@ -645,22 +645,22 @@ const ModuleCreator: React.FC<ModuleCreatorProps> = ({ onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t bg-gray-50">
-          <div className="flex space-x-3">
+        <div className="flex items-center justify-between p-6 border-t bg-gray-50 flex-shrink-0 flex-col sm:flex-row gap-4">
+          <div className="flex space-x-3 flex-wrap gap-2">
             {step !== 'form' && (
               <button
                 onClick={() => setStep(step === 'selection' ? 'form' : 'selection')}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 whitespace-nowrap"
               >
                 Back
               </button>
             )}
           </div>
 
-          <div className="flex space-x-3">
+          <div className="flex space-x-3 flex-wrap gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 whitespace-nowrap"
             >
               Cancel
             </button>
@@ -669,7 +669,7 @@ const ModuleCreator: React.FC<ModuleCreatorProps> = ({ onClose }) => {
               <button
                 onClick={() => setStep('selection')}
                 disabled={!moduleData.name || !moduleData.exam || !moduleData.subject}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 Next: Select Questions
               </button>
@@ -679,7 +679,7 @@ const ModuleCreator: React.FC<ModuleCreatorProps> = ({ onClose }) => {
               <button
                 onClick={() => setStep('review')}
                 disabled={selectedQuestions.length === 0}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 Next: Review & Save
               </button>
@@ -689,7 +689,7 @@ const ModuleCreator: React.FC<ModuleCreatorProps> = ({ onClose }) => {
               <button
                 onClick={handleCreateModule}
                 disabled={loading}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {loading ? 'Creating...' : 'Create Module'}
               </button>
