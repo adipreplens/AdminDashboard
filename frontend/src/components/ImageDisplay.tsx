@@ -53,7 +53,7 @@ const ImageDisplay: React.FC<ImageDisplayProps> = ({ text, className = '' }) => 
     processedText = processedText.replace(/^\d+\.\s+(.*?)$/gm, '<li>$1</li>');
     
     // Wrap lists in <ul> or <ol> tags
-    processedText = processedText.replace(/(<li>.*?<\/li>)/gs, '<ul>$1</ul>');
+    processedText = processedText.replace(/(<li>.*?<\/li>)/g, '<ul>$1</ul>');
     
     return processedText;
   };
