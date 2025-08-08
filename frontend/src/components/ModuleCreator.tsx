@@ -128,10 +128,10 @@ const ModuleCreator: React.FC<ModuleCreatorProps> = ({ onClose }) => {
 
   const fetchOptions = async () => {
     try {
-      const [subjectsRes, examsRes, difficultiesRes, tagsRes] = await Promise.all([
+      const [subjectsRes, examsRes, filtersRes, tagsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/subjects`),
         fetch(`${API_BASE_URL}/exams`),
-        fetch(`${API_BASE_URL}/difficulties`),
+        fetch(`${API_BASE_URL}/api/public/filters`),
         fetch(`${API_BASE_URL}/tags`)
       ]);
 
@@ -145,9 +145,11 @@ const ModuleCreator: React.FC<ModuleCreatorProps> = ({ onClose }) => {
         setExams(examsData.exams || []);
       }
 
-      if (difficultiesRes.ok) {
-        const difficultiesData = await difficultiesRes.json();
-        setDifficulties(difficultiesData.difficulties || []);
+      if (filtersRes.ok) {
+        const filtersData = await filtersRes.json();
+        if (filtersData.success && filtersData.data) {
+          setDifficulties(filtersData.data.difficulties || []);
+        }
       }
 
       if (tagsRes.ok) {
@@ -361,9 +363,21 @@ const ModuleCreator: React.FC<ModuleCreatorProps> = ({ onClose }) => {
                     onChange={(e) => setModuleData({...moduleData, difficulty: e.target.value})}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    {difficulties.map(difficulty => (
-                      <option key={difficulty} value={difficulty}>{difficulty}</option>
-                    ))}
+                    <option value="">Select Difficulty</option>
+                    {difficulties.length > 0 ? (
+                      difficulties.map(difficulty => (
+                        <option key={difficulty} value={difficulty}>{difficulty}</option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                        <option value="basic">Basic</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                      </>
+                    )}
                   </select>
                 </div>
               </div>
