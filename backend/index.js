@@ -147,6 +147,7 @@ const questionSchema = new mongoose.Schema({
   subject: { type: String, required: true },
   exam: { type: String, required: true },
   difficulty: { type: String, required: true },
+  level: { type: String, enum: ['Level 0', 'Level 1', 'Level 2', 'Level 3', 'Level 4'], default: 'Level 1' },
   tags: [{ type: String }],
   marks: { type: Number, required: true },
   timeLimit: { type: Number, required: true },
@@ -196,6 +197,7 @@ const moduleSchema = new mongoose.Schema({
   exam: { type: String, required: true },
   subject: { type: String, required: true },
   difficulty: { type: String, required: true },
+  level: { type: String, enum: ['Level 0', 'Level 1', 'Level 2', 'Level 3', 'Level 4'], default: 'Level 1' },
   tags: [{ type: String }],
   questions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Question', required: true }],
   totalMarks: { type: Number, default: 0 },
@@ -409,6 +411,24 @@ app.get('/exams', async (req, res) => {
   }
 });
 
+// Get PrepLens levels
+app.get('/levels', async (req, res) => {
+  try {
+    const levels = [
+      'Level 0',
+      'Level 1', 
+      'Level 2',
+      'Level 3',
+      'Level 4'
+    ];
+    
+    res.json({ levels });
+  } catch (error) {
+    console.error('Error fetching levels:', error);
+    res.status(500).json({ error: 'Failed to fetch levels' });
+  }
+});
+
 // Get PrepLens subjects
 app.get('/subjects', async (req, res) => {
   try {
@@ -545,7 +565,7 @@ app.post('/questions', async (req, res) => {
     const questionData = req.body;
     
     // Validate required fields
-    const requiredFields = ['text', 'options', 'answer', 'subject', 'exam', 'difficulty', 'marks', 'timeLimit', 'blooms'];
+    const requiredFields = ['text', 'options', 'answer', 'subject', 'exam', 'difficulty', 'level', 'marks', 'timeLimit', 'blooms'];
     for (const field of requiredFields) {
       if (!questionData[field]) {
         return res.status(400).json({ error: `${field} is required` });
@@ -580,7 +600,7 @@ app.put('/questions/:id', async (req, res) => {
     const updateData = req.body;
     
     // Validate required fields
-    const requiredFields = ['text', 'options', 'answer', 'subject', 'exam', 'difficulty', 'marks', 'timeLimit', 'blooms'];
+    const requiredFields = ['text', 'options', 'answer', 'subject', 'exam', 'difficulty', 'level', 'marks', 'timeLimit', 'blooms'];
     for (const field of requiredFields) {
       if (!updateData[field]) {
         return res.status(400).json({ error: `${field} is required` });

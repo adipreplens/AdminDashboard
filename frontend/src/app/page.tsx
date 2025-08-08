@@ -33,6 +33,7 @@ interface Question {
   subject: string;
   exam: string;
   difficulty: string;
+  level: string;
   tags: string[];
   marks: number;
   timeLimit: number;
@@ -82,6 +83,7 @@ export default function Home() {
     subject: '',
     exam: '',
     difficulty: '',
+    level: '',
     blooms: ''
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -94,6 +96,7 @@ export default function Home() {
     subject: '',
     exam: '',
     difficulty: '',
+    level: 'Level 1',
     tags: '',
     marks: '',
     timeLimit: '',
@@ -246,6 +249,7 @@ export default function Home() {
         subject: questionForm.subject,
         exam: questionForm.exam || 'general',
         difficulty: questionForm.difficulty,
+        level: questionForm.level,
         tags: tags,
         marks: parseInt(questionForm.marks) || 1,
         timeLimit: parseInt(questionForm.timeLimit) || 60,
@@ -283,6 +287,7 @@ export default function Home() {
           subject: '',
           exam: '',
           difficulty: '',
+          level: 'Level 1',
           tags: '',
           marks: '',
           timeLimit: '',
@@ -392,6 +397,7 @@ export default function Home() {
       subject: question.subject,
       exam: question.exam,
       difficulty: question.difficulty,
+      level: question.level || 'Level 1',
       tags: Array.isArray(question.tags) ? question.tags.join(', ') : question.tags || '',
       marks: question.marks.toString(),
       timeLimit: question.timeLimit.toString(),
@@ -481,6 +487,7 @@ export default function Home() {
         subject: questionForm.subject,
         exam: questionForm.exam || 'general',
         difficulty: questionForm.difficulty,
+        level: questionForm.level,
         tags: tags,
         marks: parseInt(questionForm.marks) || 1,
         timeLimit: parseInt(questionForm.timeLimit) || 60,
@@ -1017,6 +1024,7 @@ export default function Home() {
     const matchesBlooms = !filters.blooms || question.blooms === filters.blooms;
     
     // PrepLens specific filters
+    const matchesLevel = !filters.level || question.level === filters.level;
     const matchesModuleType = !moduleTypeFilter || question.moduleType === moduleTypeFilter;
     const matchesPremium = !premiumFilter || 
       (premiumFilter === 'premium' && question.isPremium === true) ||
@@ -1024,7 +1032,7 @@ export default function Home() {
     const matchesLanguage = !languageFilter || question.language === languageFilter;
 
     return matchesSearch && matchesQuestionId && matchesSubject && matchesExam && 
-           matchesDifficulty && matchesBlooms && matchesModuleType && matchesPremium && matchesLanguage;
+           matchesDifficulty && matchesLevel && matchesBlooms && matchesModuleType && matchesPremium && matchesLanguage;
   });
 
   if (!isLoggedIn) {
@@ -2024,6 +2032,25 @@ export default function Home() {
                     </div>
                     
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Level *
+                      </label>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        value={questionForm.level}
+                        onChange={(e) => setQuestionForm({...questionForm, level: e.target.value})}
+                        required
+                      >
+                        <option value="">Select Level</option>
+                        <option value="Level 0">Level 0</option>
+                        <option value="Level 1">Level 1</option>
+                        <option value="Level 2">Level 2</option>
+                        <option value="Level 3">Level 3</option>
+                        <option value="Level 4">Level 4</option>
+                      </select>
+                    </div>
+                    
+                    <div>
                       <TimePicker
                         value={questionForm.timeLimit}
                         onChange={(value) => setQuestionForm({...questionForm, timeLimit: value})}
@@ -2251,6 +2278,23 @@ export default function Home() {
                       <option value="Expert">Expert</option>
                     </select>
                   </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Level</label>
+                    <select 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      value={filters.level}
+                      onChange={(e) => setFilters({...filters, level: e.target.value})}
+                      style={{ color: '#171717', backgroundColor: '#ffffff' }}
+                    >
+                      <option value="">All Levels</option>
+                      <option value="Level 0">Level 0</option>
+                      <option value="Level 1">Level 1</option>
+                      <option value="Level 2">Level 2</option>
+                      <option value="Level 3">Level 3</option>
+                      <option value="Level 4">Level 4</option>
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Module Type</label>
                     <select 
@@ -2297,7 +2341,7 @@ export default function Home() {
                 </div>
                 
                 {/* Active Filters Display */}
-                {(questionIdSearch || searchTerm || filters.subject || filters.exam || filters.difficulty || moduleTypeFilter || premiumFilter || languageFilter) && (
+                {(questionIdSearch || searchTerm || filters.subject || filters.exam || filters.difficulty || filters.level || moduleTypeFilter || premiumFilter || languageFilter) && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                     <h4 className="text-sm font-medium text-blue-800 mb-2">Active Filters:</h4>
                     <div className="flex flex-wrap gap-2">
@@ -2326,6 +2370,11 @@ export default function Home() {
                           Difficulty: {filters.difficulty} <button onClick={() => setFilters({...filters, difficulty: ''})} className="ml-1 text-orange-600 hover:text-orange-800">×</button>
                         </span>
                       )}
+                      {filters.level && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                          Level: {filters.level} <button onClick={() => setFilters({...filters, level: ''})} className="ml-1 text-teal-600 hover:text-teal-800">×</button>
+                        </span>
+                      )}
                       {moduleTypeFilter && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                           Module: {moduleTypeFilter} <button onClick={() => setModuleTypeFilter('')} className="ml-1 text-indigo-600 hover:text-indigo-800">×</button>
@@ -2345,7 +2394,7 @@ export default function Home() {
                         onClick={() => {
                           setQuestionIdSearch('');
                           setSearchTerm('');
-                          setFilters({subject: '', exam: '', difficulty: '', blooms: ''});
+                          setFilters({subject: '', exam: '', difficulty: '', level: '', blooms: ''});
                           setModuleTypeFilter('');
                           setPremiumFilter('');
                           setLanguageFilter('');
@@ -2430,6 +2479,9 @@ export default function Home() {
                                   'bg-red-100 text-red-800'
                                 }`}>
                                   {question.difficulty}
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs font-medium bg-teal-100 text-teal-800">
+                                  {question.level || 'Level 1'}
                                 </span>
                                 <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                   {question.marks} mark{question.marks > 1 ? 's' : ''}
