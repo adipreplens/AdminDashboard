@@ -11,11 +11,13 @@ const XLSX = require('xlsx');
 const S3Service = require('./s3Service');
 const userRoutes = require('./user_apis');
 const { TopicBasedQuestionService } = require('./topic_based_questions');
+const { SubjectBasedTestService } = require('./subject_based_tests');
 require('dotenv').config();
 
 // Initialize S3Service early
 const s3Service = new S3Service();
 const topicService = new TopicBasedQuestionService();
+const subjectTestService = new SubjectBasedTestService();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -2236,6 +2238,157 @@ app.get('/topics/:examId/count', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get topic count'
+    });
+  }
+});
+
+// Subject-based Test Routes
+app.get('/subjects/:examId', (req, res) => {
+  try {
+    const { examId } = req.params;
+    const subjects = subjectTestService.getSubjectsForExam(examId);
+    res.json({
+      success: true,
+      data: subjects
+    });
+  } catch (error) {
+    console.error('Get subjects error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get subjects'
+    });
+  }
+});
+
+app.get('/subjects/:examId/:subjectId', (req, res) => {
+  try {
+    const { examId, subjectId } = req.params;
+    const subjectDetails = subjectTestService.getSubjectDetails(examId, subjectId);
+    
+    if (subjectDetails) {
+      res.json({
+        success: true,
+        data: subjectDetails
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: 'Subject not found'
+      });
+    }
+  } catch (error) {
+    console.error('Get subject details error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get subject details'
+    });
+  }
+});
+
+app.post('/subjects/:examId/:subjectId/start', async (req, res) => {
+  try {
+    const { examId, subjectId } = req.params;
+    const { difficulty, language } = req.body;
+    const userId = req.user._id; // Assuming authentication middleware
+
+    const options = {};
+    if (difficulty) options.difficulty = difficulty;
+    if (language) options.language = language;
+
+    const result = await subjectTestService.startSubjectTest(examId, subjectId, userId, options);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Start subject test error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start subject test'
+    });
+  }
+});
+
+app.post('/subjects/test/:sessionId/answer', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { questionId, userAnswer, timeSpent } = req.body;
+
+    const result = await subjectTestService.submitAnswer(sessionId, questionId, userAnswer, timeSpent);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Submit answer error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit answer'
+    });
+  }
+});
+
+app.post('/subjects/test/:sessionId/complete', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const result = await subjectTestService.completeSubjectTest(sessionId);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Complete subject test error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to complete subject test'
+    });
+  }
+});
+
+app.get('/subjects/:examId/:subjectId/history', async (req, res) => {
+  try {
+    const { examId, subjectId } = req.params;
+    const userId = req.user._id; // Assuming authentication middleware
+
+    const result = await subjectTestService.getSubjectTestHistory(userId, examId, subjectId);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Get subject test history error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get test history'
+    });
+  }
+});
+
+app.get('/subjects/:examId/:subjectId/performance', async (req, res) => {
+  try {
+    const { examId, subjectId } = req.params;
+    const userId = req.user._id; // Assuming authentication middleware
+
+    const result = await subjectTestService.getSubjectPerformance(userId, examId, subjectId);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Get subject performance error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get performance analytics'
     });
   }
 });
