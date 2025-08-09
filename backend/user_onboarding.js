@@ -66,28 +66,28 @@ const userOnboardingSchema = new mongoose.Schema({
   },
   roadmap: {
     phase1: {
-      name: 'Foundation Building',
-      duration: Number,
+      name: { type: String, default: 'Foundation Building' },
+      duration: { type: Number, default: 0 },
       focus: [String],
-      targetScore: Number
+      targetScore: { type: Number, default: 0 }
     },
     phase2: {
-      name: 'Concept Strengthening',
-      duration: Number,
+      name: { type: String, default: 'Concept Strengthening' },
+      duration: { type: Number, default: 0 },
       focus: [String],
-      targetScore: Number
+      targetScore: { type: Number, default: 0 }
     },
     phase3: {
-      name: 'Advanced Practice',
-      duration: Number,
+      name: { type: String, default: 'Advanced Practice' },
+      duration: { type: Number, default: 0 },
       focus: [String],
-      targetScore: Number
+      targetScore: { type: Number, default: 0 }
     },
     phase4: {
-      name: 'Mock Test Preparation',
-      duration: Number,
+      name: { type: String, default: 'Mock Test Preparation' },
+      duration: { type: Number, default: 0 },
       focus: [String],
-      targetScore: Number
+      targetScore: { type: Number, default: 0 }
     }
   },
   isCompleted: {
