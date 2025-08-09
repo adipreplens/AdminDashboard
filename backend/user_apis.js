@@ -922,4 +922,104 @@ router.post('/ai/smart-test-session/start', authenticateToken, async (req, res) 
   }
 });
 
+const { OnboardingService } = require('./user_onboarding');
+const onboardingService = new OnboardingService();
+
+// Onboarding Routes
+router.get('/onboarding/exams', async (req, res) => {
+  try {
+    const exams = onboardingService.getAvailableExams();
+    res.json({
+      success: true,
+      data: exams
+    });
+  } catch (error) {
+    console.error('Get exams error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get available exams'
+    });
+  }
+});
+
+router.post('/onboarding/save', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const onboardingData = req.body;
+
+    const result = await onboardingService.saveOnboardingData(userId, onboardingData);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Save onboarding error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save onboarding data'
+    });
+  }
+});
+
+router.get('/onboarding/data', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const result = await onboardingService.getOnboardingData(userId);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(404).json(result);
+    }
+  } catch (error) {
+    console.error('Get onboarding error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get onboarding data'
+    });
+  }
+});
+
+router.get('/dashboard', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const result = await onboardingService.getDashboardData(userId);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(404).json(result);
+    }
+  } catch (error) {
+    console.error('Dashboard error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get dashboard data'
+    });
+  }
+});
+
+router.put('/onboarding/update', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const updateData = req.body;
+
+    const result = await onboardingService.updateOnboardingData(userId, updateData);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Update onboarding error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update onboarding data'
+    });
+  }
+});
+
 module.exports = router; 
