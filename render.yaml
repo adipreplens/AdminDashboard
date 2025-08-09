@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: preplens-admin-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        value: mongodb+srv://shreyashchaudhary81:hfOYtcA7zywQsxJP@preplensadmin.mmrvf6s.mongodb.net/Preplensadmin?retryWrites=true&w=majority&appName=Preplensadmin
+      - key: JWT_SECRET
+        value: preplens-admin-secret-key-2024
+      - key: AWS_REGION
+        value: us-east-1
+      - key: S3_BUCKET_NAME
+        value: preplens-assets-prod
+      - key: BASE_URL
+        value: https://admindashboard-x0hk.onrender.com
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false 
