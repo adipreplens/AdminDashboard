@@ -2392,3 +2392,279 @@ app.get('/subjects/:examId/:subjectId/performance', async (req, res) => {
     });
   }
 });
+
+// Topic-based Question Routes - Updated to match frontend expectations
+app.get('/api/v1/topics/exams', (req, res) => {
+  try {
+    const exams = topicService.getAllExamsWithTopics();
+    res.json({
+      success: true,
+      data: exams
+    });
+  } catch (error) {
+    console.error('Get exams error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get exams'
+    });
+  }
+});
+
+app.get('/api/v1/topics/:examId/subjects', (req, res) => {
+  try {
+    const { examId } = req.params;
+    const subjects = topicService.getSubjectsForExam(examId);
+    res.json({
+      success: true,
+      data: subjects
+    });
+  } catch (error) {
+    console.error('Get subjects error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get subjects'
+    });
+  }
+});
+
+app.get('/api/v1/topics/:examId/subjects/:subjectId/topics', (req, res) => {
+  try {
+    const { examId, subjectId } = req.params;
+    const topics = topicService.getTopicsForSubject(examId, subjectId);
+    res.json({
+      success: true,
+      data: topics
+    });
+  } catch (error) {
+    console.error('Get topics error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get topics'
+    });
+  }
+});
+
+app.get('/api/v1/topics/:examId/questions', async (req, res) => {
+  try {
+    const { examId } = req.params;
+    const { subjectId, topicId, difficulty, language, limit = 20, skip = 0 } = req.query;
+    
+    const result = await topicService.getQuestionsByTopic(examId, subjectId, topicId, {
+      difficulty,
+      language,
+      limit: parseInt(limit),
+      skip: parseInt(skip)
+    });
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Get questions error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get questions'
+    });
+  }
+});
+
+app.post('/api/v1/topics/:examId/questions/multiple', async (req, res) => {
+  try {
+    const { examId } = req.params;
+    const { topics, difficulty, language, limit = 20, skip = 0 } = req.body;
+    
+    const result = await topicService.getQuestionsByTopics(examId, topics, {
+      difficulty,
+      language,
+      limit: parseInt(limit),
+      skip: parseInt(skip)
+    });
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Get multiple topics questions error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get questions'
+    });
+  }
+});
+
+app.get('/api/v1/topics/:examId/count', async (req, res) => {
+  try {
+    const { examId } = req.params;
+    const result = await topicService.getTopicQuestionCount(examId);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Get topic count error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get topic counts'
+    });
+  }
+});
+
+// API v1 Routes - Updated to match frontend expectations
+app.use('/api/v1/users', userRoutes);
+
+// Subject-based Test Routes - Updated to match frontend expectations
+app.get('/api/v1/subjects/:examId', (req, res) => {
+  try {
+    const { examId } = req.params;
+    const subjects = subjectTestService.getSubjectsForExam(examId);
+    res.json({
+      success: true,
+      data: subjects
+    });
+  } catch (error) {
+    console.error('Get subjects error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get subjects'
+    });
+  }
+});
+
+app.get('/api/v1/subjects/:examId/:subjectId', (req, res) => {
+  try {
+    const { examId, subjectId } = req.params;
+    const subjectDetails = subjectTestService.getSubjectDetails(examId, subjectId);
+    
+    if (subjectDetails) {
+      res.json({
+        success: true,
+        data: subjectDetails
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: 'Subject not found'
+      });
+    }
+  } catch (error) {
+    console.error('Get subject details error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get subject details'
+    });
+  }
+});
+
+app.post('/api/v1/subjects/:examId/:subjectId/start', async (req, res) => {
+  try {
+    const { examId, subjectId } = req.params;
+    const { difficulty, language } = req.body;
+    const userId = req.user._id; // Assuming authentication middleware
+
+    const options = {};
+    if (difficulty) options.difficulty = difficulty;
+    if (language) options.language = language;
+
+    const result = await subjectTestService.startSubjectTest(examId, subjectId, userId, options);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Start subject test error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start subject test'
+    });
+  }
+});
+
+app.post('/api/v1/subjects/test/:sessionId/answer', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { questionId, userAnswer, timeSpent } = req.body;
+
+    const result = await subjectTestService.submitAnswer(sessionId, questionId, userAnswer, timeSpent);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Submit answer error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to submit answer'
+    });
+  }
+});
+
+app.post('/api/v1/subjects/test/:sessionId/complete', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const result = await subjectTestService.completeSubjectTest(sessionId);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Complete subject test error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to complete subject test'
+    });
+  }
+});
+
+app.get('/api/v1/subjects/:examId/:subjectId/history', async (req, res) => {
+  try {
+    const { examId, subjectId } = req.params;
+    const userId = req.user._id; // Assuming authentication middleware
+
+    const result = await subjectTestService.getSubjectTestHistory(userId, examId, subjectId);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Get subject test history error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get test history'
+    });
+  }
+});
+
+app.get('/api/v1/subjects/:examId/:subjectId/performance', async (req, res) => {
+  try {
+    const { examId, subjectId } = req.params;
+    const userId = req.user._id; // Assuming authentication middleware
+
+    const result = await subjectTestService.getSubjectPerformance(userId, examId, subjectId);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Get subject performance error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get performance analytics'
+    });
+  }
+});

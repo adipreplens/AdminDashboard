@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Subject-based Test Service for Flutter
+// Subject-based Test Service for Flutter - Updated to match frontend expectations
 class SubjectBasedTestService {
   static const String baseUrl = 'https://admindashboard-x0hk.onrender.com';
   
@@ -17,7 +17,7 @@ class SubjectBasedTestService {
   static Future<List<SubjectData>> getSubjectsForExam(String examId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/subjects/$examId'),
+        Uri.parse('$baseUrl/api/v1/subjects/$examId'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -40,7 +40,7 @@ class SubjectBasedTestService {
   static Future<SubjectData?> getSubjectDetails(String examId, String subjectId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/subjects/$examId/$subjectId'),
+        Uri.parse('$baseUrl/api/v1/subjects/$examId/$subjectId'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -73,7 +73,7 @@ class SubjectBasedTestService {
       }
 
       final response = await http.post(
-        Uri.parse('$baseUrl/subjects/$examId/$subjectId/start'),
+        Uri.parse('$baseUrl/api/v1/subjects/$examId/$subjectId/start'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ class SubjectBasedTestService {
       }
 
       final response = await http.post(
-        Uri.parse('$baseUrl/subjects/test/$sessionId/answer'),
+        Uri.parse('$baseUrl/api/v1/subjects/test/$sessionId/answer'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -141,7 +141,7 @@ class SubjectBasedTestService {
       }
 
       final response = await http.post(
-        Uri.parse('$baseUrl/subjects/test/$sessionId/complete'),
+        Uri.parse('$baseUrl/api/v1/subjects/test/$sessionId/complete'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -168,7 +168,7 @@ class SubjectBasedTestService {
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/subjects/$examId/$subjectId/history'),
+        Uri.parse('$baseUrl/api/v1/subjects/$examId/$subjectId/history'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -197,7 +197,7 @@ class SubjectBasedTestService {
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/subjects/$examId/$subjectId/performance'),
+        Uri.parse('$baseUrl/api/v1/subjects/$examId/$subjectId/performance'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
