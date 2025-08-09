@@ -175,6 +175,16 @@ const testSessionSchema = new mongoose.Schema({
   },
   completedAt: {
     type: Date
+  },
+  aiGenerated: {
+    type: Boolean,
+    default: false
+  },
+  aiRecommendation: {
+    type: Object
+  },
+  timeLimit: {
+    type: Number
   }
 });
 
@@ -789,6 +799,126 @@ router.delete('/account', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Account deletion error:', error);
     res.status(500).json({ error: 'Failed to delete account' });
+  }
+});
+
+const AIRecommendationSystem = require('./ai_recommendation_system');
+const aiSystem = new AIRecommendationSystem();
+
+// AI Recommendation Routes
+router.get('/ai/next-test', authenticateToken, async (req, res) => {
+  try {
+    const { testType = 'practice' } = req.query;
+    const userId = req.user._id; // Use req.user._id
+
+    const recommendation = await aiSystem.getNextTestRecommendation(userId, testType);
+    
+    res.json({
+      success: true,
+      data: recommendation
+    });
+  } catch (error) {
+    console.error('AI Next Test Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get AI recommendation'
+    });
+  }
+});
+
+router.get('/ai/study-plan', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user._id; // Use req.user._id
+    
+    const studyPlan = await aiSystem.getPersonalizedStudyPlan(userId);
+    
+    res.json({
+      success: true,
+      data: studyPlan
+    });
+  } catch (error) {
+    console.error('AI Study Plan Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get study plan'
+    });
+  }
+});
+
+router.get('/ai/performance-analysis', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user._id; // Use req.user._id
+    
+    const userHistory = await aiSystem.getUserTestHistory(userId);
+    const analysis = aiSystem.analyzePerformance(userHistory);
+    
+    res.json({
+      success: true,
+      data: {
+        analysis,
+        history: {
+          totalTests: userHistory.totalTests,
+          averageScore: userHistory.averageScore
+        }
+      }
+    });
+  } catch (error) {
+    console.error('AI Performance Analysis Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to analyze performance'
+    });
+  }
+});
+
+// Smart test session with AI recommendation
+router.post('/ai/smart-test-session/start', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user._id; // Use req.user._id
+    const { testType = 'practice', subject, topic } = req.body;
+
+    // Get AI recommendation
+    const recommendation = await aiSystem.getNextTestRecommendation(userId, testType);
+    
+    if (!recommendation.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Failed to generate AI recommendation'
+      });
+    }
+
+    // Create test session with AI-recommended questions
+    const testSession = new TestSession({
+      userId,
+      testType,
+      subject: subject || recommendation.recommendation.subjectFocus,
+      topic: topic || recommendation.recommendation.topicFocus,
+      questions: recommendation.questions.map(q => q._id),
+      totalQuestions: recommendation.questions.length,
+      timeLimit: recommendation.recommendation.timeLimit,
+      aiGenerated: true,
+      aiRecommendation: recommendation.recommendation,
+      startedAt: new Date()
+    });
+
+    await testSession.save();
+
+    res.json({
+      success: true,
+      data: {
+        sessionId: testSession._id,
+        questions: recommendation.questions,
+        recommendation: recommendation.recommendation,
+        analysis: recommendation.analysis,
+        timeLimit: testSession.timeLimit
+      }
+    });
+  } catch (error) {
+    console.error('AI Smart Test Session Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start smart test session'
+    });
   }
 });
 
