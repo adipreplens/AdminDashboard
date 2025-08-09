@@ -10,10 +10,12 @@ const rateLimit = require('express-rate-limit');
 const XLSX = require('xlsx');
 const S3Service = require('./s3Service');
 const userRoutes = require('./user_apis');
+const { TopicBasedQuestionService } = require('./topic_based_questions');
 require('dotenv').config();
 
 // Initialize S3Service early
 const s3Service = new S3Service();
+const topicService = new TopicBasedQuestionService();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -2104,3 +2106,136 @@ setInterval(() => {
     console.log('🔄 Keep-alive ping');
   }
 }, 300000); // Every 5 minutes 
+
+// Topic-based Question Routes
+app.get('/topics/exams', (req, res) => {
+  try {
+    const examsWithTopics = topicService.getAllExamsWithTopics();
+    res.json({
+      success: true,
+      data: examsWithTopics
+    });
+  } catch (error) {
+    console.error('Get exams with topics error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get exams with topics'
+    });
+  }
+});
+
+app.get('/topics/:examId/subjects', (req, res) => {
+  try {
+    const { examId } = req.params;
+    const subjects = topicService.getSubjectsForExam(examId);
+    res.json({
+      success: true,
+      data: subjects
+    });
+  } catch (error) {
+    console.error('Get subjects error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get subjects'
+    });
+  }
+});
+
+app.get('/topics/:examId/subjects/:subjectId/topics', (req, res) => {
+  try {
+    const { examId, subjectId } = req.params;
+    const topics = topicService.getTopicsForSubject(examId, subjectId);
+    res.json({
+      success: true,
+      data: topics
+    });
+  } catch (error) {
+    console.error('Get topics error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get topics'
+    });
+  }
+});
+
+app.get('/topics/:examId/questions', async (req, res) => {
+  try {
+    const { examId } = req.params;
+    const { subject, topic, difficulty, language, limit, skip } = req.query;
+    
+    const options = {
+      difficulty,
+      language,
+      limit: parseInt(limit) || 50,
+      skip: parseInt(skip) || 0
+    };
+
+    const result = await topicService.getQuestionsByTopic(examId, subject, topic, options);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Get questions by topic error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get questions by topic'
+    });
+  }
+});
+
+app.post('/topics/:examId/questions/multiple', async (req, res) => {
+  try {
+    const { examId } = req.params;
+    const { topics, difficulty, language, limit, skip } = req.body;
+    
+    if (!topics || !Array.isArray(topics)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Topics array is required'
+      });
+    }
+
+    const options = {
+      difficulty,
+      language,
+      limit: parseInt(limit) || 50,
+      skip: parseInt(skip) || 0
+    };
+
+    const result = await topicService.getQuestionsByTopics(examId, topics, options);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Get questions by topics error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get questions by topics'
+    });
+  }
+});
+
+app.get('/topics/:examId/count', async (req, res) => {
+  try {
+    const { examId } = req.params;
+    const result = await topicService.getTopicQuestionCount(examId);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Get topic count error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get topic count'
+    });
+  }
+});
