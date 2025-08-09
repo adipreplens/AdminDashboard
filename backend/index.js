@@ -9,6 +9,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const XLSX = require('xlsx');
 const S3Service = require('./s3Service');
+const userRoutes = require('./user_apis');
 require('dotenv').config();
 
 // Initialize S3Service early
@@ -82,6 +83,9 @@ app.use('/uploads', (req, res, next) => {
   res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
   next();
 });
+
+// User routes
+app.use('/users', userRoutes);
 
 // MongoDB Connection with retry logic
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://shreyashchaudhary81:hfOYtcA7zywQsxJP@preplensadmin.mmrvf6s.mongodb.net/Preplensadmin?retryWrites=true&w=majority&appName=Preplensadmin';
