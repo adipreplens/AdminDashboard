@@ -88,8 +88,23 @@ app.use('/uploads', (req, res, next) => {
   next();
 });
 
+// Root route for testing
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'PrepLens Admin Backend is running!',
+    version: '1.0.0',
+    endpoints: {
+      users: '/api/v1/users',
+      questions: '/questions',
+      topics: '/api/v1/topics',
+      subjects: '/api/v1/subjects',
+      health: '/health'
+    }
+  });
+});
+
 // User routes
-app.use('/users', userRoutes);
+app.use('/api/v1/users', userRoutes);
 
 // MongoDB Connection with retry logic
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://shreyashchaudhary81:hfOYtcA7zywQsxJP@preplensadmin.mmrvf6s.mongodb.net/Preplensadmin?retryWrites=true&w=majority&appName=Preplensadmin';
@@ -2060,11 +2075,6 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Endpoint not found' });
-});
-
 // Start server with error handling
 const server = app.listen(PORT, () => {
   console.log(`PrepLens Admin Backend running on port ${PORT}`);
@@ -2667,4 +2677,9 @@ app.get('/api/v1/subjects/:examId/:subjectId/performance', async (req, res) => {
       error: 'Failed to get performance analytics'
     });
   }
+});
+
+// 404 handler - must be at the end after all routes
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' });
 });
