@@ -1034,8 +1034,73 @@ router.put('/onboarding/update', authenticateToken, async (req, res) => {
   }
 });
 
-// New User Registration Routes
-router.post('/register', async (req, res) => {
+  // User Login
+  router.post('/login', async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      // Validate required fields
+      if (!email || !password) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Missing required fields: email, password' 
+        });
+      }
+
+      // Find user by email
+      const User = mongoose.model('User');
+      const user = await User.findOne({ email });
+      if (!user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Invalid email or password' 
+        });
+      }
+
+      // Check password
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'Invalid email or password' 
+        });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { userId: user._id, email: user.email, exam: user.exam },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '7d' }
+      );
+
+      res.json({
+        success: true,
+        message: 'Login successful',
+        data: {
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            exam: user.exam,
+            language: user.language,
+            onboardingCompleted: user.onboardingCompleted
+          },
+          token
+        }
+      });
+
+    } catch (error) {
+      console.error('Error during login:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to login: ' + error.message 
+      });
+    }
+  });
+
+  // New User Registration Routes
+  router.post('/register', async (req, res) => {
   try {
     const { 
       name, 

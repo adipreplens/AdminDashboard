@@ -331,7 +331,7 @@ class UserApiService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/users/login'),
+        Uri.parse('$baseUrl/api/v1/users/login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'email': email,
@@ -367,7 +367,7 @@ class UserApiService {
   static Future<Map<String, dynamic>> getProfile() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/users/profile'),
+        Uri.parse('$baseUrl/api/v1/users/profile'),
         headers: _authHeaders,
       );
 
@@ -411,7 +411,7 @@ class UserApiService {
       if (preferences != null) body['preferences'] = preferences;
 
       final response = await http.put(
-        Uri.parse('$baseUrl/users/profile'),
+        Uri.parse('$baseUrl/api/v1/users/profile'),
         headers: _authHeaders,
         body: json.encode(body),
       );
