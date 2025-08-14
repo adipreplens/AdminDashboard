@@ -8,6 +8,8 @@ const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const XLSX = require('xlsx');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const S3Service = require('./s3Service');
 const userRoutes = require('./user_apis');
 const { TopicBasedQuestionService } = require('./topic_based_questions');
@@ -98,8 +100,21 @@ app.get('/', (req, res) => {
       questions: '/questions',
       topics: '/api/v1/topics',
       subjects: '/api/v1/subjects',
-      health: '/health'
-    }
+      newRegistration: '/api/users/register',
+      newOnboarding: '/api/users/onboarding',
+      newProfile: '/api/users/profile/:userId'
+    },
+    health: '/health'
+  });
+});
+
+// Test endpoint for new user registration
+app.get('/test-registration', (req, res) => {
+  res.json({ 
+    message: 'New user registration endpoint is working!',
+    endpoint: '/api/users/register',
+    method: 'POST',
+    requiredFields: ['name', 'email', 'password', 'exam']
   });
 });
 
