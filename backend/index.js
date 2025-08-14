@@ -204,10 +204,31 @@ const questionSchema = new mongoose.Schema({
 });
 
 const userSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  role: { type: String, default: 'admin' },
-  createdAt: { type: Date, default: Date.now }
+  name: { type: String, required: true, trim: true },
+  email: { type: String, required: true, unique: true, trim: true, lowercase: true },
+  password: { type: String, required: true, minlength: 6 },
+  phone: { type: String, trim: true },
+  exam: { 
+    type: String, 
+    required: true,
+    enum: ['rrb-je', 'rrb-alp', 'rrb-technician', 'rrb-ntpc', 'ssc-cgl', 'ssc-chsl', 'ssc-je', 'upsc', 'bank-po', 'cat']
+  },
+  language: { 
+    type: String, 
+    enum: ['english', 'hindi'], 
+    default: 'english' 
+  },
+  referralCode: { type: String },
+  onboardingCompleted: { type: Boolean, default: false },
+  role: { type: String, default: 'user' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+// Add pre-save middleware for User schema
+userSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
 });
 
 const Question = mongoose.model('Question', questionSchema);
@@ -1708,6 +1729,240 @@ app.post('/auth/register', async (req, res) => {
   } catch (error) {
     console.error('Error registering user:', error);
     res.status(500).json({ error: 'Failed to register user' });
+  }
+});
+
+// Comprehensive user registration with onboarding
+app.post('/api/users/register', async (req, res) => {
+  try {
+    const { 
+      name, 
+      email, 
+      password, 
+      phone, 
+      exam, 
+      language, 
+      referralCode 
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !password || !exam) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields: name, email, password, exam' 
+      });
+    }
+
+    // Validate exam
+    const validExams = ['rrb-je', 'rrb-alp', 'rrb-technician', 'rrb-ntpc', 'ssc-cgl', 'ssc-chsl', 'ssc-je', 'upsc', 'bank-po', 'cat'];
+    if (!validExams.includes(exam)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Invalid exam. Must be one of: ${validExams.join(', ')}` 
+      });
+    }
+
+    // Validate language
+    const validLanguages = ['english', 'hindi'];
+    if (language && !validLanguages.includes(language)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Invalid language. Must be one of: ${validLanguages.join(', ')}` 
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'User with this email already exists' 
+      });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create new user
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      phone,
+      exam,
+      language: language || 'english',
+      referralCode,
+      onboardingCompleted: false
+    });
+
+    await user.save();
+
+    // Initialize onboarding with default values
+    const { OnboardingService } = require('./user_onboarding');
+    const onboardingService = new OnboardingService();
+    
+    const defaultOnboardingData = {
+      exam,
+      preparationDays: 90, // Default 3 months
+      currentLevel: 'beginner',
+      studyTimePerDay: 2,
+      targetScore: 80,
+      dailyQuestions: 30,
+      weeklyTests: 3
+    };
+
+    const onboardingResult = await onboardingService.saveOnboardingData(user._id, defaultOnboardingData);
+
+    if (!onboardingResult.success) {
+      console.error('Onboarding initialization failed:', onboardingResult.error);
+      // Don't fail the registration, just log the error
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, email: user.email, exam: user.exam },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          exam: user.exam,
+          language: user.language,
+          onboardingCompleted: user.onboardingCompleted
+        },
+        token,
+        onboarding: onboardingResult.success ? onboardingResult.data : null
+      }
+    });
+
+  } catch (error) {
+    console.error('Error registering user:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to register user: ' + error.message 
+    });
+  }
+});
+
+// Complete onboarding process
+app.post('/api/users/onboarding', async (req, res) => {
+  try {
+    const { 
+      userId,
+      preparationDays,
+      currentLevel,
+      preferredSubjects,
+      studyTimePerDay,
+      weakAreas,
+      strongAreas,
+      targetScore,
+      dailyQuestions,
+      weeklyTests
+    } = req.body;
+
+    // Validate required fields
+    if (!userId || !preparationDays) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing required fields: userId, preparationDays' 
+      });
+    }
+
+    // Validate preparation days
+    if (preparationDays < 1 || preparationDays > 365) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Preparation days must be between 1 and 365' 
+      });
+    }
+
+    // Use the onboarding service to save detailed onboarding data
+    const { OnboardingService } = require('./user_onboarding');
+    const onboardingService = new OnboardingService();
+    
+    const onboardingData = {
+      exam: req.body.exam, // This should come from the user's profile
+      preparationDays,
+      currentLevel: currentLevel || 'beginner',
+      preferredSubjects: preferredSubjects || [],
+      studyTimePerDay: studyTimePerDay || 2,
+      weakAreas: weakAreas || [],
+      strongAreas: strongAreas || [],
+      targetScore: targetScore || 80,
+      dailyQuestions: dailyQuestions || 30,
+      weeklyTests: weeklyTests || 3
+    };
+
+    const result = await onboardingService.saveOnboardingData(userId, onboardingData);
+
+    if (!result.success) {
+      return res.status(400).json({ 
+        success: false, 
+        error: result.error 
+      });
+    }
+
+    // Update user's onboarding status
+    await User.findByIdAndUpdate(userId, { 
+      onboardingCompleted: true 
+    });
+
+    res.json({
+      success: true,
+      message: 'Onboarding completed successfully',
+      data: result.data
+    });
+
+  } catch (error) {
+    console.error('Error completing onboarding:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to complete onboarding: ' + error.message 
+    });
+  }
+});
+
+// Get user profile
+app.get('/api/users/profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found' 
+      });
+    }
+
+    // Get onboarding data if available
+    const { OnboardingService } = require('./user_onboarding');
+    const onboardingService = new OnboardingService();
+    const onboardingData = await onboardingService.getOnboardingData(userId);
+
+    res.json({
+      success: true,
+      data: {
+        user,
+        onboarding: onboardingData.success ? onboardingData.data : null
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch user profile: ' + error.message 
+    });
   }
 });
 
