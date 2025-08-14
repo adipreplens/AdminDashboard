@@ -258,7 +258,10 @@ const router = express.Router();
 // 1. User Registration
 router.post('/register', async (req, res) => {
   try {
+    console.log('Registration request body:', req.body);
     const { name, email, password, phone, exam, language, referralCode } = req.body;
+    console.log('Extracted exam field:', exam);
+    console.log('All extracted fields:', { name, email, phone, exam, language, referralCode });
 
     // Check if user already exists
     const existingUser = await AppUser.findOne({ email });
@@ -279,6 +282,15 @@ router.post('/register', async (req, res) => {
     }
 
     // Create user
+    console.log('Creating user with data:', {
+      name,
+      email,
+      phone,
+      exam,
+      language: language || 'english',
+      referredBy
+    });
+    
     const user = new AppUser({
       name,
       email,
