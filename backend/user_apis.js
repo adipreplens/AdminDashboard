@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const aiService = require('./ai_service');
 
 // User Schema
 const userSchema = new mongoose.Schema({
@@ -1548,6 +1549,171 @@ router.post('/logout', async (req, res) => {
       res.status(500).json({ 
         success: false, 
         error: 'Failed to fetch difficulties: ' + error.message 
+      });
+    }
+  });
+
+  // ==================== AI ENDPOINTS ====================
+
+  // AI Analysis endpoint
+  router.post('/ai/analyze-attempt', async (req, res) => {
+    try {
+      const { userId, examType, attemptData, mode = 'analyze_attempt' } = req.body;
+      
+      // Validate input
+      if (!userId || !examType || !attemptData) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields: userId, examType, attemptData'
+        });
+      }
+
+      // Generate AI analysis
+      const analysis = await aiService.generateAIAnalysis(attemptData, examType, mode);
+      
+      res.json({
+        success: true,
+        analysis: analysis,
+        mode: mode,
+        confidence: 0.95,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('AI Analysis error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'AI analysis failed',
+        details: error.message
+      });
+    }
+  });
+
+  // AI Learning Path endpoint
+  router.post('/ai/recommend-path', async (req, res) => {
+    try {
+      const { userId, examType, performanceData, preparationMonths, mode = 'recommend_path' } = req.body;
+      
+      if (!userId || !examType || !performanceData) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields'
+        });
+      }
+
+      const recommendations = await aiService.generateAILearningPath(performanceData, examType, preparationMonths, mode);
+      
+      res.json({
+        success: true,
+        recommendations: recommendations,
+        mode: mode,
+        confidence: 0.90,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('AI Recommendations error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'AI recommendations failed',
+        details: error.message
+      });
+    }
+  });
+
+  // AI Tutor endpoint
+  router.post('/ai/tutor', async (req, res) => {
+    try {
+      const { userId, question, subject, examType, availableContent, mode = 'tutor' } = req.body;
+      
+      if (!userId || !question) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields: userId, question'
+        });
+      }
+
+      const tutorResponse = await aiService.generateAITutorResponse(question, subject, examType, availableContent, mode);
+      
+      res.json({
+        success: true,
+        response: tutorResponse,
+        mode: mode,
+        confidence: tutorResponse.confidence || 0.85,
+        needs_human_review: tutorResponse.needsHumanReview || false,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('AI Tutor error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'AI tutor failed',
+        details: error.message
+      });
+    }
+  });
+
+  // AI Weekly Plan endpoint
+  router.post('/ai/weekly-plan', async (req, res) => {
+    try {
+      const { userId, examType, currentPerformance, preparationMonths, mode = 'weekly_plan' } = req.body;
+      
+      if (!userId || !examType || !currentPerformance) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields'
+        });
+      }
+
+      const weeklyPlan = await aiService.generateAIWeeklyPlan(currentPerformance, examType, preparationMonths, mode);
+      
+      res.json({
+        success: true,
+        weeklyPlan: weeklyPlan,
+        mode: mode,
+        confidence: 0.88,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('AI Weekly Plan error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'AI weekly plan failed',
+        details: error.message
+      });
+    }
+  });
+
+  // AI Insights Summary endpoint
+  router.post('/ai/insights-summary', async (req, res) => {
+    try {
+      const { userId, examType, preparationMonths, days = 30, mode = 'insights_summary' } = req.body;
+      
+      if (!userId || !examType) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields'
+        });
+      }
+
+      const insights = await aiService.generateAIInsightsSummary(examType, days, preparationMonths, mode);
+      
+      res.json({
+        success: true,
+        insights: insights,
+        mode: mode,
+        confidence: 0.82,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('AI Insights error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'AI insights failed',
+        details: error.message
       });
     }
   });
