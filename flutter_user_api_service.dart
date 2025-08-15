@@ -1039,6 +1039,71 @@ class UserApiService {
       };
     }
   }
+
+  // 24. User Logout
+  static Future<Map<String, dynamic>> logout() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/v1/users/logout'),
+        headers: _authHeaders,
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        await clearAuthToken();
+        return {
+          'success': true,
+          'message': data['message'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['error'] ?? 'Failed to logout',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // 25. Refresh Token
+  static Future<Map<String, dynamic>> refreshToken(String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/v1/users/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'token': token,
+        }),
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        await saveAuthToken(data['data']['token']);
+        return {
+          'success': true,
+          'message': data['message'],
+          'token': data['data']['token'],
+          'user': data['data']['user'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['error'] ?? 'Failed to refresh token',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
 }
 
 // Example Usage

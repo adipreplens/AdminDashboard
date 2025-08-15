@@ -1336,4 +1336,81 @@ router.get('/profile/:userId', async (req, res) => {
   }
 });
 
+// User Logout
+router.post('/logout', async (req, res) => {
+  try {
+    // In a real app, you might want to blacklist the token
+    // For now, we'll just return success
+    res.json({
+      success: true,
+      message: 'Logout successful'
+    });
+  } catch (error) {
+    console.error('Error during logout:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to logout: ' + error.message 
+    });
+  }
+});
+
+// Refresh Token
+router.post('/refresh', async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Token is required' 
+      });
+    }
+
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    
+    // Get user data
+    const User = mongoose.model('User');
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user) {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'User not found' 
+      });
+    }
+
+    // Generate new token
+    const newToken = jwt.sign(
+      { userId: user._id, email: user.email, exam: user.exam },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      success: true,
+      message: 'Token refreshed successfully',
+      data: {
+        token: newToken,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          exam: user.exam,
+          language: user.language,
+          onboardingCompleted: user.onboardingCompleted
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    res.status(401).json({ 
+      success: false, 
+      error: 'Invalid or expired token' 
+    });
+  }
+});
+
 module.exports = router; 
