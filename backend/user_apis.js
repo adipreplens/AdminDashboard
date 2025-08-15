@@ -1354,63 +1354,202 @@ router.post('/logout', async (req, res) => {
   }
 });
 
-// Refresh Token
-router.post('/refresh', async (req, res) => {
-  try {
-    const { token } = req.body;
-    
-    if (!token) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Token is required' 
-      });
-    }
-
-    // Verify the token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
-    // Get user data
-    const User = mongoose.model('User');
-    const user = await User.findById(decoded.userId).select('-password');
-    
-    if (!user) {
-      return res.status(401).json({ 
-        success: false, 
-        error: 'User not found' 
-      });
-    }
-
-    // Generate new token
-    const newToken = jwt.sign(
-      { userId: user._id, email: user.email, exam: user.exam },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
-    );
-
-    res.json({
-      success: true,
-      message: 'Token refreshed successfully',
-      data: {
-        token: newToken,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone,
-          exam: user.exam,
-          language: user.language,
-          onboardingCompleted: user.onboardingCompleted
-        }
+  // Refresh Token
+  router.post('/refresh', async (req, res) => {
+    try {
+      const { token } = req.body;
+      
+      if (!token) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Token is required' 
+        });
       }
-    });
 
-  } catch (error) {
-    console.error('Error refreshing token:', error);
-    res.status(401).json({ 
-      success: false, 
-      error: 'Invalid or expired token' 
-    });
-  }
-});
+      // Verify the token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      
+      // Get user data
+      const User = mongoose.model('User');
+      const user = await User.findById(decoded.userId).select('-password');
+      
+      if (!user) {
+        return res.status(401).json({ 
+          success: false, 
+          error: 'User not found' 
+        });
+      }
+
+      // Generate new token
+      const newToken = jwt.sign(
+        { userId: user._id, email: user.email, exam: user.exam },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '7d' }
+      );
+
+      res.json({
+        success: true,
+        message: 'Token refreshed successfully',
+        data: {
+          token: newToken,
+          user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            exam: user.exam,
+            language: user.language,
+            onboardingCompleted: user.onboardingCompleted
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      res.status(401).json({ 
+        success: false, 
+        error: 'Invalid or expired token' 
+      });
+    }
+  });
+
+  // Get Questions by Exam
+  router.get('/questions/:exam', async (req, res) => {
+    try {
+      const { exam } = req.params;
+      const { 
+        page = 1, 
+        limit = 20, 
+        subject, 
+        difficulty, 
+        language = 'english',
+        search 
+      } = req.query;
+
+      // Validate exam
+      const validExams = ['rrb-je', 'rrb-alp', 'rrb-technician', 'rrb-ntpc', 'ssc-cgl', 'ssc-chsl', 'ssc-je', 'upsc', 'bank-po', 'cat'];
+      if (!validExams.includes(exam)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: `Invalid exam. Must be one of: ${validExams.join(', ')}` 
+        });
+      }
+
+      // Build query
+      let query = { 
+        exam: exam,
+        publishStatus: 'published'
+      };
+
+      // Add filters
+      if (subject) query.subject = subject;
+      if (difficulty) query.difficulty = difficulty;
+      if (language) query.language = language;
+      if (search) {
+        query.$or = [
+          { text: { $regex: search, $options: 'i' } },
+          { subject: { $regex: search, $options: 'i' } },
+          { topic: { $regex: search, $options: 'i' } }
+        ];
+      }
+
+      // Get questions from main database
+      const Question = mongoose.model('Question');
+      const questions = await Question.find(query)
+        .select('text options answer subject exam difficulty level marks timeLimit blooms imageUrl solutionImageUrl optionImages questionMath solutionMath topic solution')
+        .sort({ createdAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+
+      const total = await Question.countDocuments(query);
+
+      res.json({
+        success: true,
+        data: {
+          questions,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(total / limit),
+            totalQuestions: total,
+            hasNextPage: page * limit < total,
+            hasPrevPage: page > 1
+          },
+          filters: {
+            exam,
+            subject,
+            difficulty,
+            language,
+            search
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Error fetching questions:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch questions: ' + error.message 
+      });
+    }
+  });
+
+  // Get Available Subjects for Exam
+  router.get('/subjects/:exam', async (req, res) => {
+    try {
+      const { exam } = req.params;
+
+      // Validate exam
+      const validExams = ['rrb-je', 'rrb-alp', 'rrb-technician', 'rrb-ntpc', 'ssc-cgl', 'ssc-chsl', 'ssc-je', 'upsc', 'bank-po', 'cat'];
+      if (!validExams.includes(exam)) {
+        return res.status(400).json({ 
+          success: false, 
+          error: `Invalid exam. Must be one of: ${validExams.join(', ')}` 
+        });
+      }
+
+      const Question = mongoose.model('Question');
+      const subjects = await Question.distinct('subject', { 
+        exam: exam,
+        publishStatus: 'published'
+      });
+
+      res.json({
+        success: true,
+        data: subjects
+      });
+
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch subjects: ' + error.message 
+      });
+    }
+  });
+
+  // Get Available Difficulties for Exam
+  router.get('/difficulties/:exam', async (req, res) => {
+    try {
+      const { exam } = req.params;
+
+      const Question = mongoose.model('Question');
+      const difficulties = await Question.distinct('difficulty', { 
+        exam: exam,
+        publishStatus: 'published'
+      });
+
+      res.json({
+        success: true,
+        data: difficulties
+      });
+
+    } catch (error) {
+      console.error('Error fetching difficulties:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch difficulties: ' + error.message 
+      });
+    }
+  });
 
 module.exports = router; 

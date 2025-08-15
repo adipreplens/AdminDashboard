@@ -1104,6 +1104,109 @@ class UserApiService {
       };
     }
   }
+
+  // 26. Get Questions by Exam
+  static Future<Map<String, dynamic>> getQuestionsByExam({
+    required String exam,
+    int page = 1,
+    int limit = 20,
+    String? subject,
+    String? difficulty,
+    String language = 'english',
+    String? search,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'page': page.toString(),
+        'limit': limit.toString(),
+        'language': language,
+      };
+      
+      if (subject != null) queryParams['subject'] = subject;
+      if (difficulty != null) queryParams['difficulty'] = difficulty;
+      if (search != null) queryParams['search'] = search;
+
+      final uri = Uri.parse('$baseUrl/api/v1/users/questions/$exam').replace(queryParameters: queryParams);
+      
+      final response = await http.get(uri, headers: _authHeaders);
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['error'] ?? 'Failed to fetch questions',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // 27. Get Available Subjects for Exam
+  static Future<Map<String, dynamic>> getSubjectsByExam(String exam) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/v1/users/subjects/$exam'),
+        headers: _authHeaders,
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['error'] ?? 'Failed to fetch subjects',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
+
+  // 28. Get Available Difficulties for Exam
+  static Future<Map<String, dynamic>> getDifficultiesByExam(String exam) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/v1/users/difficulties/$exam'),
+        headers: _authHeaders,
+      );
+
+      final data = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': data['data'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': data['error'] ?? 'Failed to fetch difficulties',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Network error: $e',
+      };
+    }
+  }
 }
 
 // Example Usage
