@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const aiService = require('./ai_service');
+const { TestResult, TestSession, TestAnswer, UserProgress, UserPreferences } = require('./database_schemas');
 
 // User Schema
 const userSchema = new mongoose.Schema({
@@ -1713,6 +1714,541 @@ router.post('/logout', async (req, res) => {
       res.status(500).json({
         success: false,
         error: 'AI insights failed',
+        details: error.message
+      });
+    }
+  });
+
+  // ==================== CRITICAL MISSING ENDPOINTS ====================
+
+  // 1. Token Refresh (Critical)
+  router.post('/refresh', async (req, res) => {
+    try {
+      const { refreshToken } = req.body;
+      
+      if (!refreshToken) {
+        return res.status(400).json({
+          success: false,
+          error: 'Refresh token is required'
+        });
+      }
+
+      // Verify refresh token
+      const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET || 'your-secret-key');
+      
+      // Generate new tokens
+      const newToken = jwt.sign(
+        { userId: decoded.userId, email: decoded.email },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '1h' }
+      );
+      
+      const newRefreshToken = jwt.sign(
+        { userId: decoded.userId, email: decoded.email },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '7d' }
+      );
+      
+      res.json({
+        success: true,
+        token: newToken,
+        refreshToken: newRefreshToken,
+        message: 'Token refreshed successfully'
+      });
+
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      res.status(401).json({
+        success: false,
+        error: 'Invalid refresh token'
+      });
+    }
+  });
+
+  // 2. Save Test Results
+  router.post('/test-results', async (req, res) => {
+    try {
+      const { testId, testType, examType, answers, score, totalQuestions, timeTaken, completedAt } = req.body;
+      
+      if (!testId || !testType || !examType || !answers) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields'
+        });
+      }
+
+      // Create test result document
+      const testResult = new TestResult({
+        testId,
+        testType,
+        examType,
+        answers,
+        score: score || 0,
+        totalQuestions: totalQuestions || answers.length,
+        timeTaken: timeTaken || 0,
+        completedAt: completedAt || new Date(),
+        createdAt: new Date()
+      });
+
+      await testResult.save();
+      
+      res.status(201).json({
+        success: true,
+        resultId: testResult._id,
+        message: 'Test result saved successfully'
+      });
+
+    } catch (error) {
+      console.error('Save test result error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to save test result',
+        details: error.message
+      });
+    }
+  });
+
+  // 3. Get Test Results
+  router.get('/test-results', async (req, res) => {
+    try {
+      const { page = 1, limit = 10, examType, testType } = req.query;
+      
+      const query = {};
+      if (examType) query.examType = examType;
+      if (testType) query.testType = testType;
+
+      const results = await TestResult.find(query)
+        .sort({ completedAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+
+      const total = await TestResult.countDocuments(query);
+
+      res.json({
+        success: true,
+        results,
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        hasMore: page * limit < total
+      });
+
+    } catch (error) {
+      console.error('Get test results error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch test results',
+        details: error.message
+      });
+    }
+  });
+
+  // 4. Start Test Session
+  router.post('/test-session/start', async (req, res) => {
+    try {
+      const { examType, testType, questionCount } = req.body;
+      
+      if (!examType || !testType) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields'
+        });
+      }
+
+      // Generate session ID
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Get questions for the exam
+      const Question = mongoose.model('Question');
+      const questions = await Question.find({ 
+        exam: examType,
+        publishStatus: 'published'
+      })
+      .limit(questionCount || 10)
+      .select('text options answer subject difficulty');
+
+      // Create test session
+      const testSession = new TestSession({
+        sessionId,
+        examType,
+        testType,
+        questionCount: questions.length,
+        status: 'active',
+        startedAt: new Date(),
+        questions: questions.map(q => ({
+          questionId: q._id,
+          text: q.text,
+          options: q.options,
+          subject: q.subject,
+          difficulty: q.difficulty
+        }))
+      });
+
+      await testSession.save();
+      
+      res.json({
+        success: true,
+        sessionId,
+        questions: questions.map(q => ({
+          id: q._id,
+          text: q.text,
+          options: q.options,
+          subject: q.subject,
+          difficulty: q.difficulty
+        }))
+      });
+
+    } catch (error) {
+      console.error('Start test session error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to start test session',
+        details: error.message
+      });
+    }
+  });
+
+  // 5. Submit Test Answer
+  router.post('/test-session/:sessionId/answer', async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { questionId, selectedAnswer, isCorrect } = req.body;
+      
+      if (!questionId || !selectedAnswer) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields'
+        });
+      }
+
+      // Save answer
+      const testAnswer = new TestAnswer({
+        sessionId,
+        questionId,
+        selectedAnswer,
+        isCorrect: isCorrect || false,
+        answeredAt: new Date()
+      });
+
+      await testAnswer.save();
+      
+      res.json({
+        success: true,
+        message: 'Answer submitted successfully'
+      });
+
+    } catch (error) {
+      console.error('Submit answer error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to submit answer',
+        details: error.message
+      });
+    }
+  });
+
+  // 6. Complete Test Session
+  router.post('/test-session/:sessionId/complete', async (req, res) => {
+    try {
+      const { sessionId } = req.params;
+      const { totalTime } = req.body;
+      
+      // Update session status
+      const session = await TestSession.findOneAndUpdate(
+        { sessionId },
+        { 
+          status: 'completed',
+          completedAt: new Date(),
+          totalTime: totalTime || 0
+        },
+        { new: true }
+      );
+
+      if (!session) {
+        return res.status(404).json({
+          success: false,
+          error: 'Test session not found'
+        });
+      }
+
+      // Calculate results
+      const answers = await TestAnswer.find({ sessionId });
+      const correctAnswers = answers.filter(a => a.isCorrect).length;
+      const score = (correctAnswers / session.questionCount) * 100;
+
+      res.json({
+        success: true,
+        result: {
+          sessionId,
+          score: Math.round(score),
+          correctAnswers,
+          totalQuestions: session.questionCount,
+          totalTime: session.totalTime,
+          completedAt: session.completedAt
+        }
+      });
+
+    } catch (error) {
+      console.error('Complete test session error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to complete test session',
+        details: error.message
+      });
+    }
+  });
+
+  // 7. Get User Progress
+  router.get('/progress', async (req, res) => {
+    try {
+      const { examType } = req.query;
+      
+      const query = {};
+      if (examType) query.examType = examType;
+
+      const results = await TestResult.find(query);
+
+      const totalTests = results.length;
+      const passedTests = results.filter(r => r.score >= 60).length;
+      const failedTests = totalTests - passedTests;
+      const averageScore = totalTests > 0 ? results.reduce((sum, r) => sum + r.score, 0) / totalTests : 0;
+      const totalTime = results.reduce((sum, r) => sum + r.timeTaken, 0);
+
+      // Calculate streak
+      const sortedResults = results.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+      let streak = 0;
+      let currentDate = new Date();
+      
+      for (const result of sortedResults) {
+        const resultDate = new Date(result.completedAt);
+        const daysDiff = Math.floor((currentDate - resultDate) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff <= 1) {
+          streak++;
+          currentDate = resultDate;
+        } else {
+          break;
+        }
+      }
+
+      res.json({
+        success: true,
+        progress: {
+          totalTests,
+          passedTests,
+          failedTests,
+          averageScore: Math.round(averageScore),
+          totalTime,
+          streak,
+          lastTestDate: sortedResults.length > 0 ? sortedResults[0].completedAt : null
+        }
+      });
+
+    } catch (error) {
+      console.error('Get user progress error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get user progress',
+        details: error.message
+      });
+    }
+  });
+
+  // 8. Get User Stats
+  router.get('/stats', async (req, res) => {
+    try {
+      const results = await TestResult.find().sort({ completedAt: -1 });
+
+      const totalTests = results.length;
+      const totalScore = results.reduce((sum, r) => sum + r.score, 0);
+      const totalQuestions = results.reduce((sum, r) => sum + r.totalQuestions, 0);
+      const totalTime = results.reduce((sum, r) => sum + r.timeTaken, 0);
+      const averageScore = totalTests > 0 ? totalScore / totalTests : 0;
+      const averageTime = totalTests > 0 ? totalTime / totalTests : 0;
+      const accuracy = totalQuestions > 0 ? (results.reduce((sum, r) => sum + (r.score * r.totalQuestions / 100), 0) / totalQuestions) * 100 : 0;
+
+      // Calculate streak
+      let currentStreak = 0;
+      let bestStreak = 0;
+      let tempStreak = 0;
+      let currentDate = new Date();
+
+      for (const result of results) {
+        const resultDate = new Date(result.completedAt);
+        const daysDiff = Math.floor((currentDate - resultDate) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff <= 1) {
+          tempStreak++;
+          currentDate = resultDate;
+        } else {
+          if (tempStreak > bestStreak) bestStreak = tempStreak;
+          if (currentStreak === 0) currentStreak = tempStreak;
+          tempStreak = 0;
+          currentDate = resultDate;
+        }
+      }
+
+      if (tempStreak > bestStreak) bestStreak = tempStreak;
+      if (currentStreak === 0) currentStreak = tempStreak;
+
+      res.json({
+        success: true,
+        stats: {
+          totalTests,
+          totalScore: Math.round(totalScore),
+          totalQuestions,
+          totalTime,
+          averageScore: Math.round(averageScore),
+          averageTime: Math.round(averageTime),
+          currentStreak,
+          bestStreak,
+          lastTestDate: results.length > 0 ? results[0].completedAt : null,
+          accuracy: Math.round(accuracy)
+        }
+      });
+
+    } catch (error) {
+      console.error('Get user stats error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get user stats',
+        details: error.message
+      });
+    }
+  });
+
+  // 9. Get Dashboard Data
+  router.get('/dashboard', async (req, res) => {
+    try {
+      // Get stats
+      const results = await TestResult.find().sort({ completedAt: -1 }).limit(10);
+
+      const totalTests = await TestResult.countDocuments();
+      const averageScore = totalTests > 0 ? results.reduce((sum, r) => sum + r.score, 0) / results.length : 0;
+
+      // Get recent tests
+      const recentTests = results.slice(0, 5).map(r => ({
+        id: r._id,
+        testType: r.testType,
+        examType: r.examType,
+        score: r.score,
+        totalQuestions: r.totalQuestions,
+        completedAt: r.completedAt
+      }));
+
+      // Generate recommendations
+      const recommendations = [];
+      if (results.length === 0) {
+        recommendations.push('Start your first practice test to begin learning');
+      } else if (averageScore < 60) {
+        recommendations.push('Focus on fundamental concepts and basic practice');
+      } else if (averageScore < 80) {
+        recommendations.push('Practice medium difficulty questions to improve');
+      } else {
+        recommendations.push('Try advanced questions to master the concepts');
+      }
+
+      res.json({
+        success: true,
+        stats: {
+          totalTests,
+          averageScore: Math.round(averageScore),
+          currentStreak: 0 // Calculate from progress endpoint
+        },
+        recentTests,
+        recommendations
+      });
+
+    } catch (error) {
+      console.error('Get dashboard data error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get dashboard data',
+        details: error.message
+      });
+    }
+  });
+
+  // 10. Update User Preferences
+  router.put('/profile', async (req, res) => {
+    try {
+      const { preferences } = req.body;
+      
+      if (!preferences) {
+        return res.status(400).json({
+          success: false,
+          error: 'Preferences are required'
+        });
+      }
+
+      // Update user preferences
+      const User = mongoose.model('User');
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user.id,
+        { 
+          preferences,
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        preferences: updatedUser.preferences,
+        message: 'Preferences updated successfully'
+      });
+
+    } catch (error) {
+      console.error('Update preferences error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update preferences',
+        details: error.message
+      });
+    }
+  });
+
+  // 11. Get Test History
+  router.get('/test-history', async (req, res) => {
+    try {
+      const { page = 1, limit = 10 } = req.query;
+
+      const history = await TestResult.find()
+        .sort({ completedAt: -1 })
+        .limit(limit * 1)
+        .skip((page - 1) * limit);
+
+      const total = await TestResult.countDocuments();
+
+      res.json({
+        success: true,
+        history: history.map(h => ({
+          id: h._id,
+          testType: h.testType,
+          examType: h.examType,
+          score: h.score,
+          totalQuestions: h.totalQuestions,
+          timeTaken: h.timeTaken,
+          completedAt: h.completedAt
+        })),
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        hasMore: page * limit < total
+      });
+
+    } catch (error) {
+      console.error('Get test history error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get test history',
         details: error.message
       });
     }

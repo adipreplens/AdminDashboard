@@ -2,8 +2,9 @@
 // This file contains all the AI logic for analyzing attempts, generating recommendations, etc.
 
 // Configuration
-const USE_REAL_AI = false; // Toggle between real AI and simulation
-const REAL_AI_ENDPOINT = 'https://your-ai-service.com/api/ai';
+const USE_REAL_AI = true; // Use real AI service
+const REAL_AI_ENDPOINT = 'https://api.openai.com/v1/chat/completions'; // OpenAI API
+const AI_MODEL = 'gpt-4'; // or 'gpt-3.5-turbo' for cost efficiency
 
 // AI System Prompt for all modes
 const SYSTEM_PROMPT = `
