@@ -191,16 +191,23 @@ router.post('/register', async (req, res) => {
 
     await user.save();
 
-    // Generate JWT token
+    // Generate JWT token and refresh token
     const token = jwt.sign(
       { userId: user._id, email: user.email },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '1h' }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
 
     res.status(201).json({
       message: 'User registered successfully',
       token,
+      refreshToken,
       user: {
         id: user._id,
         name: user.name,
@@ -234,16 +241,23 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token
+    // Generate JWT token and refresh token
     const token = jwt.sign(
       { userId: user._id, email: user.email },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '1h' }
+    );
+
+    const refreshToken = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
 
     res.json({
       message: 'Login successful',
       token,
+      refreshToken,
       user: {
         id: user._id,
         name: user.name,
@@ -1638,8 +1652,7 @@ router.post('/logout', async (req, res) => {
       res.json({
         success: true,
         token: newToken,
-        refreshToken: newRefreshToken,
-        message: 'Token refreshed successfully'
+        refreshToken: newRefreshToken
       });
 
     } catch (error) {
@@ -1663,8 +1676,14 @@ router.post('/logout', async (req, res) => {
         });
       }
 
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
       // Create test result document
       const testResult = new TestResult({
+        userId: decoded.userId,
         testId,
         testType,
         examType,
@@ -1680,16 +1699,14 @@ router.post('/logout', async (req, res) => {
       
       res.status(201).json({
         success: true,
-        resultId: testResult._id,
-        message: 'Test result saved successfully'
+        resultId: testResult._id
       });
 
     } catch (error) {
       console.error('Save test result error:', error);
       res.status(500).json({
         success: false,
-        error: 'Failed to save test result',
-        details: error.message
+        error: 'Failed to save test result'
       });
     }
   });
@@ -1699,7 +1716,12 @@ router.post('/logout', async (req, res) => {
     try {
       const { page = 1, limit = 10, examType, testType } = req.query;
       
-      const query = {};
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      
+      const query = { userId: decoded.userId };
       if (examType) query.examType = examType;
       if (testType) query.testType = testType;
 
@@ -1711,7 +1733,6 @@ router.post('/logout', async (req, res) => {
       const total = await TestResult.countDocuments(query);
 
       res.json({
-        success: true,
         results,
         total,
         page: parseInt(page),
@@ -1723,8 +1744,7 @@ router.post('/logout', async (req, res) => {
       console.error('Get test results error:', error);
       res.status(500).json({
         success: false,
-        error: 'Failed to fetch test results',
-        details: error.message
+        error: 'Failed to fetch test results'
       });
     }
   });
@@ -1889,7 +1909,12 @@ router.post('/logout', async (req, res) => {
     try {
       const { examType } = req.query;
       
-      const query = {};
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      
+      const query = { userId: decoded.userId };
       if (examType) query.examType = examType;
 
       const results = await TestResult.find(query);
@@ -1918,7 +1943,6 @@ router.post('/logout', async (req, res) => {
       }
 
       res.json({
-        success: true,
         progress: {
           totalTests,
           passedTests,
@@ -1934,8 +1958,7 @@ router.post('/logout', async (req, res) => {
       console.error('Get user progress error:', error);
       res.status(500).json({
         success: false,
-        error: 'Failed to get user progress',
-        details: error.message
+        error: 'Failed to get user progress'
       });
     }
   });
@@ -1943,7 +1966,12 @@ router.post('/logout', async (req, res) => {
   // 8. Get User Stats
   router.get('/stats', async (req, res) => {
     try {
-      const results = await TestResult.find().sort({ completedAt: -1 });
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      
+      const results = await TestResult.find({ userId: decoded.userId }).sort({ completedAt: -1 });
 
       const totalTests = results.length;
       const totalScore = results.reduce((sum, r) => sum + r.score, 0);
@@ -1978,7 +2006,6 @@ router.post('/logout', async (req, res) => {
       if (currentStreak === 0) currentStreak = tempStreak;
 
       res.json({
-        success: true,
         stats: {
           totalTests,
           totalScore: Math.round(totalScore),
@@ -1997,8 +2024,7 @@ router.post('/logout', async (req, res) => {
       console.error('Get user stats error:', error);
       res.status(500).json({
         success: false,
-        error: 'Failed to get user stats',
-        details: error.message
+        error: 'Failed to get user stats'
       });
     }
   });
