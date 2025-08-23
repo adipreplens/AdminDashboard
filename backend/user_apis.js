@@ -2597,7 +2597,7 @@ router.post('/logout', async (req, res) => {
   });
 
   // 10. Update User Preferences
-  router.put('/profile', async (req, res) => {
+  router.put('/preferences', authenticateToken, async (req, res) => {
     try {
       const { preferences } = req.body;
       
@@ -2609,9 +2609,8 @@ router.post('/logout', async (req, res) => {
       }
 
       // Update user preferences
-      const User = mongoose.model('User');
-      const updatedUser = await User.findByIdAndUpdate(
-        req.user.id,
+      const updatedUser = await AppUser.findByIdAndUpdate(
+        req.user.userId,
         { 
           preferences,
           updatedAt: new Date()
