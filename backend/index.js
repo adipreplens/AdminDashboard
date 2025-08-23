@@ -1215,7 +1215,7 @@ function extractSubject(row, headers, foundColumns) {
     }
   }
   
-  return 'general';
+  return 'civil-engineering'; // Changed from 'general' to 'civil-engineering'
 }
 
 function extractExam(row, headers, foundColumns) {
@@ -1233,7 +1233,7 @@ function extractExam(row, headers, foundColumns) {
     }
   }
   
-  return 'general';
+  return 'rrb-je'; // Changed from 'general' to 'rrb-je'
 }
 
 function extractDifficulty(row, headers, foundColumns) {
