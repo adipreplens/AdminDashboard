@@ -2610,7 +2610,7 @@ router.post('/logout', async (req, res) => {
 
       // Update user preferences
       const updatedUser = await AppUser.findByIdAndUpdate(
-        req.user.userId,
+        req.user._id,
         { 
           preferences,
           updatedAt: new Date()
