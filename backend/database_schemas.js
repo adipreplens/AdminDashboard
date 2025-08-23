@@ -10,7 +10,7 @@ const testResultSchema = new mongoose.Schema({
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'AppUser',
     required: true
   },
   testType: {
@@ -81,7 +81,7 @@ const testSessionSchema = new mongoose.Schema({
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'AppUser',
     required: true
   },
   examType: {
@@ -143,7 +143,7 @@ const testAnswerSchema = new mongoose.Schema({
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'AppUser',
     required: true
   },
   questionId: {
@@ -177,7 +177,7 @@ const testAnswerSchema = new mongoose.Schema({
 const userProgressSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'AppUser',
     required: true,
     unique: true
   },
@@ -254,7 +254,7 @@ const userProgressSchema = new mongoose.Schema({
 const userPreferencesSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'AppUser',
     required: true,
     unique: true
   },
