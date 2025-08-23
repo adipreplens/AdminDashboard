@@ -1562,6 +1562,138 @@ router.post('/logout', async (req, res) => {
     }
   });
 
+  // ==================== TEST PREP APP APIs ====================
+
+  // 1. Send OTP for Mobile Verification
+  router.post('/send-otp', async (req, res) => {
+    try {
+      const { mobileNumber } = req.body;
+      
+      if (!mobileNumber) {
+        return res.status(400).json({
+          success: false,
+          error: 'Mobile number is required'
+        });
+      }
+
+      // Generate 6-digit OTP
+      const otp = "1234";
+      
+      // Store OTP in database with expiry (5 minutes)
+      const otpData = {
+        mobileNumber,
+        otp,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+        attempts: 0
+      };
+
+      // For now, store in memory (in production, use Redis or database)
+      global.otpStore = global.otpStore || {};
+      global.otpStore[mobileNumber] = otpData;
+
+      // TODO: Integrate with Twilio/MSG91 for actual SMS
+      console.log(`OTP for ${mobileNumber}: ${otp}`);
+
+      res.json({
+        success: true,
+        message: 'OTP sent successfully',
+        mobileNumber
+      });
+
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to send OTP'
+      });
+    }
+  });
+
+  // 2. Verify OTP and Register/Login User
+  router.post('/verify-otp', async (req, res) => {
+    try {
+      const { mobileNumber, otp, exam, name } = req.body;
+      
+      if (!mobileNumber || !otp) {
+        return res.status(400).json({
+          success: false,
+          error: 'Mobile number and OTP are required'
+        });
+      }
+
+      // Check if OTP exists and is valid
+      global.otpStore = global.otpStore || {};
+      const otpData = global.otpStore[mobileNumber];
+      
+      if (!otpData || otpData.otp !== otp) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid OTP'
+        });
+      }
+
+      if (new Date() > otpData.expiresAt) {
+        return res.status(400).json({
+          success: false,
+          error: 'OTP expired'
+        });
+      }
+
+      // Find or create user
+      let user = await AppUser.findOne({ phone: mobileNumber });
+      
+      if (!user) {
+        // Create new user
+        user = new AppUser({
+          name: name || 'User',
+          email: `${mobileNumber}@mobile.com`, // Temporary email
+          phone: mobileNumber,
+          exam: exam || 'rrb-je',
+          password: Math.random().toString(36).substr(2, 15), // Random password
+          language: 'english'
+        });
+        await user.save();
+      }
+
+      // Generate tokens
+      const token = jwt.sign(
+        { userId: user._id, email: user.email },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '1h' }
+      );
+
+      const refreshToken = jwt.sign(
+        { userId: user._id, email: user.email },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '7d' }
+      );
+
+      // Clear OTP
+      delete global.otpStore[mobileNumber];
+
+      res.json({
+        success: true,
+        message: 'OTP verified successfully',
+        token,
+        refreshToken,
+        user: {
+          id: user._id,
+          name: user.name,
+          phone: user.phone,
+          exam: user.exam,
+          onboardingCompleted: user.onboardingCompleted
+        }
+      });
+
+    } catch (error) {
+      console.error('Verify OTP error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to verify OTP'
+      });
+    }
+  });
+
   // ==================== CRITICAL MISSING ENDPOINTS ====================
 
   // 1. Token Refresh (Critical)
@@ -1603,6 +1735,187 @@ router.post('/logout', async (req, res) => {
       res.status(401).json({
         success: false,
         error: 'Invalid refresh token'
+      });
+    }
+  });
+
+  // 3. Get Diagnostic Test (Adaptive Questions)
+  router.get('/get-diagnostic-test', async (req, res) => {
+    try {
+      const { examType = 'rrb-je' } = req.query;
+      
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
+      // Get user's current level and progress
+      const user = await AppUser.findById(decoded.userId);
+      const userProgress = await UserProgress.findOne({ userId: decoded.userId, examType });
+
+      // Adaptive logic: Start with easy questions, progress based on performance
+      const Question = mongoose.model('Question');
+      
+      // Get questions in difficulty order (easy -> medium -> hard)
+      const easyQuestions = await Question.find({ 
+        exam: examType, 
+        difficulty: 'easy' 
+      }).limit(10).select('text options answer subject difficulty explanation');
+
+      const mediumQuestions = await Question.find({ 
+        exam: examType, 
+        difficulty: 'medium' 
+      }).limit(10).select('text options answer subject difficulty explanation');
+
+      const hardQuestions = await Question.find({ 
+        exam: examType, 
+        difficulty: 'hard' 
+      }).limit(10).select('text options answer subject difficulty explanation');
+
+      // Combine questions for diagnostic test
+      const diagnosticQuestions = [
+        ...easyQuestions.slice(0, 10),
+        ...mediumQuestions.slice(0, 10),
+        ...hardQuestions.slice(0, 10)
+      ].slice(0, 30); // Ensure max 30 questions
+
+      // Create diagnostic session
+      const sessionId = `diagnostic_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const diagnosticSession = new TestSession({
+        sessionId,
+        userId: decoded.userId,
+        examType,
+        testType: 'diagnostic',
+        questionCount: diagnosticQuestions.length,
+        status: 'active',
+        startedAt: new Date(),
+        questions: diagnosticQuestions.map(q => ({
+          questionId: q._id,
+          text: q.text,
+          options: q.options,
+          subject: q.subject,
+          difficulty: q.difficulty
+        }))
+      });
+
+      await diagnosticSession.save();
+
+      res.json({
+        success: true,
+        sessionId,
+        testType: 'diagnostic',
+        totalQuestions: diagnosticQuestions.length,
+        questions: diagnosticQuestions.map(q => ({
+          id: q._id,
+          text: q.text,
+          options: q.options,
+          subject: q.subject,
+          difficulty: q.difficulty
+        }))
+      });
+
+    } catch (error) {
+      console.error('Get diagnostic test error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get diagnostic test'
+      });
+    }
+  });
+
+  // 4. Get Practice Test (Based on User Profile)
+  router.get('/get-practice-test', async (req, res) => {
+    try {
+      const { 
+        examType = 'rrb-je',
+        subject,
+        difficulty,
+        questionCount = 20
+      } = req.query;
+      
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
+      // Get user's weak subjects and progress
+      const user = await AppUser.findById(decoded.userId);
+      const userProgress = await UserProgress.findOne({ userId: decoded.userId, examType });
+
+      // Build query based on user's needs
+      let query = { exam: examType };
+      
+      if (subject) {
+        query.subject = subject;
+      } else if (userProgress && userProgress.weakSubjects && userProgress.weakSubjects.length > 0) {
+        // Focus on weak subjects
+        query.subject = { $in: userProgress.weakSubjects.slice(0, 3) };
+      }
+
+      if (difficulty) {
+        query.difficulty = difficulty;
+      } else if (userProgress && userProgress.averageScore < 60) {
+        // If user is struggling, focus on easier questions
+        query.difficulty = 'easy';
+      } else if (userProgress && userProgress.averageScore > 80) {
+        // If user is doing well, include harder questions
+        query.difficulty = { $in: ['medium', 'hard'] };
+      }
+
+      const Question = mongoose.model('Question');
+      const questions = await Question.find(query)
+        .limit(questionCount)
+        .select('text options answer subject difficulty explanation');
+
+      if (questions.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'No questions available for the specified criteria'
+        });
+      }
+
+      // Create practice session
+      const sessionId = `practice_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const practiceSession = new TestSession({
+        sessionId,
+        userId: decoded.userId,
+        examType,
+        testType: 'practice',
+        questionCount: questions.length,
+        status: 'active',
+        startedAt: new Date(),
+        questions: questions.map(q => ({
+          questionId: q._id,
+          text: q.text,
+          options: q.options,
+          subject: q.subject,
+          difficulty: q.difficulty
+        }))
+      });
+
+      await practiceSession.save();
+
+      res.json({
+        success: true,
+        sessionId,
+        testType: 'practice',
+        totalQuestions: questions.length,
+        questions: questions.map(q => ({
+          id: q._id,
+          text: q.text,
+          options: q.options,
+          subject: q.subject,
+          difficulty: q.difficulty
+        }))
+      });
+
+    } catch (error) {
+      console.error('Get practice test error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get practice test'
       });
     }
   });
@@ -1924,6 +2237,221 @@ router.post('/logout', async (req, res) => {
     }
   });
 
+  // 5. Submit Test (Enhanced with Progress Tracking)
+  router.post('/submit-test', async (req, res) => {
+    try {
+      const { 
+        sessionId, 
+        answers, 
+        totalTime,
+        testType = 'practice'
+      } = req.body;
+      
+      if (!sessionId || !answers) {
+        return res.status(400).json({
+          success: false,
+          error: 'Session ID and answers are required'
+        });
+      }
+
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
+      // Get session and questions
+      const session = await TestSession.findOne({ sessionId, userId: decoded.userId });
+      if (!session) {
+        return res.status(404).json({
+          success: false,
+          error: 'Test session not found'
+        });
+      }
+
+      const Question = mongoose.model('Question');
+      
+      // Process answers and calculate results
+      let correctAnswers = 0;
+      let totalQuestions = answers.length;
+      let subjectPerformance = {};
+      let difficultyPerformance = {};
+      let detailedResults = [];
+
+      for (const answer of answers) {
+        const question = await Question.findById(answer.questionId);
+        if (!question) continue;
+
+        const isCorrect = answer.selectedAnswer === question.answer;
+        if (isCorrect) correctAnswers++;
+
+        // Track subject performance
+        if (!subjectPerformance[question.subject]) {
+          subjectPerformance[question.subject] = { correct: 0, total: 0 };
+        }
+        subjectPerformance[question.subject].total++;
+        if (isCorrect) subjectPerformance[question.subject].correct++;
+
+        // Track difficulty performance
+        if (!difficultyPerformance[question.difficulty]) {
+          difficultyPerformance[question.difficulty] = { correct: 0, total: 0 };
+        }
+        difficultyPerformance[question.difficulty].total++;
+        if (isCorrect) difficultyPerformance[question.difficulty].correct++;
+
+        // Save individual answer
+        const testAnswer = new TestAnswer({
+          sessionId,
+          userId: decoded.userId,
+          questionId: answer.questionId,
+          selectedAnswer: answer.selectedAnswer,
+          isCorrect,
+          timeSpent: answer.timeSpent || 0,
+          answeredAt: new Date()
+        });
+        await testAnswer.save();
+
+        detailedResults.push({
+          questionId: answer.questionId,
+          selectedAnswer: answer.selectedAnswer,
+          correctAnswer: question.answer,
+          isCorrect,
+          explanation: question.solution,
+          subject: question.subject,
+          difficulty: question.difficulty
+        });
+      }
+
+      // Calculate overall score
+      const score = Math.round((correctAnswers / totalQuestions) * 100);
+
+      // Update session status
+      session.status = 'completed';
+      session.completedAt = new Date();
+      session.totalTime = totalTime || 0;
+      await session.save();
+
+      // Save test result
+      const testResult = new TestResult({
+        testId: sessionId,
+        userId: decoded.userId,
+        testType,
+        examType: session.examType,
+        answers: detailedResults,
+        score,
+        totalQuestions,
+        timeTaken: totalTime || 0,
+        completedAt: new Date()
+      });
+      await testResult.save();
+
+      // Update user progress
+      await updateUserProgress(decoded.userId, session.examType, {
+        score,
+        totalQuestions,
+        subjectPerformance,
+        difficultyPerformance,
+        totalTime
+      });
+
+      // Generate recommendations
+      const recommendations = generateRecommendations(subjectPerformance, difficultyPerformance, score);
+
+      // Check for badges/achievements
+      const badges = await checkAndAwardBadges(decoded.userId, session.examType);
+
+      res.json({
+        success: true,
+        sessionId,
+        score,
+        correctAnswers,
+        totalQuestions,
+        totalTime,
+        subjectPerformance,
+        difficultyPerformance,
+        detailedResults,
+        recommendations,
+        badges,
+        completedAt: new Date()
+      });
+
+    } catch (error) {
+      console.error('Submit test error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to submit test'
+      });
+    }
+  });
+
+  // 6. Get Enhanced Progress (Subject-wise, Difficulty-wise)
+  router.get('/get-progress', async (req, res) => {
+    try {
+      const { examType } = req.query;
+      
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      
+      const query = { userId: decoded.userId };
+      if (examType) query.examType = examType;
+
+      const results = await TestResult.find(query).sort({ completedAt: -1 });
+
+      // Calculate comprehensive progress
+      const progress = calculateDetailedProgress(results);
+
+      // Get user's current level and recommendations
+      const userLevel = calculateUserLevel(progress.averageScore, progress.totalTests);
+      const recommendations = generateProgressRecommendations(progress);
+
+      res.json({
+        success: true,
+        progress,
+        userLevel,
+        recommendations,
+        lastUpdated: new Date()
+      });
+
+    } catch (error) {
+      console.error('Get progress error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get progress'
+      });
+    }
+  });
+
+  // 7. Get Badges and Achievements
+  router.get('/get-badges', async (req, res) => {
+    try {
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
+      const user = await AppUser.findById(decoded.userId);
+      const results = await TestResult.find({ userId: decoded.userId }).sort({ completedAt: -1 });
+
+      // Calculate badges based on achievements
+      const badges = calculateUserBadges(user, results);
+
+      res.json({
+        success: true,
+        badges,
+        totalBadges: badges.length,
+        nextBadge: getNextBadge(user, results)
+      });
+
+    } catch (error) {
+      console.error('Get badges error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get badges'
+      });
+    }
+  });
+
   // 8. Get User Stats
   router.get('/stats', async (req, res) => {
     try {
@@ -2126,5 +2654,1253 @@ router.post('/logout', async (req, res) => {
       });
     }
   });
+
+  // ==================== TEST PREP APP APIs ====================
+
+  // 1. Send OTP for Mobile Verification
+  router.post('/send-otp', async (req, res) => {
+    try {
+      const { mobileNumber } = req.body;
+      
+      if (!mobileNumber) {
+        return res.status(400).json({
+          success: false,
+          error: 'Mobile number is required'
+        });
+      }
+
+      // Generate 6-digit OTP
+      const otp = "1234";
+      
+      // Store OTP in database with expiry (5 minutes)
+      const otpData = {
+        mobileNumber,
+        otp,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+        attempts: 0
+      };
+
+      // For now, store in memory (in production, use Redis or database)
+      global.otpStore = global.otpStore || {};
+      global.otpStore[mobileNumber] = otpData;
+
+      // TODO: Integrate with Twilio/MSG91 for actual SMS
+      console.log(`OTP for ${mobileNumber}: ${otp}`);
+
+      res.json({
+        success: true,
+        message: 'OTP sent successfully',
+        mobileNumber
+      });
+
+    } catch (error) {
+      console.error('Send OTP error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to send OTP'
+      });
+    }
+  });
+
+  // 2. Verify OTP and Register/Login User
+  router.post('/verify-otp', async (req, res) => {
+    try {
+      const { mobileNumber, otp, exam, name } = req.body;
+      
+      if (!mobileNumber || !otp) {
+        return res.status(400).json({
+          success: false,
+          error: 'Mobile number and OTP are required'
+        });
+      }
+
+      // Check if OTP exists and is valid
+      global.otpStore = global.otpStore || {};
+      const otpData = global.otpStore[mobileNumber];
+      
+      if (!otpData || otpData.otp !== otp) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid OTP'
+        });
+      }
+
+      if (new Date() > otpData.expiresAt) {
+        return res.status(400).json({
+          success: false,
+          error: 'OTP expired'
+        });
+      }
+
+      // Find or create user
+      let user = await AppUser.findOne({ phone: mobileNumber });
+      
+      if (!user) {
+        // Create new user
+        user = new AppUser({
+          name: name || 'User',
+          email: `${mobileNumber}@mobile.com`, // Temporary email
+          phone: mobileNumber,
+          exam: exam || 'rrb-je',
+          password: Math.random().toString(36).substr(2, 15), // Random password
+          language: 'english'
+        });
+        await user.save();
+      }
+
+      // Generate tokens
+      const token = jwt.sign(
+        { userId: user._id, email: user.email },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '1h' }
+      );
+
+      const refreshToken = jwt.sign(
+        { userId: user._id, email: user.email },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '7d' }
+      );
+
+      // Clear OTP
+      delete global.otpStore[mobileNumber];
+
+      res.json({
+        success: true,
+        message: 'OTP verified successfully',
+        token,
+        refreshToken,
+        user: {
+          id: user._id,
+          name: user.name,
+          phone: user.phone,
+          exam: user.exam,
+          onboardingCompleted: user.onboardingCompleted
+        }
+      });
+
+    } catch (error) {
+      console.error('Verify OTP error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to verify OTP'
+      });
+    }
+  });
+
+  // 3. Get Diagnostic Test (Adaptive Questions)
+  router.get('/get-diagnostic-test', async (req, res) => {
+    try {
+      const { examType = 'rrb-je' } = req.query;
+      
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
+      // Get user's current level and progress
+      const user = await AppUser.findById(decoded.userId);
+      const userProgress = await UserProgress.findOne({ userId: decoded.userId, examType });
+
+      // Adaptive logic: Start with easy questions, progress based on performance
+      const Question = mongoose.model('Question');
+      
+      // Get questions in difficulty order (easy -> medium -> hard)
+      const easyQuestions = await Question.find({ 
+        exam: examType, 
+        difficulty: 'easy' 
+      }).limit(10).select('text options answer subject difficulty explanation');
+
+      const mediumQuestions = await Question.find({ 
+        exam: examType, 
+        difficulty: 'medium' 
+      }).limit(10).select('text options answer subject difficulty explanation');
+
+      const hardQuestions = await Question.find({ 
+        exam: examType, 
+        difficulty: 'hard' 
+      }).limit(10).select('text options answer subject difficulty explanation');
+
+      // Combine questions for diagnostic test
+      const diagnosticQuestions = [
+        ...easyQuestions.slice(0, 10),
+        ...mediumQuestions.slice(0, 10),
+        ...hardQuestions.slice(0, 10)
+      ].slice(0, 30); // Ensure max 30 questions
+
+      // Create diagnostic session
+      const sessionId = `diagnostic_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const diagnosticSession = new TestSession({
+        sessionId,
+        userId: decoded.userId,
+        examType,
+        testType: 'diagnostic',
+        questionCount: diagnosticQuestions.length,
+        status: 'active',
+        startedAt: new Date(),
+        questions: diagnosticQuestions.map(q => ({
+          questionId: q._id,
+          text: q.text,
+          options: q.options,
+          subject: q.subject,
+          difficulty: q.difficulty
+        }))
+      });
+
+      await diagnosticSession.save();
+
+      res.json({
+        success: true,
+        sessionId,
+        testType: 'diagnostic',
+        totalQuestions: diagnosticQuestions.length,
+        questions: diagnosticQuestions.map(q => ({
+          id: q._id,
+          text: q.text,
+          options: q.options,
+          subject: q.subject,
+          difficulty: q.difficulty
+        }))
+      });
+
+    } catch (error) {
+      console.error('Get diagnostic test error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get diagnostic test'
+      });
+    }
+  });
+
+  // 4. Get Practice Test (Based on User Profile)
+  router.get('/get-practice-test', async (req, res) => {
+    try {
+      const { 
+        examType = 'rrb-je',
+        subject,
+        difficulty,
+        questionCount = 20
+      } = req.query;
+      
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
+      // Get user's weak subjects and progress
+      const user = await AppUser.findById(decoded.userId);
+      const userProgress = await UserProgress.findOne({ userId: decoded.userId, examType });
+
+      // Build query based on user's needs
+      let query = { exam: examType };
+      
+      if (subject) {
+        query.subject = subject;
+      } else if (userProgress && userProgress.weakSubjects && userProgress.weakSubjects.length > 0) {
+        // Focus on weak subjects
+        query.subject = { $in: userProgress.weakSubjects.slice(0, 3) };
+      }
+
+      if (difficulty) {
+        query.difficulty = difficulty;
+      } else if (userProgress && userProgress.averageScore < 60) {
+        // If user is struggling, focus on easier questions
+        query.difficulty = 'easy';
+      } else if (userProgress && userProgress.averageScore > 80) {
+        // If user is doing well, include harder questions
+        query.difficulty = { $in: ['medium', 'hard'] };
+      }
+
+      const Question = mongoose.model('Question');
+      const questions = await Question.find(query)
+        .limit(questionCount)
+        .select('text options answer subject difficulty explanation');
+
+      if (questions.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'No questions available for the specified criteria'
+        });
+      }
+
+      // Create practice session
+      const sessionId = `practice_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const practiceSession = new TestSession({
+        sessionId,
+        userId: decoded.userId,
+        examType,
+        testType: 'practice',
+        questionCount: questions.length,
+        status: 'active',
+        startedAt: new Date(),
+        questions: questions.map(q => ({
+          questionId: q._id,
+          text: q.text,
+          options: q.options,
+          subject: q.subject,
+          difficulty: q.difficulty
+        }))
+      });
+
+      await practiceSession.save();
+
+      res.json({
+        success: true,
+        sessionId,
+        testType: 'practice',
+        totalQuestions: questions.length,
+        questions: questions.map(q => ({
+          id: q._id,
+          text: q.text,
+          options: q.options,
+          subject: q.subject,
+          difficulty: q.difficulty
+        }))
+      });
+
+    } catch (error) {
+      console.error('Get practice test error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get practice test'
+      });
+    }
+  });
+
+  // 5. Submit Test (Enhanced with Progress Tracking)
+  router.post('/submit-test', async (req, res) => {
+    try {
+      const { 
+        sessionId, 
+        answers, 
+        totalTime,
+        testType = 'practice'
+      } = req.body;
+      
+      if (!sessionId || !answers) {
+        return res.status(400).json({
+          success: false,
+          error: 'Session ID and answers are required'
+        });
+      }
+
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
+      // Get session and questions
+      const session = await TestSession.findOne({ sessionId, userId: decoded.userId });
+      if (!session) {
+        return res.status(404).json({
+          success: false,
+          error: 'Test session not found'
+        });
+      }
+
+      const Question = mongoose.model('Question');
+      
+      // Process answers and calculate results
+      let correctAnswers = 0;
+      let totalQuestions = answers.length;
+      let subjectPerformance = {};
+      let difficultyPerformance = {};
+      let detailedResults = [];
+
+      for (const answer of answers) {
+        const question = await Question.findById(answer.questionId);
+        if (!question) continue;
+
+        const isCorrect = answer.selectedAnswer === question.answer;
+        if (isCorrect) correctAnswers++;
+
+        // Track subject performance
+        if (!subjectPerformance[question.subject]) {
+          subjectPerformance[question.subject] = { correct: 0, total: 0 };
+        }
+        subjectPerformance[question.subject].total++;
+        if (isCorrect) subjectPerformance[question.subject].correct++;
+
+        // Track difficulty performance
+        if (!difficultyPerformance[question.difficulty]) {
+          difficultyPerformance[question.difficulty] = { correct: 0, total: 0 };
+        }
+        difficultyPerformance[question.difficulty].total++;
+        if (isCorrect) difficultyPerformance[question.difficulty].correct++;
+
+        // Save individual answer
+        const testAnswer = new TestAnswer({
+          sessionId,
+          userId: decoded.userId,
+          questionId: answer.questionId,
+          selectedAnswer: answer.selectedAnswer,
+          isCorrect,
+          timeSpent: answer.timeSpent || 0,
+          answeredAt: new Date()
+        });
+        await testAnswer.save();
+
+        detailedResults.push({
+          questionId: answer.questionId,
+          selectedAnswer: answer.selectedAnswer,
+          correctAnswer: question.answer,
+          isCorrect,
+          explanation: question.solution,
+          subject: question.subject,
+          difficulty: question.difficulty
+        });
+      }
+
+      // Calculate overall score
+      const score = Math.round((correctAnswers / totalQuestions) * 100);
+
+      // Update session status
+      session.status = 'completed';
+      session.completedAt = new Date();
+      session.totalTime = totalTime || 0;
+      await session.save();
+
+      // Save test result
+      const testResult = new TestResult({
+        testId: sessionId,
+        userId: decoded.userId,
+        testType,
+        examType: session.examType,
+        answers: detailedResults,
+        score,
+        totalQuestions,
+        timeTaken: totalTime || 0,
+        completedAt: new Date()
+      });
+      await testResult.save();
+
+      // Update user progress
+      await updateUserProgress(decoded.userId, session.examType, {
+        score,
+        totalQuestions,
+        subjectPerformance,
+        difficultyPerformance,
+        totalTime
+      });
+
+      // Generate recommendations
+      const recommendations = generateRecommendations(subjectPerformance, difficultyPerformance, score);
+
+      // Check for badges/achievements
+      const badges = await checkAndAwardBadges(decoded.userId, session.examType);
+
+      res.json({
+        success: true,
+        sessionId,
+        score,
+        correctAnswers,
+        totalQuestions,
+        totalTime,
+        subjectPerformance,
+        difficultyPerformance,
+        detailedResults,
+        recommendations,
+        badges,
+        completedAt: new Date()
+      });
+
+    } catch (error) {
+      console.error('Submit test error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to submit test'
+      });
+    }
+  });
+
+  // 6. Get Enhanced Progress (Subject-wise, Difficulty-wise)
+  router.get('/get-progress', async (req, res) => {
+    try {
+      const { examType } = req.query;
+      
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      
+      const query = { userId: decoded.userId };
+      if (examType) query.examType = examType;
+
+      const results = await TestResult.find(query).sort({ completedAt: -1 });
+
+      // Calculate comprehensive progress
+      const progress = calculateDetailedProgress(results);
+
+      // Get user's current level and recommendations
+      const userLevel = calculateUserLevel(progress.averageScore, progress.totalTests);
+      const recommendations = generateProgressRecommendations(progress);
+
+      res.json({
+        success: true,
+        progress,
+        userLevel,
+        recommendations,
+        lastUpdated: new Date()
+      });
+
+    } catch (error) {
+      console.error('Get progress error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get progress'
+      });
+    }
+  });
+
+  // 7. Get Badges and Achievements
+  router.get('/get-badges', async (req, res) => {
+    try {
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
+      const user = await AppUser.findById(decoded.userId);
+      const results = await TestResult.find({ userId: decoded.userId }).sort({ completedAt: -1 });
+
+      // Calculate badges based on achievements
+      const badges = calculateUserBadges(user, results);
+
+      res.json({
+        success: true,
+        badges,
+        totalBadges: badges.length,
+        nextBadge: getNextBadge(user, results)
+      });
+
+    } catch (error) {
+      console.error('Get badges error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get badges'
+      });
+    }
+  });
+
+  // 8. Get Recommendations
+  router.get('/get-recommendations', async (req, res) => {
+    try {
+      const { examType } = req.query;
+      
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
+      const user = await AppUser.findById(decoded.userId);
+      const results = await TestResult.find({ userId: decoded.userId, examType }).sort({ completedAt: -1 });
+
+      // Generate personalized recommendations
+      const recommendations = generatePersonalizedRecommendations(user, results, examType);
+
+      res.json({
+        success: true,
+        recommendations,
+        generatedAt: new Date()
+      });
+
+    } catch (error) {
+      console.error('Get recommendations error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get recommendations'
+      });
+    }
+  });
+
+  // ==================== HELPER FUNCTIONS ====================
+
+  // Update user progress with detailed analytics
+  async function updateUserProgress(userId, examType, testData) {
+    try {
+      let userProgress = await UserProgress.findOne({ userId, examType });
+      
+      if (!userProgress) {
+        userProgress = new UserProgress({
+          userId,
+          examType,
+          totalTests: 0,
+          passedTests: 0,
+          failedTests: 0,
+          totalScore: 0,
+          totalQuestions: 0,
+          totalTime: 0,
+          averageScore: 0,
+          averageTime: 0,
+          currentStreak: 0,
+          bestStreak: 0,
+          subjectProgress: {},
+          difficultyProgress: {},
+          weakSubjects: [],
+          strongSubjects: []
+        });
+      }
+
+      // Update basic stats
+      userProgress.totalTests++;
+      userProgress.totalScore += testData.score;
+      userProgress.totalQuestions += testData.totalQuestions;
+      userProgress.totalTime += testData.totalTime;
+      userProgress.averageScore = Math.round(userProgress.totalScore / userProgress.totalTests);
+      userProgress.averageTime = Math.round(userProgress.totalTime / userProgress.totalTests);
+
+      if (testData.score >= 60) {
+        userProgress.passedTests++;
+      } else {
+        userProgress.failedTests++;
+      }
+
+      // Update subject progress
+      for (const [subject, performance] of Object.entries(testData.subjectPerformance)) {
+        if (!userProgress.subjectProgress[subject]) {
+          userProgress.subjectProgress[subject] = { correct: 0, total: 0, accuracy: 0 };
+        }
+        userProgress.subjectProgress[subject].correct += performance.correct;
+        userProgress.subjectProgress[subject].total += performance.total;
+        userProgress.subjectProgress[subject].accuracy = Math.round(
+          (userProgress.subjectProgress[subject].correct / userProgress.subjectProgress[subject].total) * 100
+        );
+      }
+
+      // Update difficulty progress
+      for (const [difficulty, performance] of Object.entries(testData.difficultyPerformance)) {
+        if (!userProgress.difficultyProgress[difficulty]) {
+          userProgress.difficultyProgress[difficulty] = { correct: 0, total: 0, accuracy: 0 };
+        }
+        userProgress.difficultyProgress[difficulty].correct += performance.correct;
+        userProgress.difficultyProgress[difficulty].total += performance.total;
+        userProgress.difficultyProgress[difficulty].accuracy = Math.round(
+          (userProgress.difficultyProgress[difficulty].correct / userProgress.difficultyProgress[difficulty].total) * 100
+        );
+      }
+
+      // Identify weak and strong subjects
+      const weakSubjects = [];
+      const strongSubjects = [];
+      
+      for (const [subject, progress] of Object.entries(userProgress.subjectProgress)) {
+        if (progress.accuracy < 60) {
+          weakSubjects.push(subject);
+        } else if (progress.accuracy > 80) {
+          strongSubjects.push(subject);
+        }
+      }
+
+      userProgress.weakSubjects = weakSubjects;
+      userProgress.strongSubjects = strongSubjects;
+
+      // Update streak
+      const today = new Date().toDateString();
+      const lastTestDate = userProgress.lastTestDate ? new Date(userProgress.lastTestDate).toDateString() : null;
+      
+      if (lastTestDate === today || lastTestDate === new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString()) {
+        userProgress.currentStreak++;
+        if (userProgress.currentStreak > userProgress.bestStreak) {
+          userProgress.bestStreak = userProgress.currentStreak;
+        }
+      } else {
+        userProgress.currentStreak = 1;
+      }
+
+      userProgress.lastTestDate = new Date();
+      await userProgress.save();
+
+    } catch (error) {
+      console.error('Update user progress error:', error);
+    }
+  }
+
+  // Calculate detailed progress analytics
+  function calculateDetailedProgress(results) {
+    if (results.length === 0) {
+      return {
+        totalTests: 0,
+        averageScore: 0,
+        totalQuestions: 0,
+        totalTime: 0,
+        currentStreak: 0,
+        bestStreak: 0,
+        subjectProgress: {},
+        difficultyProgress: {},
+        weakSubjects: [],
+        strongSubjects: [],
+        improvementRate: 0
+      };
+    }
+
+    const totalTests = results.length;
+    const totalScore = results.reduce((sum, r) => sum + r.score, 0);
+    const averageScore = Math.round(totalScore / totalTests);
+    const totalQuestions = results.reduce((sum, r) => sum + r.totalQuestions, 0);
+    const totalTime = results.reduce((sum, r) => sum + r.timeTaken, 0);
+
+    // Calculate subject and difficulty progress from detailed results
+    const subjectProgress = {};
+    const difficultyProgress = {};
+
+    results.forEach(result => {
+      result.answers.forEach(answer => {
+        // Subject progress
+        if (!subjectProgress[answer.subject]) {
+          subjectProgress[answer.subject] = { correct: 0, total: 0, accuracy: 0 };
+        }
+        subjectProgress[answer.subject].total++;
+        if (answer.isCorrect) subjectProgress[answer.subject].correct++;
+
+        // Difficulty progress
+        if (!difficultyProgress[answer.difficulty]) {
+          difficultyProgress[answer.difficulty] = { correct: 0, total: 0, accuracy: 0 };
+        }
+        difficultyProgress[answer.difficulty].total++;
+        if (answer.isCorrect) difficultyProgress[answer.difficulty].correct++;
+      });
+    });
+
+    // Calculate accuracy percentages
+    Object.keys(subjectProgress).forEach(subject => {
+      subjectProgress[subject].accuracy = Math.round(
+        (subjectProgress[subject].correct / subjectProgress[subject].total) * 100
+      );
+    });
+
+    Object.keys(difficultyProgress).forEach(difficulty => {
+      difficultyProgress[difficulty].accuracy = Math.round(
+        (difficultyProgress[difficulty].correct / difficultyProgress[difficulty].total) * 100
+      );
+    });
+
+    // Identify weak and strong subjects
+    const weakSubjects = Object.entries(subjectProgress)
+      .filter(([_, progress]) => progress.accuracy < 60)
+      .map(([subject, _]) => subject);
+
+    const strongSubjects = Object.entries(subjectProgress)
+      .filter(([_, progress]) => progress.accuracy > 80)
+      .map(([subject, _]) => subject);
+
+    // Calculate improvement rate (comparing recent vs older tests)
+    const recentTests = results.slice(0, Math.min(5, results.length));
+    const olderTests = results.slice(-Math.min(5, results.length));
+    
+    const recentAvg = recentTests.reduce((sum, r) => sum + r.score, 0) / recentTests.length;
+    const olderAvg = olderTests.reduce((sum, r) => sum + r.score, 0) / olderTests.length;
+    const improvementRate = Math.round(((recentAvg - olderAvg) / olderAvg) * 100);
+
+    return {
+      totalTests,
+      averageScore,
+      totalQuestions,
+      totalTime,
+      currentStreak: 0, // Will be calculated from user progress
+      bestStreak: 0, // Will be calculated from user progress
+      subjectProgress,
+      difficultyProgress,
+      weakSubjects,
+      strongSubjects,
+      improvementRate
+    };
+  }
+
+  // Calculate user level based on performance
+  function calculateUserLevel(averageScore, totalTests) {
+    if (totalTests < 5) return { level: 'beginner', name: 'Beginner', color: '#ff6b6b' };
+    if (averageScore < 50) return { level: 'beginner', name: 'Beginner', color: '#ff6b6b' };
+    if (averageScore < 70) return { level: 'intermediate', name: 'Intermediate', color: '#feca57' };
+    if (averageScore < 85) return { level: 'advanced', name: 'Advanced', color: '#48dbfb' };
+    return { level: 'expert', name: 'Expert', color: '#0abde3' };
+  }
+
+  // Generate recommendations based on performance
+  function generateRecommendations(subjectPerformance, difficultyPerformance, overallScore) {
+    const recommendations = [];
+
+    // Subject-based recommendations
+    for (const [subject, performance] of Object.entries(subjectPerformance)) {
+      const accuracy = (performance.correct / performance.total) * 100;
+      if (accuracy < 60) {
+        recommendations.push(`Focus on ${subject} fundamentals - your accuracy is ${Math.round(accuracy)}%`);
+      } else if (accuracy > 80) {
+        recommendations.push(`Great work in ${subject}! Try advanced questions to challenge yourself`);
+      }
+    }
+
+    // Difficulty-based recommendations
+    if (difficultyPerformance.easy && difficultyPerformance.easy.accuracy < 80) {
+      recommendations.push('Practice more easy questions to build confidence');
+    }
+    if (difficultyPerformance.hard && difficultyPerformance.hard.accuracy > 60) {
+      recommendations.push('You\'re ready for more challenging questions!');
+    }
+
+    // Overall recommendations
+    if (overallScore < 60) {
+      recommendations.push('Focus on understanding basic concepts before moving to advanced topics');
+    } else if (overallScore > 80) {
+      recommendations.push('Excellent performance! Consider taking mock tests to prepare for the actual exam');
+    }
+
+    return recommendations;
+  }
+
+  // Generate progress-based recommendations
+  function generateProgressRecommendations(progress) {
+    const recommendations = [];
+
+    if (progress.weakSubjects.length > 0) {
+      recommendations.push(`Focus on weak subjects: ${progress.weakSubjects.join(', ')}`);
+    }
+
+    if (progress.improvementRate < 0) {
+      recommendations.push('Your performance has declined. Consider reviewing previous topics');
+    } else if (progress.improvementRate > 10) {
+      recommendations.push('Great improvement! Keep up the good work');
+    }
+
+    if (progress.totalTests < 10) {
+      recommendations.push('Take more practice tests to get better insights into your performance');
+    }
+
+    return recommendations;
+  }
+
+  // Calculate user badges
+  function calculateUserBadges(user, results) {
+    const badges = [];
+
+    // Test completion badges
+    if (results.length >= 1) badges.push({ id: 'first_test', name: 'First Test', description: 'Completed your first test', icon: '🎯' });
+    if (results.length >= 10) badges.push({ id: 'dedicated', name: 'Dedicated Learner', description: 'Completed 10 tests', icon: '📚' });
+    if (results.length >= 50) badges.push({ id: 'persistent', name: 'Persistent', description: 'Completed 50 tests', icon: '🏆' });
+
+    // Score-based badges
+    const highScores = results.filter(r => r.score >= 90);
+    if (highScores.length >= 1) badges.push({ id: 'excellent', name: 'Excellent', description: 'Scored 90% or above', icon: '⭐' });
+    if (highScores.length >= 5) badges.push({ id: 'consistently_excellent', name: 'Consistently Excellent', description: '5+ scores above 90%', icon: '🌟' });
+
+    // Streak badges
+    if (user.stats && user.stats.currentStreak >= 3) badges.push({ id: 'streak_3', name: '3-Day Streak', description: '3 days of consistent practice', icon: '🔥' });
+    if (user.stats && user.stats.currentStreak >= 7) badges.push({ id: 'streak_7', name: 'Week Warrior', description: '7 days of consistent practice', icon: '💪' });
+
+    // Subject mastery badges
+    const subjectProgress = calculateDetailedProgress(results).subjectProgress;
+    for (const [subject, progress] of Object.entries(subjectProgress)) {
+      if (progress.total >= 20 && progress.accuracy >= 80) {
+        badges.push({ 
+          id: `master_${subject}`, 
+          name: `${subject.charAt(0).toUpperCase() + subject.slice(1)} Master`, 
+          description: `Mastered ${subject} with 80%+ accuracy`, 
+          icon: '👑' 
+        });
+      }
+    }
+
+    return badges;
+  }
+
+  // Get next badge to achieve
+  function getNextBadge(user, results) {
+    const currentBadges = calculateUserBadges(user, results);
+    const badgeIds = currentBadges.map(b => b.id);
+
+    if (!badgeIds.includes('first_test') && results.length === 0) {
+      return { id: 'first_test', name: 'First Test', description: 'Complete your first test', icon: '🎯' };
+    }
+
+    if (!badgeIds.includes('dedicated') && results.length < 10) {
+      return { id: 'dedicated', name: 'Dedicated Learner', description: `Complete ${10 - results.length} more tests`, icon: '📚' };
+    }
+
+    if (!badgeIds.includes('excellent')) {
+      return { id: 'excellent', name: 'Excellent', description: 'Score 90% or above in any test', icon: '⭐' };
+    }
+
+    return null;
+  }
+
+  // Generate personalized recommendations
+  function generatePersonalizedRecommendations(user, results, examType) {
+    const recommendations = [];
+
+    if (results.length === 0) {
+      recommendations.push({
+        type: 'diagnostic',
+        title: 'Take Diagnostic Test',
+        description: 'Start with a diagnostic test to understand your current level',
+        priority: 'high'
+      });
+      return recommendations;
+    }
+
+    const progress = calculateDetailedProgress(results);
+
+    // Subject-based recommendations
+    if (progress.weakSubjects.length > 0) {
+      recommendations.push({
+        type: 'practice',
+        title: 'Focus on Weak Subjects',
+        description: `Practice more questions in: ${progress.weakSubjects.join(', ')}`,
+        priority: 'high',
+        subjects: progress.weakSubjects
+      });
+    }
+
+    // Difficulty-based recommendations
+    if (progress.difficultyProgress.easy && progress.difficultyProgress.easy.accuracy < 70) {
+      recommendations.push({
+        type: 'practice',
+        title: 'Build Fundamentals',
+        description: 'Practice easy questions to strengthen your basics',
+        priority: 'medium',
+        difficulty: 'easy'
+      });
+    }
+
+    // Test frequency recommendations
+    const lastTestDate = results[0]?.completedAt;
+    const daysSinceLastTest = lastTestDate ? Math.floor((Date.now() - new Date(lastTestDate)) / (1000 * 60 * 60 * 24)) : 0;
+
+    if (daysSinceLastTest > 3) {
+      recommendations.push({
+        type: 'reminder',
+        title: 'Time for Practice',
+        description: `It's been ${daysSinceLastTest} days since your last test. Take a practice test to maintain momentum.`,
+        priority: 'medium'
+      });
+    }
+
+    // Mock test recommendations
+    if (progress.averageScore > 75 && progress.totalTests >= 10) {
+      recommendations.push({
+        type: 'mock',
+        title: 'Ready for Mock Test',
+        description: 'Your performance suggests you\'re ready for a full mock test',
+        priority: 'medium'
+      });
+    }
+
+    return recommendations;
+  }
+
+  // ==================== HELPER FUNCTIONS ====================
+
+  // Update user progress with detailed analytics
+  async function updateUserProgress(userId, examType, testData) {
+    try {
+      let userProgress = await UserProgress.findOne({ userId, examType });
+      
+      if (!userProgress) {
+        userProgress = new UserProgress({
+          userId,
+          examType,
+          totalTests: 0,
+          passedTests: 0,
+          failedTests: 0,
+          totalScore: 0,
+          totalQuestions: 0,
+          totalTime: 0,
+          averageScore: 0,
+          averageTime: 0,
+          currentStreak: 0,
+          bestStreak: 0,
+          subjectProgress: {},
+          difficultyProgress: {},
+          weakSubjects: [],
+          strongSubjects: []
+        });
+      }
+
+      // Update basic stats
+      userProgress.totalTests++;
+      userProgress.totalScore += testData.score;
+      userProgress.totalQuestions += testData.totalQuestions;
+      userProgress.totalTime += testData.totalTime;
+      userProgress.averageScore = Math.round(userProgress.totalScore / userProgress.totalTests);
+      userProgress.averageTime = Math.round(userProgress.totalTime / userProgress.totalTests);
+
+      if (testData.score >= 60) {
+        userProgress.passedTests++;
+      } else {
+        userProgress.failedTests++;
+      }
+
+      // Update subject progress
+      for (const [subject, performance] of Object.entries(testData.subjectPerformance)) {
+        if (!userProgress.subjectProgress[subject]) {
+          userProgress.subjectProgress[subject] = { correct: 0, total: 0, accuracy: 0 };
+        }
+        userProgress.subjectProgress[subject].correct += performance.correct;
+        userProgress.subjectProgress[subject].total += performance.total;
+        userProgress.subjectProgress[subject].accuracy = Math.round(
+          (userProgress.subjectProgress[subject].correct / userProgress.subjectProgress[subject].total) * 100
+        );
+      }
+
+      // Update difficulty progress
+      for (const [difficulty, performance] of Object.entries(testData.difficultyPerformance)) {
+        if (!userProgress.difficultyProgress[difficulty]) {
+          userProgress.difficultyProgress[difficulty] = { correct: 0, total: 0, accuracy: 0 };
+        }
+        userProgress.difficultyProgress[difficulty].correct += performance.correct;
+        userProgress.difficultyProgress[difficulty].total += performance.total;
+        userProgress.difficultyProgress[difficulty].accuracy = Math.round(
+          (userProgress.difficultyProgress[difficulty].correct / userProgress.difficultyProgress[difficulty].total) * 100
+        );
+      }
+
+      // Identify weak and strong subjects
+      const weakSubjects = [];
+      const strongSubjects = [];
+      
+      for (const [subject, progress] of Object.entries(userProgress.subjectProgress)) {
+        if (progress.accuracy < 60) {
+          weakSubjects.push(subject);
+        } else if (progress.accuracy > 80) {
+          strongSubjects.push(subject);
+        }
+      }
+
+      userProgress.weakSubjects = weakSubjects;
+      userProgress.strongSubjects = strongSubjects;
+
+      // Update streak
+      const today = new Date().toDateString();
+      const lastTestDate = userProgress.lastTestDate ? new Date(userProgress.lastTestDate).toDateString() : null;
+      
+      if (lastTestDate === today || lastTestDate === new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString()) {
+        userProgress.currentStreak++;
+        if (userProgress.currentStreak > userProgress.bestStreak) {
+          userProgress.bestStreak = userProgress.currentStreak;
+        }
+      } else {
+        userProgress.currentStreak = 1;
+      }
+
+      userProgress.lastTestDate = new Date();
+      await userProgress.save();
+
+    } catch (error) {
+      console.error('Update user progress error:', error);
+    }
+  }
+
+  // Calculate detailed progress analytics
+  function calculateDetailedProgress(results) {
+    if (results.length === 0) {
+      return {
+        totalTests: 0,
+        averageScore: 0,
+        totalQuestions: 0,
+        totalTime: 0,
+        currentStreak: 0,
+        bestStreak: 0,
+        subjectProgress: {},
+        difficultyProgress: {},
+        weakSubjects: [],
+        strongSubjects: [],
+        improvementRate: 0
+      };
+    }
+
+    const totalTests = results.length;
+    const totalScore = results.reduce((sum, r) => sum + r.score, 0);
+    const averageScore = Math.round(totalScore / totalTests);
+    const totalQuestions = results.reduce((sum, r) => sum + r.totalQuestions, 0);
+    const totalTime = results.reduce((sum, r) => sum + r.timeTaken, 0);
+
+    // Calculate subject and difficulty progress from detailed results
+    const subjectProgress = {};
+    const difficultyProgress = {};
+
+    results.forEach(result => {
+      result.answers.forEach(answer => {
+        // Subject progress
+        if (!subjectProgress[answer.subject]) {
+          subjectProgress[answer.subject] = { correct: 0, total: 0, accuracy: 0 };
+        }
+        subjectProgress[answer.subject].total++;
+        if (answer.isCorrect) subjectProgress[answer.subject].correct++;
+
+        // Difficulty progress
+        if (!difficultyProgress[answer.difficulty]) {
+          difficultyProgress[answer.difficulty] = { correct: 0, total: 0, accuracy: 0 };
+        }
+        difficultyProgress[answer.difficulty].total++;
+        if (answer.isCorrect) difficultyProgress[answer.difficulty].correct++;
+      });
+    });
+
+    // Calculate accuracy percentages
+    Object.keys(subjectProgress).forEach(subject => {
+      subjectProgress[subject].accuracy = Math.round(
+        (subjectProgress[subject].correct / subjectProgress[subject].total) * 100
+      );
+    });
+
+    Object.keys(difficultyProgress).forEach(difficulty => {
+      difficultyProgress[difficulty].accuracy = Math.round(
+        (difficultyProgress[difficulty].correct / difficultyProgress[difficulty].total) * 100
+      );
+    });
+
+    // Identify weak and strong subjects
+    const weakSubjects = Object.entries(subjectProgress)
+      .filter(([_, progress]) => progress.accuracy < 60)
+      .map(([subject, _]) => subject);
+
+    const strongSubjects = Object.entries(subjectProgress)
+      .filter(([_, progress]) => progress.accuracy > 80)
+      .map(([subject, _]) => subject);
+
+    // Calculate improvement rate (comparing recent vs older tests)
+    const recentTests = results.slice(0, Math.min(5, results.length));
+    const olderTests = results.slice(-Math.min(5, results.length));
+    
+    const recentAvg = recentTests.reduce((sum, r) => sum + r.score, 0) / recentTests.length;
+    const olderAvg = olderTests.reduce((sum, r) => sum + r.score, 0) / olderTests.length;
+    const improvementRate = Math.round(((recentAvg - olderAvg) / olderAvg) * 100);
+
+    return {
+      totalTests,
+      averageScore,
+      totalQuestions,
+      totalTime,
+      currentStreak: 0, // Will be calculated from user progress
+      bestStreak: 0, // Will be calculated from user progress
+      subjectProgress,
+      difficultyProgress,
+      weakSubjects,
+      strongSubjects,
+      improvementRate
+    };
+  }
+
+  // Calculate user level based on performance
+  function calculateUserLevel(averageScore, totalTests) {
+    if (totalTests < 5) return { level: 'beginner', name: 'Beginner', color: '#ff6b6b' };
+    if (averageScore < 50) return { level: 'beginner', name: 'Beginner', color: '#ff6b6b' };
+    if (averageScore < 70) return { level: 'intermediate', name: 'Intermediate', color: '#feca57' };
+    if (averageScore < 85) return { level: 'advanced', name: 'Advanced', color: '#48dbfb' };
+    return { level: 'expert', name: 'Expert', color: '#0abde3' };
+  }
+
+  // Generate recommendations based on performance
+  function generateRecommendations(subjectPerformance, difficultyPerformance, overallScore) {
+    const recommendations = [];
+
+    // Subject-based recommendations
+    for (const [subject, performance] of Object.entries(subjectPerformance)) {
+      const accuracy = (performance.correct / performance.total) * 100;
+      if (accuracy < 60) {
+        recommendations.push(`Focus on ${subject} fundamentals - your accuracy is ${Math.round(accuracy)}%`);
+      } else if (accuracy > 80) {
+        recommendations.push(`Great work in ${subject}! Try advanced questions to challenge yourself`);
+      }
+    }
+
+    // Difficulty-based recommendations
+    if (difficultyPerformance.easy && difficultyPerformance.easy.accuracy < 80) {
+      recommendations.push('Practice more easy questions to build confidence');
+    }
+    if (difficultyPerformance.hard && difficultyPerformance.hard.accuracy > 60) {
+      recommendations.push('You\'re ready for more challenging questions!');
+    }
+
+    // Overall recommendations
+    if (overallScore < 60) {
+      recommendations.push('Focus on understanding basic concepts before moving to advanced topics');
+    } else if (overallScore > 80) {
+      recommendations.push('Excellent performance! Consider taking mock tests to prepare for the actual exam');
+    }
+
+    return recommendations;
+  }
+
+  // Generate progress-based recommendations
+  function generateProgressRecommendations(progress) {
+    const recommendations = [];
+
+    if (progress.weakSubjects.length > 0) {
+      recommendations.push(`Focus on weak subjects: ${progress.weakSubjects.join(', ')}`);
+    }
+
+    if (progress.improvementRate < 0) {
+      recommendations.push('Your performance has declined. Consider reviewing previous topics');
+    } else if (progress.improvementRate > 10) {
+      recommendations.push('Great improvement! Keep up the good work');
+    }
+
+    if (progress.totalTests < 10) {
+      recommendations.push('Take more practice tests to get better insights into your performance');
+    }
+
+    return recommendations;
+  }
+
+  // Calculate user badges
+  function calculateUserBadges(user, results) {
+    const badges = [];
+
+    // Test completion badges
+    if (results.length >= 1) badges.push({ id: 'first_test', name: 'First Test', description: 'Completed your first test', icon: '🎯' });
+    if (results.length >= 10) badges.push({ id: 'dedicated', name: 'Dedicated Learner', description: 'Completed 10 tests', icon: '📚' });
+    if (results.length >= 50) badges.push({ id: 'persistent', name: 'Persistent', description: 'Completed 50 tests', icon: '🏆' });
+
+    // Score-based badges
+    const highScores = results.filter(r => r.score >= 90);
+    if (highScores.length >= 1) badges.push({ id: 'excellent', name: 'Excellent', description: 'Scored 90% or above', icon: '⭐' });
+    if (highScores.length >= 5) badges.push({ id: 'consistently_excellent', name: 'Consistently Excellent', description: '5+ scores above 90%', icon: '🌟' });
+
+    // Streak badges
+    if (user.stats && user.stats.currentStreak >= 3) badges.push({ id: 'streak_3', name: '3-Day Streak', description: '3 days of consistent practice', icon: '🔥' });
+    if (user.stats && user.stats.currentStreak >= 7) badges.push({ id: 'streak_7', name: 'Week Warrior', description: '7 days of consistent practice', icon: '💪' });
+
+    // Subject mastery badges
+    const subjectProgress = calculateDetailedProgress(results).subjectProgress;
+    for (const [subject, progress] of Object.entries(subjectProgress)) {
+      if (progress.total >= 20 && progress.accuracy >= 80) {
+        badges.push({ 
+          id: `master_${subject}`, 
+          name: `${subject.charAt(0).toUpperCase() + subject.slice(1)} Master`, 
+          description: `Mastered ${subject} with 80%+ accuracy`, 
+          icon: '👑' 
+        });
+      }
+    }
+
+    return badges;
+  }
+
+  // Get next badge to achieve
+  function getNextBadge(user, results) {
+    const currentBadges = calculateUserBadges(user, results);
+    const badgeIds = currentBadges.map(b => b.id);
+
+    if (!badgeIds.includes('first_test') && results.length === 0) {
+      return { id: 'first_test', name: 'First Test', description: 'Complete your first test', icon: '🎯' };
+    }
+
+    if (!badgeIds.includes('dedicated') && results.length < 10) {
+      return { id: 'dedicated', name: 'Dedicated Learner', description: `Complete ${10 - results.length} more tests`, icon: '📚' };
+    }
+
+    if (!badgeIds.includes('excellent')) {
+      return { id: 'excellent', name: 'Excellent', description: 'Score 90% or above in any test', icon: '⭐' };
+    }
+
+    return null;
+  }
+
+  // Check and award badges (placeholder function)
+  async function checkAndAwardBadges(userId, examType) {
+    // This would check for new badges and award them
+    // For now, return empty array
+    return [];
+  }
 
 module.exports = router; 
