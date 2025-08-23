@@ -1710,11 +1710,17 @@ router.post('/logout', async (req, res) => {
       // Get questions for the exam
       const Question = mongoose.model('Question');
       const questions = await Question.find({ 
-        exam: examType,
-        publishStatus: 'published'
+        exam: examType
       })
       .limit(questionCount || 10)
       .select('text options answer subject difficulty');
+
+      if (!questions || questions.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'No questions available for this exam'
+        });
+      }
 
       // Create test session
       const testSession = new TestSession({
