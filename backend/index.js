@@ -2567,8 +2567,7 @@ app.get('/api/v1/topics/:examId/count', async (req, res) => {
   }
 });
 
-// API v1 Routes - Updated to match frontend expectations
-app.use('/api/v1/users', userRoutes);
+
 
 // Subject-based Test Routes - Updated to match frontend expectations
 app.get('/api/v1/subjects/:examId', (req, res) => {
