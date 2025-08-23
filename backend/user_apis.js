@@ -1722,9 +1722,15 @@ router.post('/logout', async (req, res) => {
         });
       }
 
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
       // Create test session
       const testSession = new TestSession({
         sessionId,
+        userId: decoded.userId,
         examType,
         testType,
         questionCount: questions.length,
@@ -1776,9 +1782,15 @@ router.post('/logout', async (req, res) => {
         });
       }
 
+      // Get user from token
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+
       // Save answer
       const testAnswer = new TestAnswer({
         sessionId,
+        userId: decoded.userId,
         questionId,
         selectedAnswer,
         isCorrect: isCorrect || false,
