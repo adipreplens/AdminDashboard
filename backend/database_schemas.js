@@ -15,7 +15,7 @@ const testResultSchema = new mongoose.Schema({
   },
   testType: {
     type: String,
-    enum: ['practice', 'mock', 'quiz', 'assessment'],
+    enum: ['practice', 'mock', 'quiz', 'assessment', 'diagnostic'],
     required: true
   },
   examType: {
@@ -91,7 +91,7 @@ const testSessionSchema = new mongoose.Schema({
   },
   testType: {
     type: String,
-    enum: ['practice', 'mock', 'quiz', 'assessment'],
+    enum: ['practice', 'mock', 'quiz', 'assessment', 'diagnostic'],
     required: true
   },
   questionCount: {
