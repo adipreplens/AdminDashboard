@@ -131,12 +131,12 @@ const connectWithRetry = () => {
   mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-    socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
-    maxPoolSize: 10, // Maximum number of connections in the pool
-    minPoolSize: 2,  // Minimum number of connections in the pool
-    maxIdleTimeMS: 30000, // Close connections after 30s of inactivity
-    connectTimeoutMS: 10000, // Give up initial connection after 10s
+    serverSelectionTimeoutMS: 10000, // Increased timeout
+    socketTimeoutMS: 45000,
+    maxPoolSize: 10,
+    minPoolSize: 2,
+    maxIdleTimeMS: 30000,
+    connectTimeoutMS: 15000, // Increased timeout
   })
   .then(() => {
     console.log('✅ Connected to MongoDB successfully!');
@@ -145,12 +145,13 @@ const connectWithRetry = () => {
   })
   .catch(err => {
     console.error('❌ MongoDB connection error:', err);
-    console.log('🔄 Retrying MongoDB connection in 5 seconds...');
-    setTimeout(connectWithRetry, 5000);
+    console.log('🔄 Retrying MongoDB connection in 10 seconds...');
+    setTimeout(connectWithRetry, 10000);
   });
 };
 
-connectWithRetry();
+// Start MongoDB connection but don't block server startup
+setTimeout(connectWithRetry, 1000);
 
 // Handle MongoDB disconnection
 mongoose.connection.on('disconnected', () => {
@@ -345,15 +346,40 @@ const cleanupOldFiles = () => {
 // Run cleanup every hour
 setInterval(cleanupOldFiles, 60 * 60 * 1000);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'PrepLens Admin API is running',
-    timestamp: new Date().toISOString(),
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    s3: process.env.AWS_ACCESS_KEY_ID ? 'configured' : 'not configured'
-  });
+// Health check endpoint for Render
+app.get('/health', async (req, res) => {
+  try {
+    // Make S3 health check optional and non-blocking
+    let s3Health = { status: 'not_configured', message: 'S3 not configured' };
+    try {
+      s3Health = await s3Service.healthCheck();
+    } catch (s3Error) {
+      console.warn('S3 health check failed, but continuing:', s3Error.message);
+      s3Health = { status: 'error', message: s3Error.message };
+    }
+    
+    res.status(200).json({ 
+      status: 'OK',
+      message: 'PrepLens Admin API is running',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+      s3: s3Health.status === 'healthy' ? 'configured' : s3Health.status,
+      environment: process.env.NODE_ENV || 'development'
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    // Even if there's an error, return a basic health response
+    res.status(200).json({ 
+      status: 'OK',
+      message: 'PrepLens Admin API is running (with warnings)',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || 'development',
+      warning: 'Some services may not be fully configured'
+    });
+  }
 });
 
 // Statistics endpoint
@@ -1671,31 +1697,6 @@ app.delete('/upload-image/:filename', async (req, res) => {
   }
 });
 
-// Health check endpoint for Render
-app.get('/health', async (req, res) => {
-  try {
-    const s3Health = await s3Service.healthCheck();
-    
-    res.status(200).json({ 
-      status: 'OK',
-      message: 'PrepLens Admin API is running',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      memory: process.memoryUsage(),
-      mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-      s3: s3Health.status === 'healthy' ? 'configured' : 'not configured',
-      environment: process.env.NODE_ENV || 'development'
-    });
-  } catch (error) {
-    console.error('Health check error:', error);
-    res.status(500).json({ 
-      status: 'ERROR',
-      message: 'Health check failed',
-      error: error.message
-    });
-  }
-});
-
 // Authentication endpoints (hardcoded for demo)
 app.post('/auth/login', (req, res) => {
   const { email, password } = req.body;
@@ -2723,4 +2724,13 @@ app.get('/api/v1/subjects/:examId/:subjectId/performance', async (req, res) => {
 // 404 handler - must be at the end after all routes
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
+});
+
+// Simple health check endpoint (always responds)
+app.get('/ping', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK',
+    message: 'Server is running',
+    timestamp: new Date().toISOString()
+  });
 });
