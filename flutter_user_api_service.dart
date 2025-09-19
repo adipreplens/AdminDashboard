@@ -1120,21 +1120,27 @@ class UserApiService {
         'page': page.toString(),
         'limit': limit.toString(),
         'language': language,
+        'exam': exam,
       };
       
       if (subject != null) queryParams['subject'] = subject;
       if (difficulty != null) queryParams['difficulty'] = difficulty;
       if (search != null) queryParams['search'] = search;
 
-      final uri = Uri.parse('$baseUrl/api/v1/users/questions/$exam').replace(queryParameters: queryParams);
+      final uri = Uri.parse('$baseUrl/questions').replace(queryParameters: queryParams);
       
-      final response = await http.get(uri, headers: _authHeaders);
+      final response = await http.get(uri, headers: {'Content-Type': 'application/json'});
       final data = json.decode(response.body);
 
       if (response.statusCode == 200) {
         return {
           'success': true,
-          'data': data['data'],
+          'data': {
+            'questions': data['questions'] ?? [],
+            'total': data['total'] ?? 0,
+            'currentPage': data['currentPage'] ?? 1,
+            'totalPages': data['totalPages'] ?? 1,
+          },
         };
       } else {
         return {

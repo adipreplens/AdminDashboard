@@ -1,60 +1,73 @@
 import 'package:flutter/material.dart';
-import 'screens/otp_login_screen.dart';
-import 'screens/dashboard_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'screens/login_screen.dart';
+import 'screens/otp_verification_screen.dart';
+import 'screens/exam_selection_screen.dart';
+import 'screens/user_profiling_screen.dart';
 import 'screens/diagnostic_test_screen.dart';
-import 'screens/test_result_screen.dart';
-import 'screens/badges_screen.dart';
-import 'screens/detailed_solution_screen.dart';
-import 'services/test_prep_api_service.dart';
+import 'screens/dashboard_screen.dart';
+import 'services/auth_service.dart';
+import 'services/user_service.dart';
+import 'services/learning_service.dart';
+import 'services/question_service.dart';
 
 void main() {
-  runApp(TestPrepApp());
+  runApp(const PrepLensStudentApp());
 }
 
-class TestPrepApp extends StatelessWidget {
+class PrepLensStudentApp extends StatelessWidget {
+  const PrepLensStudentApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Test Prep App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => UserService()),
+        ChangeNotifierProvider(create: (_) => LearningService()),
+        ChangeNotifierProvider(create: (_) => QuestionService()),
+      ],
+      child: ScreenUtilInit(
+        designSize: const Size(375, 812),
+        minTextAdapt: true,
+        splitScreenMode: true,
+        builder: (context, child) {
+          return MaterialApp(
+            title: 'PrepLens Student',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              primarySwatch: Colors.blue,
+              textTheme: GoogleFonts.robotoTextTheme(),
+              appBarTheme: AppBarTheme(
+                backgroundColor: Colors.blue[600],
+                foregroundColor: Colors.white,
+                elevation: 0,
+                centerTitle: true,
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[600],
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+              ),
             ),
-            padding: EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          ),
-        ),
+            home: const LoginScreen(),
+            routes: {
+              '/otp': (context) => const OTPVerificationScreen(phoneNumber: ''),
+              '/exam-selection': (context) => const ExamSelectionScreen(),
+              '/profiling': (context) => const UserProfilingScreen(),
+              '/diagnostic': (context) => const DiagnosticTestScreen(),
+              '/dashboard': (context) => const DashboardScreen(),
+            },
+          );
+        },
       ),
-      initialRoute: '/login',
-      routes: {
-        '/login': (context) => OTPLoginScreen(),
-        '/dashboard': (context) => DashboardScreen(),
-        '/diagnostic-test': (context) => DiagnosticTestScreen(),
-        '/badges': (context) => BadgesScreen(),
-      },
-      onGenerateRoute: (settings) {
-        if (settings.name == '/test-result') {
-          final result = settings.arguments as Map<String, dynamic>;
-          return MaterialPageRoute(
-            builder: (context) => TestResultScreen(result: result),
-          );
-        }
-        if (settings.name == '/detailed-solution') {
-          final testResult = settings.arguments as Map<String, dynamic>;
-          return MaterialPageRoute(
-            builder: (context) => DetailedSolutionScreen(testResult: testResult),
-          );
-        }
-        return null;
-      },
     );
   }
-} 
+}

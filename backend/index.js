@@ -1873,16 +1873,18 @@ app.get('/api/public/filters', async (req, res) => {
 // Public API endpoint for statistics
 app.get('/api/public/statistics', async (req, res) => {
   try {
-    const totalQuestions = await Question.countDocuments({ publishStatus: 'published' });
-    const totalExams = await Question.distinct('exam').then(exams => exams.filter(e => e).length);
-    const totalSubjects = await Question.distinct('subject').then(subjects => subjects.filter(s => s).length);
+    const totalQuestions = await Question.countDocuments({});
+    const publishedQuestions = await Question.countDocuments({ publishStatus: 'published' });
+    const draftQuestions = await Question.countDocuments({ publishStatus: 'draft' });
+    const totalUsers = await User.countDocuments({});
 
     res.json({
       success: true,
       data: {
         totalQuestions,
-        totalExams,
-        totalSubjects
+        publishedQuestions,
+        draftQuestions,
+        totalUsers
       }
     });
   } catch (error) {
@@ -1890,6 +1892,46 @@ app.get('/api/public/statistics', async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'Failed to fetch statistics' 
+    });
+  }
+});
+
+// Temporary detailed statistics endpoint (for admin dashboard)
+app.get('/api/admin/statistics', async (req, res) => {
+  try {
+    const totalQuestions = await Question.countDocuments({});
+    const publishedQuestions = await Question.countDocuments({ publishStatus: 'published' });
+    const draftQuestions = await Question.countDocuments({ publishStatus: 'draft' });
+    const totalUsers = await User.countDocuments({});
+    
+    // Get exam-wise breakdown
+    const examBreakdown = await Question.aggregate([
+      { $group: { _id: '$exam', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+    
+    // Get subject-wise breakdown
+    const subjectBreakdown = await Question.aggregate([
+      { $group: { _id: '$subject', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        totalQuestions,
+        publishedQuestions,
+        draftQuestions,
+        totalUsers,
+        examBreakdown,
+        subjectBreakdown
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching admin statistics:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch admin statistics' 
     });
   }
 });
@@ -2111,6 +2153,11 @@ app.get('/tags', async (req, res) => {
 
 // Serve uploaded files (fallback for local files)
 app.use('/uploads', express.static('uploads'));
+
+// Serve admin dashboard
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, '../admin_dashboard.html'));
+});
 
 // Error handling middleware
 app.use((error, req, res, next) => {
